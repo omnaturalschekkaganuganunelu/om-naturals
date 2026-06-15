@@ -69,22 +69,22 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full">
       {/* Main Header */}
       <div className="w-full bg-white/96 backdrop-blur-md border-b border-amber-100/80 smooth-shadow">
-        <div className="w-full px-3 sm:px-8 lg:px-12 h-16 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center gap-3 sm:gap-4">
           
-          {/* Brand Logo */}
-          <div className="flex items-center flex-shrink">
-            <Link href="/" className="flex flex-col group min-w-0">
-              <span className="text-[13px] min-[360px]:text-sm min-[400px]:text-base sm:text-xl lg:text-2xl font-black tracking-tight text-amber-900 leading-tight font-heading group-hover:text-amber-700 transition-colors truncate">
+          {/* Brand Logo — fixed width so it never steals space from search */}
+          <div className="flex-shrink-0">
+            <Link href="/" className="flex flex-col group">
+              <span className="text-sm sm:text-lg lg:text-xl font-black tracking-tight text-amber-900 leading-tight font-heading group-hover:text-amber-700 transition-colors whitespace-nowrap">
                 {language === 'te' ? 'సహజ చెక్క గానుగ నూనెలు' : 'Natural Chekka Ganuga Oils'}
               </span>
-              <span className="text-[7px] min-[360px]:text-[8px] min-[400px]:text-[9px] sm:text-[10px] font-bold tracking-[0.12em] sm:tracking-[0.18em] text-amber-600/80 uppercase truncate">
-                NATURAL CHEKKA GANUGA OILS
+              <span className="hidden sm:block text-[9px] font-bold tracking-[0.15em] text-amber-600/70 uppercase">
+                100% Pure Cold Pressed
               </span>
             </Link>
           </div>
 
-          {/* Desktop Search */}
-          <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-md mx-6 relative">
+          {/* Desktop Search — takes all available middle space */}
+          <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-auto relative">
             <input
               type="text"
               placeholder={t('nav_search_placeholder')}
@@ -100,16 +100,19 @@ export default function Navbar() {
             </button>
           </form>
 
+          {/* Spacer for mobile — pushes actions to the right */}
+          <div className="flex-1 md:hidden" />
+
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center space-x-1">
+          <nav className="hidden lg:flex items-center space-x-1 flex-shrink-0">
             <Link href="/" className={navLinkClass('/')}>{t('nav_home')}</Link>
             <Link href="/products?category=cold-pressed" className={navLinkClass('/products?category=cold-pressed')}>{t('nav_oils')}</Link>
             <Link href="/products?category=refined-filtered" className={navLinkClass('/products?category=refined-filtered')}>{t('nav_pooja')}</Link>
             <Link href="/track-order" className={navLinkClass('/track-order')}>{t('nav_track')}</Link>
           </nav>
 
-          {/* Actions */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          {/* Actions — flex-shrink-0 so they never get squeezed */}
+          <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
             {/* Mobile Search Toggle */}
             <button
               type="button"

@@ -45,8 +45,8 @@ export default function HomePageClient({ categories, products }: Props) {
 
   const reviews = [
     {
-      quote_en: '"The sesame oil has a beautiful traditional aroma — perfect for cooking and lamp lighting. Placing another order for groundnut oil soon!"',
-      quote_te: '"నువ్వుల నూనె వంటలకే కాకుండా పూజ గదిలో దీపం పెట్టడానికి కూడా చాలా బాగుంది. అసలైన కమ్మని వాసన వస్తుంది."',
+      quote_en: '"The sesame oil has a beautiful traditional aroma — our curries and chutneys have never tasted better. Placing another order for groundnut oil soon!"',
+      quote_te: '"నువ్వుల నూనె వంటలకు చాలా అద్భుతంగా ఉంది. కూరలకూ, పచ్చళ్ళకూ అసలైన కమ్మని రుచి వస్తోంది."',
       name_en: 'Ramarao, Guntur',
       name_te: 'రామారావు, గుంటూరు',
       initial: 'R',
@@ -128,7 +128,7 @@ export default function HomePageClient({ categories, products }: Props) {
               <div className="bg-white rounded-2xl overflow-hidden shadow-lg aspect-square relative">
                 <Image
                   src={heroImgError ? FALLBACK_IMAGE : 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=400&auto=format&fit=crop'}
-                  alt="Pure Edible Oils and Pooja Items"
+                  alt="Pure Edible Oils - Cold Pressed and Refined"
                   fill
                   sizes="(max-width: 1024px) 50vw, 30vw"
                   className="object-cover"
@@ -226,8 +226,8 @@ export default function HomePageClient({ categories, products }: Props) {
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 mt-2">
             {language === 'te' 
-              ? 'స్వచ్ఛమైన గానుగ నూనెలు మరియు భీమసేని కర్పూరం వాడిన కస్టమర్ల నిజాయితీ గల అభిప్రాయాలు.' 
-              : 'Honest reviews from customers using our wood-pressed oils and Bhimseni camphor.'}
+              ? 'స్వచ్ఛమైన గానుగ నూనెలు వాడిన కస్టమర్ల నిజాయితీ గల అభిప్రాయాలు.' 
+              : 'Honest reviews from customers using our wood-pressed edible oils.'}
           </p>
         </div>
 

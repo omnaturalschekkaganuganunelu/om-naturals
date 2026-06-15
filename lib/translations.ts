@@ -128,7 +128,7 @@ export const translations = {
     cart_coupon_applied: 'Applied',
     cart_coupon_remove: 'Remove',
     cart_coupon_checking: 'Checking...',
-    cart_coupon_placeholder: 'e.g. DEEPAM10',
+    cart_coupon_placeholder: 'e.g. NUNE10',
     cart_recommended_coupons: 'Recommended Coupons:',
     cart_order_summary: 'Order Summary',
     cart_subtotal: 'Items Subtotal',
@@ -292,7 +292,7 @@ export const translations = {
 
     // Admin Categories
     admin_categories_title: 'Category Management',
-    admin_categories_sub: 'Oils and pooja item categories',
+    admin_categories_sub: 'Manage oil product categories',
     admin_categories_add: 'Add Category',
     admin_categories_placeholder: 'Search category by name...',
     admin_categories_th_image: 'Image',
@@ -498,7 +498,7 @@ export const translations = {
     cart_coupon_applied: 'వర్తించబడింది',
     cart_coupon_remove: 'తొలగించు',
     cart_coupon_checking: 'చెకింగ్...',
-    cart_coupon_placeholder: 'ఉదా: DEEPAM10',
+    cart_coupon_placeholder: 'ఉదా: NUNE10',
     cart_recommended_coupons: 'మీ కొరకు ఆఫర్లు:',
     cart_order_summary: 'ఆర్డర్ సారాంశం',
     cart_subtotal: 'ఉత్పత్తుల మొత్తం',
@@ -662,7 +662,7 @@ export const translations = {
 
     // Admin Categories
     admin_categories_title: 'విభాగాల నియంత్రణ',
-    admin_categories_sub: 'నూనెలు మరియు పూజా సామాగ్రి విభాగాలు',
+    admin_categories_sub: 'నూనెల విభాగాల నిర్వహణ',
     admin_categories_add: 'కొత్త విభాగం చేర్చు',
     admin_categories_placeholder: 'విభాగం పేరు ద్వారా వెతకండి...',
     admin_categories_th_image: 'చిత్రం',
