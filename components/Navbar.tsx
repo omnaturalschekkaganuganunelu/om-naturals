@@ -75,7 +75,7 @@ export default function Navbar() {
           <div className="flex-shrink-0">
             <Link href="/" className="flex flex-col group">
               <span className="text-sm sm:text-lg lg:text-xl font-black tracking-tight text-amber-900 leading-tight font-heading group-hover:text-amber-700 transition-colors whitespace-nowrap">
-                {language === 'te' ? 'సహజ చెక్క గానుగ నూనెలు' : 'Natural Chekka Ganuga Oils'}
+                {language === 'te' ? 'ఓం సహజ చెక్క గానుగ నూనెలు' : 'OM Natural Chekka Ganuga Oils'}
               </span>
               <span className="hidden sm:block text-[9px] font-bold tracking-[0.15em] text-amber-600/70 uppercase">
                 100% Pure Cold Pressed

@@ -5,10 +5,10 @@ import { Suspense } from 'react';
 import MobileBottomNav from '@/components/MobileBottomNav';
 
 export const metadata: Metadata = {
-  title: 'Natural Chekka Ganuga Oils | 100% Pure Traditional Wood Pressed Cooking Oils',
+  title: 'OM Natural Chekka Ganuga Oils | 100% Pure Traditional Wood Pressed Cooking Oils',
   description: 'Buy 100% pure cold pressed groundnut, coconut, sesame, almond (badam), and mustard oils online. Authentic wood-pressed edible oils delivered across AP & TS.',
   keywords: 'Chekka Ganuga Oils, Wood Pressed Oils, Groundnut Oil, Sesame Oil, Coconut Oil, Almond Oil, Badam Nune, Mustard Oil, Hyderabad edible oils, pure cooking oil AP TS',
-  authors: [{ name: 'Natural Chekka Ganuga Oils Team' }],
+  authors: [{ name: 'OM Natural Chekka Ganuga Oils Team' }],
   icons: {
     icon: '/favicon.ico',
   },

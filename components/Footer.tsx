@@ -16,10 +16,10 @@ export default function Footer() {
         {/* Brand Header */}
         <div className="space-y-2">
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight font-heading gold-text-gradient drop-shadow-sm">
-            {language === 'te' ? 'సహజ చెక్క గానుగ నూనెలు' : 'Natural Chekka Ganuga Oils'}
+            {language === 'te' ? 'ఓం సహజ చెక్క గానుగ నూనెలు' : 'OM Natural Chekka Ganuga Oils'}
           </h2>
           <p className="text-[10px] font-black tracking-[0.25em] text-amber-500 uppercase">
-            NATURAL CHEKKA GANUGA OILS
+            OM NATURAL CHEKKA GANUGA OILS
           </p>
           <div className="h-[1px] w-12 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto mt-2" />
           <p className="max-w-md text-xs text-amber-200/50 leading-relaxed font-semibold pt-1.5">
@@ -32,14 +32,14 @@ export default function Footer() {
         {/* Quick Compact Contacts */}
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <a
-            href="tel:+919999999999"
+            href="tel:+918688291288"
             className="flex items-center space-x-2 px-5 py-2.5 bg-[#25150a] border border-amber-900/30 rounded-full hover:border-amber-500/60 hover:bg-amber-950/70 hover:shadow-[0_0_12px_rgba(245,158,11,0.1)] text-amber-300 font-bold transition-all duration-300 text-xs"
           >
             <Phone size={13} className="text-amber-400" />
-            <span>+91 99999 99999</span>
+            <span>+91 86882 91288</span>
           </a>
           <a
-            href="https://wa.me/919999999999"
+            href="https://wa.me/918688291288"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center space-x-2 px-5 py-2.5 bg-[#092216] border border-emerald-950 rounded-full hover:border-emerald-500/60 hover:bg-emerald-950/70 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)] text-emerald-300 font-bold transition-all duration-300 text-xs"
@@ -52,7 +52,7 @@ export default function Footer() {
             className="flex items-center space-x-2 px-5 py-2.5 bg-[#25150a] border border-amber-900/30 rounded-full hover:border-amber-500/60 hover:bg-amber-950/70 hover:shadow-[0_0_12px_rgba(245,158,11,0.1)] text-amber-300 font-bold transition-all duration-300 text-xs"
           >
             <Mail size={13} className="text-amber-400" />
-            <span>support@nunebazaar.com</span>
+            <span>support@omnatural.com</span>
           </a>
         </div>
 
@@ -70,7 +70,7 @@ export default function Footer() {
         {/* Secure & Copyright Bottom */}
         <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-amber-600/80 pt-2">
           <p className="font-semibold order-2 sm:order-1">
-            © {year} {language === 'te' ? 'సహజ చెక్క గానుగ నూనెలు' : 'Natural Chekka Ganuga Oils'}. {language === 'te' ? 'అన్ని హక్కులు రక్షించబడ్డాయి.' : 'All Rights Reserved.'}
+            © {year} {language === 'te' ? 'ఓం సహజ చెక్క గానుగ నూనెలు' : 'OM Natural Chekka Ganuga Oils'}. {language === 'te' ? 'అన్ని హక్కులు రక్షించబడ్డాయి.' : 'All Rights Reserved.'}
           </p>
           
           <div className="flex items-center space-x-2 bg-amber-950/70 px-4 py-2 rounded-full border border-amber-900/30 order-1 sm:order-2 shadow-inner">

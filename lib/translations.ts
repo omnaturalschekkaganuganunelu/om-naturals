@@ -24,7 +24,7 @@ export const translations = {
 
     // Hero
     hero_badge: '100% Pure & Traditional Wood Pressed Oils',
-    hero_heading_1: 'Natural Chekka',
+    hero_heading_1: 'OM Natural Chekka',
     hero_heading_2: 'Ganuga Oils',
     hero_sub: 'Pure cold-pressed sesame, groundnut, coconut, almond, and mustard oils for your family\'s health and wellness. Direct from the press to your kitchen.',
     hero_btn_oils: 'Cold Pressed',
@@ -87,7 +87,7 @@ export const translations = {
     demo_login_link: 'Go to Login Page →',
 
     // Footer
-    footer_about: 'Natural Chekka Ganuga Oils is dedicated to providing premium, chemical-free, traditionally wood-pressed edible oils. We bring health and purity directly to your kitchen.',
+    footer_about: 'OM Natural Chekka Ganuga Oils is dedicated to providing premium, chemical-free, traditionally wood-pressed edible oils. We bring health and purity directly to your kitchen.',
     footer_products: 'POPULAR OILS',
     footer_link_cooking: 'Cold Pressed Groundnut Oil',
     footer_link_lighting: 'Cold Pressed Sesame Oil',
@@ -101,17 +101,17 @@ export const translations = {
     footer_returns: 'Returns & Refund',
     footer_privacy: 'Privacy Policy',
     footer_contact: 'CONTACT',
-    footer_address: 'Plot No. 124, Bhagyanagar Colony, Kukatpally, Hyderabad, Telangana - 500072.',
+    footer_address: 'Inner Ring Road Phase 2, Near Sri Convention.',
     footer_secure: 'Secure Payments:',
-    footer_copyright: 'Natural Chekka Ganuga Oils. All Rights Reserved.',
+    footer_copyright: 'OM Natural Chekka Ganuga Oils. All Rights Reserved.',
     footer_badge_organic: '100% Pure & Organic',
     footer_badge_organic_sub: 'Cold-pressed oils and clean unrefined products.',
     footer_badge_traditional: 'Traditional Process',
     footer_badge_traditional_sub: 'Wood-pressed oils for a healthier tomorrow.',
     footer_badge_whatsapp: 'WhatsApp Help',
     footer_badge_whatsapp_sub: 'Quick answers and help to your queries.',
-    footer_brand_name: 'Natural Chekka Ganuga Oils',
-    footer_tagline: 'NATURAL CHEKKA GANUGA OILS',
+    footer_brand_name: 'OM Natural Chekka Ganuga Oils',
+    footer_tagline: 'OM NATURAL CHEKKA GANUGA OILS',
 
     // Cart
     cart_title: 'Shopping Cart',
@@ -394,7 +394,7 @@ export const translations = {
 
     // Hero
     hero_badge: '100% సాంప్రదాయ పద్ధతిలో తయారైన స్వచ్ఛమైన చెక్క గానుగ నూనెలు',
-    hero_heading_1: 'సహజ చెక్క',
+    hero_heading_1: 'ఓం సహజ చెక్క',
     hero_heading_2: 'గానుగ నూనెలు',
     hero_sub: 'కుటుంబ సభ్యుల సంపూర్ణ ఆరోగ్య రక్షణ కోసం సాంప్రదాయ చెక్క గానుగ ద్వారా సేకరించిన స్వచ్ఛమైన వేరుశనగ, నువ్వుల, కొబ్బరి, బాదం మరియు ఆవ నూనెలు. గానుగ నుండి నేరుగా మీ వంటగదికి.',
     hero_btn_oils: 'చెక్క గానుగ',
@@ -457,7 +457,7 @@ export const translations = {
     demo_login_link: 'లాగిన్ పేజీకి వెళ్ళండి →',
 
     // Footer
-    footer_about: 'సహజ చెక్క గానుగ నూనెల వేదికగా మేము ఎటువంటి రసాయనాలు మరియు నిల్వ కారకాలు లేని స్వచ్ఛమైన సాంప్రదాయ చెక్క గానుగ వంట నూనెలను అందిస్తున్నాము. మీ కుటుంబాల సంపూర్ణ ఆరోగ్యమే మా లక్ష్యం.',
+    footer_about: 'ఓం సహజ చెక్క గానుగ నూనెల వేదికగా మేము ఎటువంటి రసాయనాలు మరియు నిల్వ కారకాలు లేని స్వచ్ఛమైన సాంప్రదాయ చెక్క గానుగ వంట నూనెలను అందిస్తున్నాము. మీ కుటుంబాల సంపూర్ణ ఆరోగ్యమే మా లక్ష్యం.',
     footer_products: 'ప్రసిద్ధ నూనెలు',
     footer_link_cooking: 'గానుగ వేరుశనగ నూనె',
     footer_link_lighting: 'గానుగ నువ్వుల నూనె',
@@ -471,17 +471,17 @@ export const translations = {
     footer_returns: 'రిటర్న్స్ & రీఫండ్',
     footer_privacy: 'ప్రైవసీ పాలసీ',
     footer_contact: 'సంప్రదించండి',
-    footer_address: 'ప్లాట్ నెం. 124, భాగ్యనగర్ కాలనీ, కూకట్‌పల్లి, హైదరాబాద్, తెలంగాణ - 500072.',
+    footer_address: 'ఇన్నర్ రింగ్ రోడ్ ఫేజ్ 2, శ్రీ కన్వెన్షన్ దగ్గర.',
     footer_secure: 'సురక్షిత చెల్లింపులు:',
-    footer_copyright: 'సహజ చెక్క గానుగ నూనెలు. అన్ని హక్కులు రక్షించబడ్డాయి.',
+    footer_copyright: 'ఓం సహజ చెక్క గానుగ నూనెలు. అన్ని హక్కులు రక్షించబడ్డాయి.',
     footer_badge_organic: '100% గ్యారంటీ',
     footer_badge_organic_sub: 'స్వచ్ఛమైన చెక్క గానుగ నూనెలు.',
     footer_badge_traditional: 'సాంప్రదాయ పద్ధతి',
     footer_badge_traditional_sub: 'ఆరోగ్యకరమైన రేపటి కోసం చెక్క గానుగ నూనెలు.',
     footer_badge_whatsapp: 'వాట్సాప్ సపోర్ట్',
     footer_badge_whatsapp_sub: 'మీ సందేహాలకు త్వరిత సమాధానాలు మరియు సహాయం.',
-    footer_brand_name: 'సహజ చెక్క గానుగ నూనెలు',
-    footer_tagline: 'సహజ చెక్క గానుగ నూనెలు',
+    footer_brand_name: 'ఓం సహజ చెక్క గానుగ నూనెలు',
+    footer_tagline: 'ఓం సహజ చెక్క గానుగ నూనెలు',
 
     // Cart
     cart_title: 'షాపింగ్ కార్ట్',

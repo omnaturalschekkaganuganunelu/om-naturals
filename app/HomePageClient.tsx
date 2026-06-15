@@ -321,7 +321,7 @@ export default function HomePageClient({ categories, products }: Props) {
 
       {/* Floating WhatsApp CTA */}
       <a
-        href={`https://wa.me/919999999999?text=${encodeURIComponent(t('misc_whatsapp_cta'))}`}
+        href={`https://wa.me/918688291288?text=${encodeURIComponent(t('misc_whatsapp_cta'))}`}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-500 text-white px-4 py-3 rounded-full shadow-2xl z-40 transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-2 font-bold text-sm"
