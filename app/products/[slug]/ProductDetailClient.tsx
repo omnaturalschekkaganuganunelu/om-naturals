@@ -118,16 +118,16 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
       
       {/* Breadcrumbs */}
-      <div className="text-xs text-gray-500 mb-6 flex space-x-1.5 font-medium">
-        <span className="hover:text-amber-800 cursor-pointer" onClick={() => router.push('/')}>{t('nav_home')}</span>
-        <span>/</span>
-        <span className="hover:text-amber-800 cursor-pointer" onClick={() => router.push('/products')}>{t('products_title')}</span>
-        <span>/</span>
-        <span className="hover:text-amber-800 cursor-pointer" onClick={() => router.push(`/products?category=${product.category.slug}`)}>
+      <div className="text-xs text-gray-500 mb-6 flex flex-wrap items-center gap-1.5 font-medium min-w-0">
+        <span className="hover:text-amber-800 cursor-pointer shrink-0" onClick={() => router.push('/')}>{t('nav_home')}</span>
+        <span className="text-gray-400">/</span>
+        <span className="hover:text-amber-800 cursor-pointer shrink-0" onClick={() => router.push('/products')}>{t('products_title')}</span>
+        <span className="text-gray-400">/</span>
+        <span className="hover:text-amber-800 cursor-pointer shrink-0" onClick={() => router.push(`/products?category=${product.category.slug}`)}>
           {(language === 'te' ? product.category.nameTe : product.category.name).split('(')[0]}
         </span>
-        <span>/</span>
-        <span className="text-amber-950 font-semibold truncate max-w-xs">{language === 'te' ? product.nameTe : product.name}</span>
+        <span className="text-gray-400">/</span>
+        <span className="text-amber-950 font-semibold truncate max-w-[200px] sm:max-w-xs">{language === 'te' ? product.nameTe : product.name}</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 bg-white border border-amber-100 rounded-3xl p-6 sm:p-8 smooth-shadow">
@@ -245,7 +245,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
               </div>
 
               {/* Action buttons */}
-              <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <button
                   onClick={() => handleAddToCart(false)}
                   className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 ${

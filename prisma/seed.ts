@@ -735,6 +735,11 @@ async function main() {
     'refined-filtered': categoryRefinedFiltered.id
   };
 
+  // Disable all existing products first to clean up old database states (such as Pooja items)
+  await prisma.product.updateMany({
+    data: { isActive: false }
+  });
+
   for (const raw of rawProducts) {
     const categoryId = catMap[raw.categorySlug];
     const productData = {
