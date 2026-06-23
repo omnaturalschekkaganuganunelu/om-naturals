@@ -144,6 +144,28 @@ select option {
   animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ─── Slide Up (bottom sheet) ─── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUpMd {
+  from { transform: translateY(40px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@media (min-width: 768px) {
+  .animate-slide-up {
+    animation: slideUpMd 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+
 /* Language switcher pill */
 .lang-pill {
   display: inline-flex;
