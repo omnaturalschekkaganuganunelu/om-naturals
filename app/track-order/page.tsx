@@ -249,8 +249,13 @@ function TrackOrderContent() {
 
   // Server Sent Events (SSE) listener for real-time status updates
   const trackingOrderId = order?.id;
+  const isFinalStatus = order?.orderStatus === 'DELIVERED' || order?.orderStatus === 'CANCELLED';
+
   useEffect(() => {
-    if (!trackingOrderId) return;
+    if (!trackingOrderId || isFinalStatus) {
+      setSseConnected(false);
+      return;
+    }
 
     let eventSource: EventSource | null = null;
     let pollInterval: NodeJS.Timeout | null = null;
@@ -302,6 +307,7 @@ function TrackOrderContent() {
     };
 
     const fetchOrderStatusSilent = () => {
+      if (document.hidden) return;
       fetch(`/api/orders/${trackingOrderId}`)
         .then((res) => {
           if (res.ok) return res.json();
@@ -323,6 +329,14 @@ function TrackOrderContent() {
         .catch((err) => console.error('Silent order status poll failed:', err));
     };
 
+    const handleVisibilityChange = () => {
+      if (!document.hidden && pollInterval) {
+        fetchOrderStatusSilent();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     connectSSE();
 
     return () => {
@@ -333,9 +347,10 @@ function TrackOrderContent() {
       if (pollInterval) {
         clearInterval(pollInterval);
       }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       setSseConnected(false);
     };
-  }, [trackingOrderId, language, getStatusLabel, showToast]);
+  }, [trackingOrderId, isFinalStatus, language, getStatusLabel, showToast]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -131,6 +131,7 @@ export default function AdminDashboardPage() {
     };
 
     const fetchStatsSilent = () => {
+      if (document.hidden) return;
       fetch('/api/admin/stats')
         .then((res) => res.json())
         .then((data) => {
@@ -138,6 +139,14 @@ export default function AdminDashboardPage() {
         })
         .catch((err) => console.error('Silent stats poll failed:', err));
     };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && pollInterval) {
+        fetchStatsSilent();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     connectSSE();
 
@@ -149,6 +158,7 @@ export default function AdminDashboardPage() {
       if (pollInterval) {
         clearInterval(pollInterval);
       }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [authStatus]);
 

@@ -50,6 +50,23 @@ export async function GET(req: NextRequest) {
 
     // 5. Last 7 Days Revenue Trend
     const last7DaysData = [];
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const trendOrders = await prisma.order.findMany({
+      where: {
+        createdAt: {
+          gte: sevenDaysAgo,
+        },
+        OR: [
+          { paymentStatus: 'COMPLETED' },
+          { paymentMethod: 'COD', NOT: { orderStatus: 'CANCELLED' } },
+        ],
+      },
+      select: { total: true, createdAt: true },
+    });
+
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
@@ -58,18 +75,10 @@ export async function GET(req: NextRequest) {
       const nextDay = new Date(d);
       nextDay.setDate(nextDay.getDate() + 1);
 
-      const dayOrders = await prisma.order.findMany({
-        where: {
-          createdAt: {
-            gte: d,
-            lt: nextDay,
-          },
-          OR: [
-            { paymentStatus: 'COMPLETED' },
-            { paymentMethod: 'COD', NOT: { orderStatus: 'CANCELLED' } },
-          ],
-        },
-        select: { total: true },
+      // Filter trendOrders in-memory
+      const dayOrders = trendOrders.filter((order) => {
+        const orderTime = new Date(order.createdAt).getTime();
+        return orderTime >= d.getTime() && orderTime < nextDay.getTime();
       });
 
       const dayRevenue = dayOrders.reduce((sum, order) => sum + order.total, 0);
