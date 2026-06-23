@@ -18,7 +18,7 @@ export const translations = {
     nav_logout: 'Log Out',
     nav_login: 'Sign In',
     nav_home_mobile: 'Home',
-    nav_oils_mobile: 'Cold Pressed Oils',
+    nav_oils_mobile: 'Oils',
     nav_pooja_mobile: 'Refined & Filtered',
     nav_track_mobile: 'My Orders',
 
@@ -388,7 +388,7 @@ export const translations = {
     nav_logout: 'లాగ్ అవుట్',
     nav_login: 'లాగిన్',
     nav_home_mobile: 'హోమ్',
-    nav_oils_mobile: 'చెక్క గానుగ నూనెలు',
+    nav_oils_mobile: 'నూనెలు',
     nav_pooja_mobile: 'శుద్ధి చేసినవి',
     nav_track_mobile: 'నా ఆర్డర్లు',
 
