@@ -1,9 +1,11 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
+import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductDetailClient from './ProductDetailClient';
+import { extractBaseName } from '@/hooks/useGroupedProducts';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,29 +18,132 @@ async function getProductData(slug: string) {
 
     if (!product) return null;
 
-    // Fetch related products in the same category (limit to 4, excluding current product)
-    const relatedProducts = await prisma.product.findMany({
+    // Extract base name to find sibling variants (same product group, different sizes)
+    const baseName = extractBaseName(product.name);
+
+    // Fetch all active products in same category that share the same base name
+    const allInCategory = await prisma.product.findMany({
       where: {
         categoryId: product.categoryId,
-        NOT: { id: product.id },
         isActive: true,
       },
-      take: 4,
     });
 
-    // Format fields
+    // Filter siblings by base name match
+    const siblings = allInCategory
+      .filter((p) => extractBaseName(p.name) === baseName)
+      .map((p) => ({
+        ...p,
+        images: (() => {
+          try { return JSON.parse(p.images); } catch { return []; }
+        })(),
+      }));
+
+    // Group other products in the same category by base name to ensure uniqueness
+    const relatedGroups: { [key: string]: any[] } = {};
+    for (const p of allInCategory) {
+      const pBaseName = extractBaseName(p.name);
+      if (pBaseName !== baseName) {
+        if (!relatedGroups[pBaseName]) {
+          relatedGroups[pBaseName] = [];
+        }
+        relatedGroups[pBaseName].push(p);
+      }
+    }
+
+    // Pick the representative (lowest price / smallest variant) from each unique group
+    const relatedRaw = Object.values(relatedGroups)
+      .map((variants) => {
+        const sorted = [...variants].sort((a, b) => a.weight - b.weight);
+        return sorted[0];
+      })
+      .slice(0, 4);
+
+    const relatedProducts = relatedRaw.map((p) => ({
+      ...p,
+      images: (() => {
+        try { return JSON.parse(p.images); } catch { return []; }
+      })(),
+    }));
+
+    // Format current product fields
     const formattedProduct = {
       ...product,
-      images: JSON.parse(product.images),
-      benefits: JSON.parse(product.benefits),
-      ingredients: product.ingredients ? JSON.parse(product.ingredients) : [],
-      usage: product.usage ? JSON.parse(product.usage) : [],
+      images: (() => {
+        try { return JSON.parse(product.images); } catch { return []; }
+      })(),
+      benefits: (() => {
+        try { return JSON.parse(product.benefits); } catch { return []; }
+      })(),
+      ingredients: (() => {
+        try { return product.ingredients ? JSON.parse(product.ingredients) : []; } catch { return []; }
+      })(),
+      usage: (() => {
+        try { return product.usage ? JSON.parse(product.usage) : []; } catch { return []; }
+      })(),
     };
 
-    return { product: formattedProduct, relatedProducts };
+    return { product: formattedProduct, relatedProducts, siblings };
   } catch (err) {
     console.error('Error fetching product detail data:', err);
     return null;
+  }
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  try {
+    const product = await prisma.product.findUnique({
+      where: { slug: params.slug },
+    });
+
+    if (!product) {
+      return {
+        title: 'Product Not Found | OM Natural Oils',
+        description: 'The requested wood pressed cooking oil could not be found.',
+      };
+    }
+
+    let imageUrl = '/favicon.ico';
+    try {
+      const images = JSON.parse(product.images);
+      if (Array.isArray(images) && images.length > 0) {
+        imageUrl = images[0];
+      }
+    } catch (e) {}
+
+    const titleStr = `${product.name} (${product.nameTe}) | OM Natural Chekka Ganuga Oils`;
+    const descStr = `Buy 100% pure traditional wood pressed ${product.name.toLowerCase()} (${product.nameTe}) online. ${product.description.slice(0, 120)}... Free delivery above ₹500 across AP & TS.`;
+
+    return {
+      title: titleStr,
+      description: descStr,
+      keywords: `${product.name}, ${product.nameTe}, wood pressed oil, cold pressed ${product.name.toLowerCase()}, chekka ganuga nune, organic cooking oil, OM Natural Oils`,
+      openGraph: {
+        title: titleStr,
+        description: descStr,
+        images: [
+          {
+            url: imageUrl,
+            width: 800,
+            height: 800,
+            alt: product.name,
+          },
+        ],
+        type: 'website',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: titleStr,
+        description: descStr,
+        images: [imageUrl],
+      },
+    };
+  } catch (err) {
+    console.error('Error generating metadata:', err);
+    return {
+      title: 'OM Natural Chekka Ganuga Oils',
+      description: '100% Pure Traditional Wood Pressed Cooking Oils',
+    };
   }
 }
 
@@ -49,10 +154,35 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
     notFound();
   }
 
+  // Generate Schema.org Product Structured Data (JSON-LD)
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: data.product.name,
+    image: data.product.images,
+    description: data.product.description,
+    sku: data.product.sku,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'INR',
+      price: data.product.price,
+      itemCondition: 'https://schema.org/NewCondition',
+      availability: data.product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    },
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navbar />
-      <ProductDetailClient product={data.product} relatedProducts={data.relatedProducts} />
+      <ProductDetailClient
+        product={data.product}
+        relatedProducts={data.relatedProducts}
+        siblings={data.siblings}
+      />
       <Footer />
     </>
   );

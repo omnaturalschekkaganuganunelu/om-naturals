@@ -26,7 +26,7 @@ function ProductListingContent() {
   const [category,           setCategory]           = useState(initialCategory);
   const [search,             setSearch]             = useState(initialSearch);
   const [sort,               setSort]               = useState('newest');
-  const [maxPrice,           setMaxPrice]           = useState(600);
+  const [maxPrice,           setMaxPrice]           = useState(2500);
   const [mobileFiltersOpen,  setMobileFiltersOpen]  = useState(false);
 
   // Sync with URL params
@@ -59,7 +59,7 @@ function ProductListingContent() {
   }, [category, search, sort, maxPrice]);
 
   const clearFilters = () => {
-    setCategory(''); setSearch(''); setSort('newest'); setMaxPrice(600);
+    setCategory(''); setSearch(''); setSort('newest'); setMaxPrice(2500);
     router.push('/products');
   };
 
@@ -172,7 +172,7 @@ function ProductListingContent() {
               {t('products_price_range')}
             </label>
             <input
-              type="range" min="0" max="600" step="20"
+              type="range" min="0" max="2500" step="50"
               value={maxPrice}
               onChange={(e) => setMaxPrice(parseInt(e.target.value))}
               className="w-full accent-amber-800 cursor-pointer h-1.5 bg-amber-100 rounded-full"
@@ -276,7 +276,7 @@ function ProductListingContent() {
               <div className="space-y-1">
                 <span className="text-[10px] font-bold text-gray-500 block">Up to ₹{maxPrice}</span>
                 <input
-                  type="range" min="0" max="600" step="20"
+                  type="range" min="0" max="2500" step="50"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(parseInt(e.target.value))}
                   className="w-full accent-amber-800 h-1.5 bg-amber-100 rounded-full cursor-pointer"

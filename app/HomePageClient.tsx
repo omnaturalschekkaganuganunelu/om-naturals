@@ -8,7 +8,7 @@ import { Shield, Sparkles, Truck, Award, ArrowRight, MessageCircle } from 'lucid
 import { useLanguage } from '@/context/LanguageContext';
 import { useGroupedProducts } from '@/hooks/useGroupedProducts';
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=400&auto=format&fit=crop';
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=500&auto=format&fit=crop';
 
 // ─── Home page product grid with client-side variant grouping ────────────────
 // Defined before HomePageClient so it's available when JSX is evaluated
@@ -94,100 +94,9 @@ export default function HomePageClient({ categories, products }: Props) {
   return (
     <main className="flex-1 pb-16">
       
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-amber-500 via-amber-700 to-amber-950 text-white py-16 sm:py-24 px-4 sm:px-6 lg:px-8">
-        {/* Background texture */}
-        <div className="absolute inset-0 opacity-[0.07] bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:18px_18px] pointer-events-none" />
-        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-amber-400/20 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-amber-300/15 blur-3xl pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center relative z-10">
-          
-          {/* Left Content */}
-          <div className="lg:col-span-7 space-y-6 text-center lg:text-left fade-in-up">
-            <span className="inline-flex items-center space-x-2 bg-white/15 text-amber-100 text-xs font-bold px-4 py-1.5 rounded-full border border-amber-300/30 backdrop-blur-sm">
-              <Sparkles size={13} className="text-amber-300" />
-              <span>{t('hero_badge')}</span>
-            </span>
-
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight font-heading leading-tight">
-              {t('hero_heading_1')} <br />
-              <span className="text-amber-300">{t('hero_heading_2')}</span>
-            </h1>
-
-            <p className="text-sm sm:text-lg text-amber-100/90 max-w-2xl leading-relaxed">
-              {t('hero_sub')}
-            </p>
-            
-            <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 pt-2">
-              <Link
-                href="/products?category=cold-pressed"
-                className="bg-white hover:bg-amber-50 text-amber-900 font-black px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center space-x-2 text-sm group"
-              >
-                <span>{t('hero_btn_oils')}</span>
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                href="/products?category=refined-filtered"
-                className="bg-white/10 hover:bg-white/20 text-white border-2 border-white/60 hover:border-white font-bold px-8 py-3.5 rounded-full transition-all duration-300 text-sm backdrop-blur-sm"
-              >
-                {t('hero_btn_pooja')}
-              </Link>
-            </div>
-          </div>
-
-          {/* Right Card */}
-          <div className="lg:col-span-5 flex justify-center lg:justify-end mt-6 lg:mt-0">
-            <div className="relative w-72 sm:w-88 bg-white/12 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-white/20 shadow-2xl animate-fade-in-up">
-              <div className="bg-white rounded-2xl overflow-hidden shadow-lg aspect-square relative">
-                <Image
-                  src={heroImgError ? FALLBACK_IMAGE : 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=400&auto=format&fit=crop'}
-                  alt="Pure Edible Oils - Cold Pressed and Refined"
-                  fill
-                  sizes="(max-width: 1024px) 50vw, 30vw"
-                  className="object-cover"
-                  onError={() => setHeroImgError(true)}
-                  priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4 text-white">
-                  <span className="text-[10px] bg-amber-600 px-2 py-0.5 rounded-full font-bold">{t('hero_featured')}</span>
-                  <h4 className="font-bold text-sm mt-1">
-                    {language === 'te' ? 'చెక్క గానుగ వేరుశనగ నూనె' : 'Cold Pressed Groundnut Oil'}
-                  </h4>
-                </div>
-              </div>
-
-              {/* Floating badges */}
-              <div className="absolute -left-6 top-12 bg-white text-amber-950 text-[10px] font-bold py-2 px-3 rounded-2xl shadow-lg border border-amber-100 flex items-center space-x-1.5">
-                <Shield size={13} className="text-green-600 fill-green-600/10" />
-                <span>{t('hero_lab')}</span>
-              </div>
-              <div className="absolute -right-6 bottom-16 bg-white text-amber-950 text-[10px] font-bold py-2 px-3 rounded-2xl shadow-lg border border-amber-100 flex items-center space-x-1.5">
-                <Sparkles size={13} className="text-amber-500 fill-amber-500/10" />
-                <span>{t('hero_traditional')}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Categories */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
-        <div className="text-center max-w-xl mx-auto mb-12">
-          <h2 className="text-2xl sm:text-3xl font-black text-amber-950 font-heading">{t('categories_heading')}</h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-2">{t('categories_sub')}</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {categories.map((cat) => (
-            <CategoryCard key={cat.id} cat={cat} language={language} />
-          ))}
-        </div>
-      </section>
 
       {/* Featured Products */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
         <div className="flex flex-col sm:flex-row justify-between items-baseline mb-8">
           <div>
             <h2 className="text-2xl sm:text-3xl font-black text-amber-950 font-heading">{t('products_heading')}</h2>
@@ -203,6 +112,20 @@ export default function HomePageClient({ categories, products }: Props) {
         </div>
 
         <HomePageProductGrid products={products} />
+      </section>
+
+      {/* Categories */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+        <div className="text-center max-w-xl mx-auto mb-12">
+          <h2 className="text-2xl sm:text-3xl font-black text-amber-950 font-heading">{t('categories_heading')}</h2>
+          <p className="text-xs sm:text-sm text-gray-500 mt-2">{t('categories_sub')}</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {categories.map((cat) => (
+            <CategoryCard key={cat.id} cat={cat} language={language} />
+          ))}
+        </div>
       </section>
 
       {/* Trust Badges */}
@@ -305,29 +228,6 @@ export default function HomePageClient({ categories, products }: Props) {
         </div>
       </section>
 
-      {/* Demo Credentials Banner */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-4 text-center">
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100/40 border border-amber-200 rounded-3xl p-6 sm:p-8 space-y-4">
-          <h3 className="text-lg font-black text-amber-950 font-heading">{t('demo_heading')}</h3>
-          <p className="text-xs text-amber-900/70">{t('demo_sub')}</p>
-          <div className="inline-grid grid-cols-2 gap-x-8 gap-y-2 text-xs text-left bg-white p-4 rounded-2xl border border-amber-200 shadow-sm">
-            <span className="font-black text-amber-900">{t('demo_email')}</span>
-            <span className="font-mono font-semibold text-amber-800">admin@nunebazaar.com</span>
-            <span className="font-black text-amber-900">{t('demo_password')}</span>
-            <span className="font-mono font-semibold text-amber-800">admin123</span>
-            <span className="font-black text-amber-900">{t('demo_customer')}</span>
-            <span className="font-mono font-semibold text-amber-800">satvish@gmail.com / user123</span>
-          </div>
-          <div className="pt-1">
-            <Link
-              href="/login"
-              className="inline-flex items-center space-x-1.5 text-xs font-bold text-amber-800 hover:text-amber-950 underline underline-offset-4"
-            >
-              <span>{t('demo_login_link')}</span>
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* Floating WhatsApp CTA */}
       <a

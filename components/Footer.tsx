@@ -59,8 +59,7 @@ export default function Footer() {
         {/* Inline Navigation Links */}
         <div className="flex flex-wrap justify-center items-center gap-x-8 gap-y-3 text-xs font-bold text-amber-200/60 border-y border-amber-950/40 py-5 w-full">
           <Link href="/" className="hover:text-amber-400 transition-colors relative py-1">{t('nav_home')}</Link>
-          <Link href="/products?category=cold-pressed" className="hover:text-amber-400 transition-colors relative py-1">{t('nav_oils')}</Link>
-          <Link href="/products?category=refined-filtered" className="hover:text-amber-400 transition-colors relative py-1">{t('nav_pooja')}</Link>
+          <Link href="/products" className="hover:text-amber-400 transition-colors relative py-1">{t('nav_oils')}</Link>
           <Link href="/account?tab=orders" className="hover:text-amber-400 transition-colors relative py-1">{t('nav_track')}</Link>
           <Link href="/policy?tab=shipping" className="hover:text-amber-400 transition-colors relative py-1">{language === 'te' ? 'షిప్పింగ్ పాలసీ' : 'Shipping'}</Link>
           <Link href="/policy?tab=returns" className="hover:text-amber-400 transition-colors relative py-1">{language === 'te' ? 'రిటర్న్స్ & రీఫండ్' : 'Returns & Refund'}</Link>

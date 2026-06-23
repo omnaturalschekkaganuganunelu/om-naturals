@@ -1,36 +1,23 @@
 'use client';
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import Image from 'next/image';
-import { X, Minus, Plus, ShoppingBag, Percent, ChevronDown } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { X, Minus, Plus, Check, Percent, ShoppingCart } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
 import type { RawProduct } from '@/hooks/useGroupedProducts';
+import { extractBaseNameTe, formatVariantLabel } from '@/components/ProductCard';
 
 interface VariantSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
   groupKey: string;
   variants: RawProduct[];
+  anchorRef?: React.RefObject<HTMLElement>;
 }
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=120&auto=format&fit=crop';
-
-function formatVariantLabel(product: RawProduct): string {
-  const w = product.weight;
-  const u = product.unit;
-  if (u === 'Litre' || u === 'Liter') {
-    return w >= 1 ? `${w} Litre` : `${Math.round(w * 1000)} ml`;
-  }
-  if (u === 'Gram' || u === 'g') {
-    return w >= 1000 ? `${w / 1000} Kg` : `${w} g`;
-  }
-  if (u === 'Kg' || u === 'kg') return `${w} Kg`;
-  if (u === 'ml') return w >= 1000 ? `${w / 1000} L` : `${w} ml`;
-  return `${w} ${u}`;
-}
 
 export default function VariantSelectorModal({
   isOpen,
@@ -45,39 +32,31 @@ export default function VariantSelectorModal({
   const removeItem = useCartStore((s) => s.removeItem);
 
   const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
+  const [justAdded, setJustAdded] = useState<Record<string, boolean>>({});
 
-  // Compute live item total from variants in cart
-  const itemTotal = variants.reduce((sum, v) => {
-    const cartEntry = items.find((i) => i.productId === v.id);
-    return sum + (cartEntry ? cartEntry.quantity * v.price : 0);
-  }, 0);
-
-  const totalQty = variants.reduce((sum, v) => {
-    const cartEntry = items.find((i) => i.productId === v.id);
-    return sum + (cartEntry ? cartEntry.quantity : 0);
-  }, 0);
-
-  // Lock body scroll when modal is open
+  // Lock body scroll when open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
+    return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.target === e.currentTarget) onClose();
-    },
-    [onClose]
-  );
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
+  const handleBackdropClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose();
+  }, [onClose]);
 
   const handleAdd = (variant: RawProduct) => {
-    const variantLabel = formatVariantLabel(variant);
     addItem({
       productId: variant.id,
       name: variant.name,
@@ -89,203 +68,184 @@ export default function VariantSelectorModal({
       weight: variant.weight,
       unit: variant.unit,
       stock: variant.stock,
-      variantLabel,
+      variantLabel: formatVariantLabel(variant),
     });
-  };
-
-  const handleConfirm = () => {
-    onClose();
+    setJustAdded((prev) => ({ ...prev, [variant.id]: true }));
+    setTimeout(() => setJustAdded((prev) => ({ ...prev, [variant.id]: false })), 1500);
   };
 
   const displayName =
     language === 'te'
-      ? variants[0]?.nameTe?.replace(/[\d.]+\s*(లీటరు|మి\.లీ|గ్రా|కేజీ|లీ)/gi, '').trim()
+      ? extractBaseNameTe(variants[0]?.nameTe || variants[0]?.name || groupKey)
       : groupKey;
 
+  const totalCartQty = variants.reduce((sum, v) => {
+    const entry = items.find((i) => i.productId === v.id);
+    return sum + (entry?.quantity || 0);
+  }, 0);
+
+  const totalCartValue = variants.reduce((sum, v) => {
+    const entry = items.find((i) => i.productId === v.id);
+    return sum + (entry ? entry.quantity * v.price : 0);
+  }, 0);
+
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-[2px] z-[100]"
-            onClick={handleBackdropClick}
-          />
-
-          {/* Bottom Sheet */}
-          <motion.div
-            key="sheet"
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 320, mass: 0.8 }}
-            className="fixed bottom-0 left-0 right-0 z-[101] flex flex-col"
-            style={{ maxHeight: '90dvh' }}
+    // Backdrop — full screen centered overlay
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.52)' }}
+      onClick={handleBackdropClick}
+    >
+      {/* Dialog box — centered, max width, never overflows */}
+      <div
+        className="relative bg-white rounded-3xl shadow-2xl w-full overflow-hidden flex flex-col"
+        style={{ maxWidth: 400, maxHeight: '88vh' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ── Header ── */}
+        <div className="flex items-start justify-between px-5 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
+          <div>
+            <h3 className="text-base font-black text-gray-900 leading-tight pr-4">{displayName}</h3>
+            <p className="text-xs text-amber-700 font-bold mt-0.5">
+              {variants.length}{' '}
+              {language === 'te'
+                ? 'పరిమాణాలు అందుబాటులో ఉన్నాయి'
+                : `size${variants.length > 1 ? 's' : ''} available`}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors"
           >
-            <div className="bg-white rounded-t-3xl overflow-hidden flex flex-col shadow-2xl"
-              style={{ maxHeight: '90dvh' }}>
+            <X size={15} />
+          </button>
+        </div>
 
-              {/* Drag Handle */}
-              <div className="flex-shrink-0 flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 rounded-full bg-gray-200" />
-              </div>
+        {/* ── Variant List ── */}
+        <div className="overflow-y-auto overscroll-contain flex-1 divide-y divide-gray-50">
+          {variants.map((variant) => {
+            const cartEntry = items.find((i) => i.productId === variant.id);
+            const qty = cartEntry?.quantity || 0;
+            const discount = variant.mrp > variant.price
+              ? Math.round(((variant.mrp - variant.price) / variant.mrp) * 100)
+              : 0;
+            const outOfStock = variant.stock <= 0;
+            const label = formatVariantLabel(variant);
+            const imgSrc = imgErrors[variant.id] ? FALLBACK_IMAGE : (variant.images?.[0] || FALLBACK_IMAGE);
+            const isJustAdded = justAdded[variant.id];
 
-              {/* Header */}
-              <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-gray-100">
-                <div>
-                  <h2 className="text-base font-black text-gray-900 leading-tight font-heading">
-                    {displayName}
-                  </h2>
-                  <p className="text-xs text-amber-800 font-bold mt-0.5">
-                    {variants.length} {variants.length === 1 ? 'size' : 'sizes'} available
-                  </p>
+            return (
+              <div
+                key={variant.id}
+                className={`flex items-center gap-3 px-5 py-3.5 transition-colors ${qty > 0 ? 'bg-amber-50/40' : ''}`}
+              >
+                {/* Thumbnail */}
+                <div className="relative flex-shrink-0 w-16 h-16 rounded-2xl overflow-hidden bg-amber-50 border border-amber-100">
+                  <img
+                    src={imgSrc}
+                    alt={variant.name}
+                    className="w-full h-full object-cover"
+                    onError={() => setImgErrors((prev) => ({ ...prev, [variant.id]: true }))}
+                    loading="lazy"
+                  />
                 </div>
-                <button
-                  onClick={onClose}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-600"
-                >
-                  <X size={16} />
-                </button>
-              </div>
 
-              {/* Variant List — scrollable */}
-              <div className="flex-1 overflow-y-auto overscroll-contain divide-y divide-gray-50">
-                {variants.map((variant) => {
-                  const cartEntry = items.find((i) => i.productId === variant.id);
-                  const qty = cartEntry?.quantity || 0;
-                  const discount = Math.round(
-                    ((variant.mrp - variant.price) / variant.mrp) * 100
-                  );
-                  const outOfStock = variant.stock <= 0;
-                  const label = formatVariantLabel(variant);
-                  const imgSrc = imgErrors[variant.id]
-                    ? FALLBACK_IMAGE
-                    : variant.images?.[0] || FALLBACK_IMAGE;
-
-                  return (
-                    <div
-                      key={variant.id}
-                      className="flex items-center gap-3 px-4 py-3.5"
-                    >
-                      {/* Thumbnail */}
-                      <div className="relative flex-shrink-0 w-16 h-16 rounded-2xl overflow-hidden bg-amber-50 border border-amber-100">
-                        <Image
-                          src={imgSrc}
-                          alt={variant.name}
-                          fill
-                          sizes="64px"
-                          className="object-cover"
-                          onError={() =>
-                            setImgErrors((prev) => ({ ...prev, [variant.id]: true }))
-                          }
-                        />
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-extrabold text-gray-900 leading-tight">
-                          {label}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-sm font-black text-gray-900">
-                            ₹{variant.price}
-                          </span>
-                          {variant.mrp > variant.price && (
-                            <span className="text-xs text-gray-400 line-through font-medium">
-                              ₹{variant.mrp}
-                            </span>
-                          )}
-                          {discount > 0 && (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-amber-800 bg-amber-50 border border-amber-100 px-1.5 py-0.5 rounded-full">
-                              <Percent size={8} />
-                              {discount}% OFF
-                            </span>
-                          )}
-                        </div>
-                        {outOfStock && (
-                          <p className="text-[10px] font-bold text-red-500 mt-0.5">
-                            Out of Stock
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Add / Qty Control */}
-                      <div className="flex-shrink-0">
-                        {qty > 0 ? (
-                          <div className="flex items-center bg-amber-800 rounded-xl overflow-hidden shadow-md">
-                            <button
-                              onClick={() =>
-                                qty === 1
-                                  ? removeItem(variant.id)
-                                  : updateQuantity(variant.id, qty - 1)
-                              }
-                              className="w-8 h-9 flex items-center justify-center text-white hover:bg-amber-700 transition-colors"
-                              aria-label="Decrease"
-                            >
-                              <Minus size={14} strokeWidth={3} />
-                            </button>
-                            <span className="px-2 text-white font-black text-sm min-w-[24px] text-center select-none">
-                              {qty}
-                            </span>
-                            <button
-                              onClick={() => {
-                                if (qty < variant.stock) updateQuantity(variant.id, qty + 1);
-                              }}
-                              className="w-8 h-9 flex items-center justify-center text-white hover:bg-amber-700 transition-colors"
-                              aria-label="Increase"
-                            >
-                              <Plus size={14} strokeWidth={3} />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => !outOfStock && handleAdd(variant)}
-                            disabled={outOfStock}
-                            className={`px-5 py-2 rounded-xl text-sm font-black transition-all duration-200 border-2 ${
-                              outOfStock
-                                ? 'border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50'
-                                : 'border-amber-800 text-amber-800 hover:bg-amber-900 hover:text-white active:scale-95'
-                            }`}
-                          >
-                            ADD
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Sticky Footer — Item Total + Confirm */}
-              <div className="flex-shrink-0 border-t border-gray-100 bg-white px-4 py-3.5 pb-safe">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                      Item Total ({totalQty} item{totalQty === 1 ? '' : 's'})
-                    </p>
-                    <p className="text-lg font-black text-gray-900 leading-tight">
-                      ₹{itemTotal.toLocaleString('en-IN')}
-                    </p>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-extrabold text-gray-900">{label}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <span className="text-sm font-black text-gray-900">₹{variant.price}</span>
+                    {variant.mrp > variant.price && (
+                      <span className="text-xs text-gray-400 line-through">₹{variant.mrp}</span>
+                    )}
+                    {discount > 0 && (
+                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                        <Percent size={8} />{discount}% off
+                      </span>
+                    )}
                   </div>
-                  <button
-                    onClick={handleConfirm}
-                    className="bg-amber-800 hover:bg-amber-700 active:scale-95 text-white font-black px-8 py-3 rounded-2xl shadow-lg transition-all duration-200 text-sm flex items-center gap-2"
-                  >
-                    <ShoppingBag size={16} />
-                    Confirm
-                  </button>
+                  {outOfStock && (
+                    <p className="text-[10px] font-bold text-red-500 mt-0.5">
+                      {language === 'te' ? 'అయిపోయింది' : 'Out of Stock'}
+                    </p>
+                  )}
+                </div>
+
+                {/* Add / Qty */}
+                <div className="flex-shrink-0">
+                  {qty > 0 ? (
+                    <div className="flex items-center bg-amber-800 rounded-xl overflow-hidden shadow-md">
+                      <button
+                        onClick={() => qty === 1 ? removeItem(variant.id) : updateQuantity(variant.id, qty - 1)}
+                        className="w-8 h-9 flex items-center justify-center text-white hover:bg-amber-700 transition-colors"
+                      >
+                        <Minus size={14} strokeWidth={3} />
+                      </button>
+                      <span className="text-white font-black text-sm min-w-[24px] text-center select-none px-1">
+                        {qty}
+                      </span>
+                      <button
+                        onClick={() => { if (qty < variant.stock) updateQuantity(variant.id, qty + 1); }}
+                        className="w-8 h-9 flex items-center justify-center text-white hover:bg-amber-700 transition-colors"
+                      >
+                        <Plus size={14} strokeWidth={3} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => !outOfStock && handleAdd(variant)}
+                      disabled={outOfStock}
+                      className={`min-w-[64px] px-3 py-2 rounded-xl text-sm font-black border-2 transition-all duration-200 ${
+                        outOfStock
+                          ? 'border-gray-200 text-gray-300 bg-gray-50 cursor-not-allowed'
+                          : isJustAdded
+                          ? 'border-emerald-500 bg-emerald-500 text-white'
+                          : 'border-amber-800 text-amber-800 hover:bg-amber-800 hover:text-white active:scale-95'
+                      }`}
+                    >
+                      {isJustAdded ? (
+                        <span className="flex items-center gap-1 justify-center">
+                          <Check size={13} strokeWidth={3} />
+                          {language === 'te' ? 'OK' : 'Added'}
+                        </span>
+                      ) : (
+                        language === 'te' ? 'చేర్చు' : 'ADD'
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
+            );
+          })}
+        </div>
 
+        {/* ── Footer: Cart summary + Confirm ── */}
+        {totalCartQty > 0 && (
+          <div className="flex-shrink-0 border-t border-gray-100 px-5 py-4 bg-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                  {language === 'te'
+                    ? `${totalCartQty} వస్తువులు · మొత్తం`
+                    : `${totalCartQty} item${totalCartQty === 1 ? '' : 's'} · Total`}
+                </p>
+                <p className="text-lg font-black text-gray-900 leading-tight">
+                  ₹{totalCartValue.toLocaleString('en-IN')}
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="flex items-center gap-2 bg-amber-800 hover:bg-amber-700 active:scale-95 text-white font-black px-6 py-3 rounded-2xl shadow-lg transition-all text-sm"
+              >
+                <ShoppingCart size={16} />
+                {language === 'te' ? 'సరే' : 'Done'}
+              </button>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

@@ -46,7 +46,7 @@ export default function PremiumLoader({ fullScreen = true, text }: PremiumLoader
           {loadingText}
         </p>
         <p className="text-[9px] text-amber-500/80 font-bold tracking-[0.2em] uppercase">
-          {language === 'te' ? 'నూనె & పూజా బజార్' : 'Nune & Pooja Bazaar'}
+          {language === 'te' ? 'ఓమ్ నాచురల్ చెక్క గానుగ నూనెలు' : 'OM Natural Chekka Ganuga Oils'}
         </p>
       </div>
     </div>

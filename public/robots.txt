@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /account/
+Disallow: /cart/
+Disallow: /checkout/
+
+Sitemap: https://om-naturals.vercel.app/sitemap.xml

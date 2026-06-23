@@ -19,10 +19,8 @@ export default function MobileBottomNav() {
   }, []);
 
   // Determine active states
-  const category = searchParams.get('category');
   const isHome = pathname === '/';
-  const isOils = pathname === '/products' && category === 'cold-pressed';
-  const isPooja = pathname === '/products' && category === 'refined-filtered';
+  const isOils = pathname === '/products';
   const isCart = pathname === '/cart';
   const isAccount = pathname === '/account' || pathname === '/login';
 
@@ -35,15 +33,9 @@ export default function MobileBottomNav() {
     },
     {
       label: t('nav_oils_mobile'),
-      href: '/products?category=cold-pressed',
+      href: '/products',
       active: isOils,
       icon: <Droplet size={20} className={isOils ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />,
-    },
-    {
-      label: t('nav_pooja_mobile'),
-      href: '/products?category=refined-filtered',
-      active: isPooja,
-      icon: <Droplets size={20} className={isPooja ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />,
     },
     {
       label: t('cart_title').split(' ')[0],

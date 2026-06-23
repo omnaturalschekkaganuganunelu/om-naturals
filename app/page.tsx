@@ -15,7 +15,6 @@ async function getHomeData() {
 
     const products = await prisma.product.findMany({
       where: { isActive: true },
-      take: 8,
       include: { category: true },
       orderBy: { createdAt: 'desc' },
     });

@@ -3,14 +3,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { ShoppingCart, User, Menu, X, Search, MapPin, Phone, MessageCircle, Globe } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Search, MapPin, Phone, MessageCircle, Globe, Loader2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
   const { language, setLanguage, t } = useLanguage();
@@ -21,6 +22,7 @@ export default function Navbar() {
   const [animateCart, setAnimateCart] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const cartItemsCount = useCartStore((state) => state.getCartCount());
@@ -47,6 +49,11 @@ export default function Navbar() {
     }
   }, [cartItemsCount]);
 
+  // Reset loader when path changes
+  useEffect(() => {
+    setIsSearching(false);
+  }, [pathname, searchParams]);
+
   // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -61,8 +68,8 @@ export default function Navbar() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      setIsSearching(true);
       router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery('');
       setMobileMenuOpen(false);
       setShowMobileSearch(false);
     }
@@ -134,8 +141,9 @@ export default function Navbar() {
             <button
               type="submit"
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-amber-700 hover:text-amber-800 transition-colors duration-200"
+              disabled={isSearching}
             >
-              <Search size={17} />
+              {isSearching ? <Loader2 size={17} className="animate-spin text-amber-700" /> : <Search size={17} />}
             </button>
           </form>
 
@@ -143,15 +151,14 @@ export default function Navbar() {
           <div className="flex-1 md:hidden" />
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center space-x-1 flex-shrink-0">
+          <nav className="hidden lg:flex items-center gap-2 lg:gap-3.5 flex-shrink-0">
             <Link href="/" className={navLinkClass('/')}>{t('nav_home')}</Link>
-            <Link href="/products?category=cold-pressed" className={navLinkClass('/products?category=cold-pressed')}>{t('nav_oils')}</Link>
-            <Link href="/products?category=refined-filtered" className={navLinkClass('/products?category=refined-filtered')}>{t('nav_pooja')}</Link>
-            <Link href="/account?tab=orders" className={navLinkClass('/account')}>{t('nav_track')}</Link>
+            <Link href="/products" className={navLinkClass('/products')}>{t('nav_oils')}</Link>
+            <Link href="/account?tab=orders" className={navLinkClass('/account?tab=orders')}>{t('nav_track')}</Link>
           </nav>
 
           {/* Actions — flex-shrink-0 so they never get squeezed */}
-          <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
+          <div className="flex items-center gap-2.5 lg:gap-3.5 flex-shrink-0">
             {/* Mobile Search Toggle */}
             <button
               type="button"
@@ -294,83 +301,90 @@ export default function Navbar() {
       </div>
 
       {/* Sliding Mobile Search Panel */}
-      {showMobileSearch && (
-        <div className="md:hidden w-full bg-amber-50/50 backdrop-blur-md border-b border-amber-100/50 py-3 px-4 animate-fade-in-up">
-          <form onSubmit={handleSearchSubmit} className="relative w-full">
-            <input
-              type="text"
-              placeholder={t('nav_search_placeholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white text-amber-950 border border-amber-200 rounded-full py-2.5 pl-4 pr-11 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-inner"
-            />
-            <button
-              type="submit"
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-amber-800"
-            >
-              <Search size={16} />
-            </button>
-          </form>
-        </div>
-      )}
+      <div className={`md:hidden w-full bg-amber-50/50 backdrop-blur-md px-4 transition-all duration-300 ease-in-out ${
+        showMobileSearch 
+          ? 'max-h-[70px] opacity-100 py-3 border-b border-amber-100/50' 
+          : 'max-h-0 opacity-0 py-0 overflow-hidden pointer-events-none'
+      }`}>
+        <form onSubmit={handleSearchSubmit} className="relative w-full">
+          <input
+            type="text"
+            placeholder={t('nav_search_placeholder')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white text-amber-950 border border-amber-200 rounded-full py-2.5 pl-4 pr-11 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-inner"
+          />
+          <button
+            type="submit"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-amber-800"
+            disabled={isSearching}
+          >
+            {isSearching ? <Loader2 size={16} className="animate-spin text-amber-850" /> : <Search size={16} />}
+          </button>
+        </form>
+      </div>
 
       {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden w-full bg-white border-t border-amber-100 py-4 px-4 space-y-3 smooth-shadow animate-fade-in-up">
-          <form onSubmit={handleSearchSubmit} className="relative w-full">
-            <input
-              type="text"
-              placeholder={t('nav_search_placeholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-amber-50 text-amber-950 border border-amber-200 rounded-full py-2.5 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-800">
-              <Search size={18} />
+      <div className={`lg:hidden w-full bg-white border-t border-amber-100 px-4 space-y-4 smooth-shadow transition-all duration-300 ease-in-out ${
+        mobileMenuOpen 
+          ? 'max-h-[450px] opacity-100 py-4 border-b pointer-events-auto' 
+          : 'max-h-0 opacity-0 py-0 overflow-hidden pointer-events-none'
+      }`}>
+        <form onSubmit={handleSearchSubmit} className="relative w-full">
+          <input
+            type="text"
+            placeholder={t('nav_search_placeholder')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-amber-50 text-amber-950 border border-amber-200 rounded-full py-2.5 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+          />
+          <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-850" disabled={isSearching}>
+            {isSearching ? <Loader2 size={18} className="animate-spin text-amber-850" /> : <Search size={18} />}
+          </button>
+        </form>
+
+        <div className="flex flex-col space-y-1 pt-1">
+          {[
+            { href: '/', label: t('nav_home_mobile') },
+            { href: '/products', label: t('nav_oils_mobile') },
+            { href: '/account?tab=orders', label: t('nav_track_mobile') },
+          ].map(({ href, label }, idx) => (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ transitionDelay: `${idx * 45}ms` }}
+              className={`px-4 py-3 rounded-xl text-sm font-semibold block transform transition-all duration-300 ${
+                mobileMenuOpen ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
+              } ${
+                pathname === href ? 'bg-amber-50 text-amber-900 font-bold' : 'text-amber-950/80 hover:bg-amber-50 hover:translate-x-1'
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+
+        {/* Mobile Language switcher */}
+        <div className="flex items-center space-x-2 pt-2 border-t border-amber-50">
+          <Globe size={14} className="text-amber-700" />
+          <span className="text-xs font-bold text-amber-900">Language:</span>
+          <div className="flex bg-amber-50 border border-amber-200 rounded-full overflow-hidden">
+            <button
+              onClick={() => setLanguage('en')}
+              className={`px-4 py-1 text-xs font-bold transition-all ${language === 'en' ? 'bg-amber-800 text-white' : 'text-amber-700'}`}
+            >
+              English
             </button>
-          </form>
-
-          <div className="flex flex-col space-y-1 pt-1">
-            {[
-              { href: '/', label: t('nav_home_mobile') },
-              { href: '/products?category=cold-pressed', label: t('nav_oils_mobile') },
-              { href: '/products?category=refined-filtered', label: t('nav_pooja_mobile') },
-              { href: '/account?tab=orders', label: t('nav_track_mobile') },
-            ].map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
-                  pathname === href ? 'bg-amber-50 text-amber-900 font-bold' : 'text-amber-950/80 hover:bg-amber-50'
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
-
-          {/* Mobile Language switcher */}
-          <div className="flex items-center space-x-2 pt-2 border-t border-amber-50">
-            <Globe size={14} className="text-amber-700" />
-            <span className="text-xs font-bold text-amber-900">Language:</span>
-            <div className="flex bg-amber-50 border border-amber-200 rounded-full overflow-hidden">
-              <button
-                onClick={() => setLanguage('en')}
-                className={`px-4 py-1 text-xs font-bold transition-all ${language === 'en' ? 'bg-amber-800 text-white' : 'text-amber-700'}`}
-              >
-                English
-              </button>
-              <button
-                onClick={() => setLanguage('te')}
-                className={`px-4 py-1 text-xs font-bold transition-all ${language === 'te' ? 'bg-amber-800 text-white' : 'text-amber-700'}`}
-              >
-                తెలుగు
-              </button>
-            </div>
+            <button
+              onClick={() => setLanguage('te')}
+              className={`px-4 py-1 text-xs font-bold transition-all ${language === 'te' ? 'bg-amber-800 text-white' : 'text-amber-700'}`}
+            >
+              తెలుగు
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 }

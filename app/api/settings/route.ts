@@ -20,8 +20,8 @@ export async function GET(req: NextRequest) {
           gstRate: 5,
           contactPhone: '+91 99999 99999',
           whatsappNumber: '+91 99999 99999',
-          businessName: 'నూనె & పూజా బజార్ / Nune & Pooja Bazaar',
-          businessEmail: 'support@nunebazaar.com',
+          businessName: 'ఓమ్ నాచురల్ చెక్క గానుగ నూనెలు / OM Natural Chekka Ganuga Oils',
+          businessEmail: 'support@omnatural.com',
         },
       });
     }

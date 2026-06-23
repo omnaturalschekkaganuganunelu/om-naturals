@@ -31,7 +31,7 @@ export const translations = {
     hero_btn_pooja: 'Refined & Filtered',
     hero_featured: 'Featured Product',
     hero_lab: '100% Lab Certified',
-    hero_traditional: 'Traditional Bilona Ghee',
+    hero_traditional: 'Traditional Wood Pressed',
 
     // Categories
     categories_heading: 'Browse Categories',
@@ -401,7 +401,7 @@ export const translations = {
     hero_btn_pooja: 'శుద్ధి చేసినవి',
     hero_featured: 'Featured Product',
     hero_lab: '100% ల్యాబ్ సర్టిఫైడ్',
-    hero_traditional: 'సాంప్రదాయ బిలోనా నెయ్యి',
+    hero_traditional: 'సాంప్రదాయ చెక్క గానుగ',
 
     // Categories
     categories_heading: 'రకాలు చూడండి',

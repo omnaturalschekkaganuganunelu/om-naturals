@@ -252,46 +252,87 @@ function TrackOrderContent() {
   useEffect(() => {
     if (!trackingOrderId) return;
 
-    // Connect to SSE stream
-    const eventSource = new EventSource(`/api/orders/sse?orderId=${trackingOrderId}`);
+    let eventSource: EventSource | null = null;
+    let pollInterval: NodeJS.Timeout | null = null;
 
-    eventSource.onopen = () => {
-      setSseConnected(true);
-      console.log('SSE Tracking connection opened');
-    };
+    const connectSSE = () => {
+      eventSource = new EventSource(`/api/orders/sse?orderId=${trackingOrderId}`);
 
-    eventSource.addEventListener('order-update', (event: any) => {
-      const data = JSON.parse(event.data);
-      console.log('SSE Tracking Event Received:', data);
-      
-      // Update order status in view
-      setOrder((prev: any) => {
-        if (prev && prev.id === data.orderId) {
-          showToast(
-            language === 'te'
-              ? `స్థితి అప్‌డేట్: ${getStatusLabel(data.status)}`
-              : `Order Status Updated: ${getStatusLabel(data.status)}`,
-            'info'
-          );
-          return {
-            ...prev,
-            orderStatus: data.status,
-            updatedAt: data.updatedAt || new Date().toISOString()
-          };
-        }
-        return prev;
+      eventSource.onopen = () => {
+        setSseConnected(true);
+        console.log('SSE Tracking connection opened');
+      };
+
+      eventSource.addEventListener('order-update', (event: any) => {
+        const data = JSON.parse(event.data);
+        console.log('SSE Tracking Event Received:', data);
+        
+        // Update order status in view
+        setOrder((prev: any) => {
+          if (prev && prev.id === data.orderId) {
+            showToast(
+              language === 'te'
+                ? `స్థితి అప్‌డేట్: ${getStatusLabel(data.status)}`
+                : `Order Status Updated: ${getStatusLabel(data.status)}`,
+              'info'
+            );
+            return {
+              ...prev,
+              orderStatus: data.status,
+              updatedAt: data.updatedAt || new Date().toISOString()
+            };
+          }
+          return prev;
+        });
       });
-    });
 
-    eventSource.onerror = (err) => {
-      console.error('SSE Tracking Connection Error:', err);
-      setSseConnected(false);
-      eventSource.close();
+      eventSource.onerror = (err) => {
+        console.error('SSE Tracking Connection Error. Falling back to active status interval polling:', err);
+        setSseConnected(false);
+        if (eventSource) {
+          eventSource.close();
+        }
+        
+        // Start polling fallback if not active
+        if (!pollInterval) {
+          console.log('Starting order tracking polling fallback...');
+          pollInterval = setInterval(fetchOrderStatusSilent, 20000); // poll status every 20s
+        }
+      };
     };
+
+    const fetchOrderStatusSilent = () => {
+      fetch(`/api/orders/${trackingOrderId}`)
+        .then((res) => {
+          if (res.ok) return res.json();
+          throw new Error('Failed to fetch');
+        })
+        .then((data) => {
+          setOrder((prev: any) => {
+            if (prev && prev.orderStatus !== data.orderStatus) {
+              showToast(
+                language === 'te'
+                  ? `స్థితి అప్‌డేట్: ${getStatusLabel(data.orderStatus)}`
+                  : `Order Status Updated: ${getStatusLabel(data.orderStatus)}`,
+                'info'
+              );
+            }
+            return data;
+          });
+        })
+        .catch((err) => console.error('Silent order status poll failed:', err));
+    };
+
+    connectSSE();
 
     return () => {
-      console.log('Closing SSE Tracking connection');
-      eventSource.close();
+      console.log('Cleaning up SSE tracking and polling triggers...');
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
       setSseConnected(false);
     };
   }, [trackingOrderId, language, getStatusLabel, showToast]);

@@ -57,68 +57,98 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (authStatus !== 'authenticated' || session?.user?.role !== 'ADMIN') return;
 
-    // Connect to global SSE stream as admin
-    const eventSource = new EventSource('/api/orders/sse?role=admin');
+    let eventSource: EventSource | null = null;
+    let pollInterval: NodeJS.Timeout | null = null;
 
-    eventSource.onopen = () => {
-      console.log('SSE Admin connection opened');
-    };
+    const connectSSE = () => {
+      // Connect to global SSE stream as admin
+      eventSource = new EventSource('/api/orders/sse?role=admin');
 
-    // Listen for new orders
-    eventSource.addEventListener('new-order', (event: any) => {
-      const data = JSON.parse(event.data);
-      console.log('SSE Admin Event - New Order Placed:', data);
-      
-      // 1. Highlight new order alert overlay
-      setNewOrderAlert(data);
+      eventSource.onopen = () => {
+        console.log('SSE Admin connection opened');
+      };
 
-      // 2. Play a notification sound
-      try {
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav'); // Premium chime sound
-        audio.volume = 0.5;
-        audio.play();
-      } catch (err) {
-        console.error('Failed to play sound', err);
-      }
-
-      // 3. Update stats counters dynamically in state
-      setStats((prev: any) => {
-        if (!prev) return prev;
+      // Listen for new orders
+      eventSource.addEventListener('new-order', (event: any) => {
+        const data = JSON.parse(event.data);
+        console.log('SSE Admin Event - New Order Placed:', data);
         
-        // Append to recent orders list
-        const updatedRecent = [data, ...prev.recentOrders.slice(0, 4)];
-        
-        // Update trend if today matches
-        const updatedTrend = [...prev.revenueTrend];
-        const lastDay = updatedTrend[updatedTrend.length - 1];
-        if (lastDay) {
-          lastDay.revenue += data.total;
-          lastDay.orders += 1;
+        // 1. Highlight new order alert overlay
+        setNewOrderAlert(data);
+
+        // 2. Play a notification sound
+        try {
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav'); // Premium chime sound
+          audio.volume = 0.5;
+          audio.play();
+        } catch (err) {
+          console.error('Failed to play sound', err);
         }
 
-        return {
-          ...prev,
-          ordersCount: prev.ordersCount + 1,
-          totalRevenue: prev.totalRevenue + data.total,
-          recentOrders: updatedRecent,
-          revenueTrend: updatedTrend,
-        };
+        // 3. Update stats counters dynamically in state
+        setStats((prev: any) => {
+          if (!prev) return prev;
+          
+          // Append to recent orders list
+          const updatedRecent = [data, ...prev.recentOrders.slice(0, 4)];
+          
+          // Update trend if today matches
+          const updatedTrend = [...prev.revenueTrend];
+          const lastDay = updatedTrend[updatedTrend.length - 1];
+          if (lastDay) {
+            lastDay.revenue += data.total;
+            lastDay.orders += 1;
+          }
+
+          return {
+            ...prev,
+            ordersCount: prev.ordersCount + 1,
+            totalRevenue: prev.totalRevenue + data.total,
+            recentOrders: updatedRecent,
+            revenueTrend: updatedTrend,
+          };
+        });
+
+        // Clear toast alert after 5 seconds
+        setTimeout(() => {
+          setNewOrderAlert(null);
+        }, 5000);
       });
 
-      // Clear toast alert after 5 seconds
-      setTimeout(() => {
-        setNewOrderAlert(null);
-      }, 5000);
-    });
-
-    eventSource.onerror = (err) => {
-      console.error('SSE Admin Connection Error:', err);
-      eventSource.close();
+      eventSource.onerror = (err) => {
+        console.error('SSE Admin Connection Error. Falling back to active interval polling:', err);
+        if (eventSource) {
+          eventSource.close();
+        }
+        
+        // Start polling if not already active
+        if (!pollInterval) {
+          console.log('Starting dashboard polling fallback...');
+          fetchStatsSilent();
+          pollInterval = setInterval(fetchStatsSilent, 30000); // poll stats every 30s
+        }
+      };
     };
 
+    const fetchStatsSilent = () => {
+      fetch('/api/admin/stats')
+        .then((res) => res.json())
+        .then((data) => {
+          setStats(data);
+        })
+        .catch((err) => console.error('Silent stats poll failed:', err));
+    };
+
+    connectSSE();
+
     return () => {
-      console.log('Closing SSE Admin connection');
-      eventSource.close();
+      console.log('Cleaning up SSE connection and polling triggers...');
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
     };
   }, [authStatus]);
 

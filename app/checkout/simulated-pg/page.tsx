@@ -83,7 +83,7 @@ function SimulatedPGContent() {
         <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 text-xs font-medium text-amber-950 space-y-2.5">
           <div className="flex justify-between">
             <span className="text-gray-500">{language === 'te' ? 'మర్చంట్ పేరు:' : 'Merchant Name:'}</span>
-            <span className="font-extrabold text-amber-900">Nune & Pooja Bazaar</span>
+            <span className="font-extrabold text-amber-900">OM Natural Chekka Ganuga Oils</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">{language === 'te' ? 'లావాదేవీ ID:' : 'Transaction ID:'}</span>

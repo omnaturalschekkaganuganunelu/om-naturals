@@ -10,7 +10,10 @@ async function main() {
   await prisma.siteSettings.upsert({
     where: { id: 'singleton' },
     update: {
-      businessName: 'సహజ చెక్క గానుగ నూనెలు / Natural Chekka Ganuga Oils',
+      businessName: 'ఓమ్ నాచురల్ చెక్క గానుగ నూనెలు / OM Natural Chekka Ganuga Oils',
+      businessEmail: 'support@omnatural.com',
+      contactPhone: '+91 86882 91288',
+      whatsappNumber: '+91 86882 91288',
     },
     create: {
       id: 'singleton',
@@ -18,10 +21,10 @@ async function main() {
       freeShippingAbove: 500,
       shippingFee: 40,
       gstRate: 5,
-      contactPhone: '+91 99999 99999',
-      whatsappNumber: '+91 99999 99999',
-      businessName: 'సహజ చెక్క గానుగ నూనెలు / Natural Chekka Ganuga Oils',
-      businessEmail: 'support@nunebazaar.com',
+      contactPhone: '+91 86882 91288',
+      whatsappNumber: '+91 86882 91288',
+      businessName: 'ఓమ్ నాచురల్ చెక్క గానుగ నూనెలు / OM Natural Chekka Ganuga Oils',
+      businessEmail: 'support@omnatural.com',
     },
   });
   console.log('Site settings created/verified.');
