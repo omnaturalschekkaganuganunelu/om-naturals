@@ -173,7 +173,7 @@ async function sync() {
   });
   console.log('Updated site settings in database.');
 
-  // Ensure category exists
+  // Ensure cold-pressed category exists and is active
   const category = await prisma.category.upsert({
     where: { slug: 'cold-pressed' },
     update: { isActive: true },
@@ -188,9 +188,30 @@ async function sync() {
     }
   });
 
-  // Deactivate all other categories to only show Traditional Cold Pressed Oils
+  // Ensure refined-filtered category exists and is active
+  await prisma.category.upsert({
+    where: { slug: 'refined-filtered' },
+    update: { isActive: true },
+    create: {
+      name: 'Refined & Filtered Oils (శుద్ధి చేసిన & వడపోసిన నూనెలు)',
+      nameTe: 'శుద్ధి చేసిన & వడపోసిన నూనెలు',
+      slug: 'refined-filtered',
+      image: '/images/categories/refined_filtered.png',
+      description: 'నాణ్యమైన పద్ధతిలో శుద్ధి చేయబడిన మరియు వడపోసిన వంట నూనెలు',
+      sortOrder: 2,
+      isActive: true,
+    }
+  });
+
+  // Deactivate all other categories except these two main categories
   await prisma.category.updateMany({
-    where: { NOT: { slug: 'cold-pressed' } },
+    where: {
+      NOT: {
+        slug: {
+          in: ['cold-pressed', 'refined-filtered']
+        }
+      }
+    },
     data: { isActive: false }
   });
   console.log('Deactivated other categories.');
