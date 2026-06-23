@@ -73,7 +73,8 @@ export async function POST(req: NextRequest) {
     const settings = await prisma.siteSettings.findUnique({
       where: { id: 'singleton' },
     });
-    const shippingFee = settings?.shippingFee ?? 40;
+    const shippingFee = settings?.shippingFee ?? 30;
+    const packingFee = settings?.packingFee ?? 20;
     const freeShippingAbove = settings?.freeShippingAbove ?? 500;
     const gstRate = settings?.gstRate ?? 5;
 
@@ -145,11 +146,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Calculate Tax & Shipping
+    // Calculate Tax, Shipping & Packing
     const taxableAmount = subtotal - discount;
     const tax = parseFloat(((taxableAmount * gstRate) / 100).toFixed(2));
     const shipping = taxableAmount >= freeShippingAbove ? 0 : shippingFee;
-    const total = parseFloat((taxableAmount + tax + shipping).toFixed(2));
+    const total = parseFloat((taxableAmount + tax + shipping + packingFee).toFixed(2));
 
     // Custom Order ID
     const today = new Date();
@@ -184,7 +185,7 @@ export async function POST(req: NextRequest) {
           paymentMethod,
           paymentStatus: 'PENDING',
           orderStatus: 'PENDING',
-          notes,
+          notes: notes || `Packing: ₹${packingFee} + Shipping: ₹${shipping}`,
           items: {
             create: itemsToCreate,
           },
@@ -211,7 +212,7 @@ export async function POST(req: NextRequest) {
       return newOrder;
     });
 
-    // Broadcast SSE alert for ADMIN (if COD, it's a new pending order. For PhonePe, we wait for payment completion before calling it "confirmed", but admin still sees it in dashboard)
+    // Broadcast SSE alert for ADMIN
     orderEmitter.emit('new-order', {
       ...order,
       user: {
@@ -219,6 +220,21 @@ export async function POST(req: NextRequest) {
         email: session.user.email,
       },
     });
+
+    // Auto-notify user that order was placed
+    try {
+      await prisma.notification.create({
+        data: {
+          title: '🛒 Order Placed Successfully!',
+          body: `Your order ${order.orderId} for ₹${order.total} has been placed. ${paymentMethod === 'COD' ? 'Pay on delivery.' : 'Complete your payment to confirm.'} Expected delivery in 2-3 days.`,
+          type: 'ORDER',
+          userId: session.user.id,
+          orderId: order.id,
+        },
+      });
+    } catch (notifErr) {
+      console.error('Order-placed notification failed:', notifErr);
+    }
 
     return NextResponse.json({
       success: true,

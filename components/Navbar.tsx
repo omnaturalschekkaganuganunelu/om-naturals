@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { ShoppingCart, User, Menu, X, Search, MapPin, Phone, MessageCircle, Globe, Loader2 } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Search, Globe, Loader2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
+import NotificationBell from '@/components/NotificationBell';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -193,6 +194,11 @@ export default function Navbar() {
                 తె
               </button>
             </div>
+
+            {/* Notification Bell */}
+            <Suspense fallback={null}>
+              <NotificationBell />
+            </Suspense>
 
             {/* Cart */}
             <Link

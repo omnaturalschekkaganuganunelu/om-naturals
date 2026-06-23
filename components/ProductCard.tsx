@@ -265,9 +265,14 @@ export default function ProductCard({ group }: ProductCardProps) {
                     setModalOpen(true);
                   }
                 }}
-                className="bg-amber-800 hover:bg-amber-700 active:scale-95 text-white text-[10px] font-black px-2.5 py-1.5 rounded-lg sm:rounded-xl transition-all duration-200 uppercase tracking-wider shrink-0 shadow-sm"
+                className="relative overflow-hidden group/btn flex items-center gap-1.5 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 active:scale-95 text-white text-[10px] font-black px-3 py-1.5 rounded-xl transition-all duration-200 shrink-0 shadow-md hover:shadow-amber-500/40 hover:shadow-lg"
               >
-                {language === 'te' ? 'కొనండి' : 'Buy Now'}
+                {/* shimmer sweep */}
+                <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+                <span className="text-amber-200 text-[11px]">⚡</span>
+                <span className="uppercase tracking-wider relative z-10">
+                  {language === 'te' ? 'కొనండి' : 'Buy Now'}
+                </span>
               </button>
             )}
           </div>

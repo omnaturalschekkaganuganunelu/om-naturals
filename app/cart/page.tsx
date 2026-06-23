@@ -31,10 +31,11 @@ export default function CartPage() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [total, setTotal] = useState(0);
 
-  // Free shipping threshold & tax rate constants (can sync with database SiteSettings in future)
+  // Free shipping threshold & tax rate constants
   const FREE_SHIPPING_THRESHOLD = 500;
-  const SHIPPING_FEE = 40;
-  const GST_RATE = 5; // 5% GST
+  const SHIPPING_FEE = 30;
+  const PACKING_FEE = 20;
+  const GST_RATE = 5;
 
   // Compute billing summary on cart items/coupon changes
   useEffect(() => {
@@ -73,7 +74,7 @@ export default function CartPage() {
     const taxableAmount = cartSubtotal - couponDiscount;
     const computedTax = parseFloat(((taxableAmount * GST_RATE) / 100).toFixed(2));
     const computedShipping = taxableAmount >= FREE_SHIPPING_THRESHOLD || cartSubtotal === 0 ? 0 : SHIPPING_FEE;
-    const computedTotal = parseFloat((taxableAmount + computedTax + computedShipping).toFixed(2));
+    const computedTotal = parseFloat((taxableAmount + computedTax + computedShipping + (cartSubtotal > 0 ? PACKING_FEE : 0)).toFixed(2));
 
     setTax(computedTax);
     setShipping(computedShipping);
@@ -368,6 +369,14 @@ export default function CartPage() {
                     )}
                   </span>
                 </div>
+
+                {/* Packing Fee */}
+                {subtotal > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">📦 Packing Charges</span>
+                    <span className="font-bold">₹{PACKING_FEE}</span>
+                  </div>
+                )}
 
                 {/* Free Shipping Progress bar */}
                 {subtotal - discountAmount < FREE_SHIPPING_THRESHOLD && (

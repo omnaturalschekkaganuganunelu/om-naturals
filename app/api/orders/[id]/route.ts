@@ -83,10 +83,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ error: 'Unauthorized action. Customers can only cancel their orders.' }, { status: 400 });
       }
 
-      // Customer can only cancel if the current order status is PENDING, CONFIRMED, or PROCESSING
-      const cancelableStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING'];
+      // Customer can only cancel if status is PENDING, CONFIRMED, PROCESSING, or PACKED
+      const cancelableStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED'];
       if (!cancelableStatuses.includes(existingOrder.orderStatus)) {
-        return NextResponse.json({ error: 'This order cannot be cancelled as it is already packed or shipped.' }, { status: 400 });
+        return NextResponse.json({ error: 'Cancellation is only allowed before the order is Out for Delivery.' }, { status: 400 });
       }
     }
 
@@ -143,6 +143,33 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       status: order.orderStatus,
       updatedAt: new Date().toISOString(),
     });
+
+    // Auto-create a notification for the order's user
+    const STATUS_NOTIF: Record<string, { title: string; body: string }> = {
+      CONFIRMED:        { title: '✅ Order Confirmed!',        body: `Your order ${order.orderId} has been confirmed by our team. We're preparing it fresh for you!` },
+      PROCESSING:       { title: '⚙️ Order Processing',       body: `Your order ${order.orderId} is currently being prepared. Fresh wood-pressed oils on the way!` },
+      PACKED:           { title: '📦 Order Packed!',           body: `Your order ${order.orderId} is securely packed and ready to dispatch. Almost there!` },
+      OUT_FOR_DELIVERY: { title: '🛵 Out for Delivery!',       body: `Your order ${order.orderId} is out for delivery! Our delivery executive is heading your way.` },
+      DELIVERED:        { title: '🎉 Order Delivered!',        body: `Your order ${order.orderId} has been delivered successfully. Enjoy your pure oils! Thank you for choosing OM Natural.` },
+      CANCELLED:        { title: '❌ Order Cancelled',          body: `Your order ${order.orderId} has been cancelled. ${body.notes ? `Reason: ${body.notes}` : ''}` },
+    };
+
+    const notifData = STATUS_NOTIF[order.orderStatus];
+    if (notifData) {
+      try {
+        await prisma.notification.create({
+          data: {
+            title: notifData.title,
+            body: notifData.body,
+            type: 'ORDER',
+            userId: existingOrder.userId,
+            orderId: order.id,
+          },
+        });
+      } catch (notifErr) {
+        console.error('Failed to create notification:', notifErr);
+      }
+    }
 
     return NextResponse.json(order);
   } catch (err: any) {

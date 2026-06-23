@@ -3,6 +3,7 @@ import './globals.css';
 import Providers from '@/components/Providers';
 import { Suspense } from 'react';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import InstallPrompt from '@/components/InstallPrompt';
 
 export const metadata: Metadata = {
   title: 'OM Natural Chekka Ganuga Oils | 100% Pure Traditional Wood Pressed Cooking Oils',
@@ -12,12 +13,14 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.ico',
   },
+  manifest: '/manifest.json',
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
+  themeColor: '#92400e',
 };
 
 export default function RootLayout({
@@ -32,6 +35,9 @@ export default function RootLayout({
           {children}
           <Suspense fallback={null}>
             <MobileBottomNav />
+          </Suspense>
+          <Suspense fallback={null}>
+            <InstallPrompt />
           </Suspense>
         </Providers>
       </body>

@@ -308,8 +308,9 @@ export default function CheckoutPage() {
   const discount = coupon ? coupon.discount : 0;
   const taxable = subtotal - discount;
   const tax = parseFloat(((taxable * 5) / 100).toFixed(2));
-  const shipping = taxable >= 500 ? 0 : 40;
-  const total = parseFloat((taxable + tax + shipping).toFixed(2));
+  const shipping = taxable >= 500 ? 0 : 30;
+  const packingFee = 20;
+  const total = parseFloat((taxable + tax + shipping + packingFee).toFixed(2));
 
   return (
     <>
@@ -657,6 +658,10 @@ export default function CheckoutPage() {
                   <span className="font-bold">
                     {shipping === 0 ? <span className="text-green-600 font-extrabold">{t('cart_free')}</span> : `₹${shipping}`}
                   </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">📦 Packing Charges:</span>
+                  <span className="font-bold">₹{packingFee}</span>
                 </div>
               </div>
 

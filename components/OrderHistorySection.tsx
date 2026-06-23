@@ -98,10 +98,10 @@ function printInvoice(order: any) {
   if (!win) return;
   const rows = order.items.map((it: any) => `
     <tr>
-      <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9">${it.nameTe || it.name}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9">${it.name}${it.nameTe ? ` (${it.nameTe})` : ''}</td>
       <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9;text-align:center">${it.quantity}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9;text-align:right">₹${it.price}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9;text-align:right">₹${it.price * it.quantity}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9;text-align:right">&#x20B9;${it.price}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9;text-align:right">&#x20B9;${it.price * it.quantity}</td>
     </tr>`).join('');
   const html = `
   <html><head><title>Invoice – ${order.orderId}</title>
@@ -143,11 +143,12 @@ function printInvoice(order: any) {
     <th style="text-align:right;width:100px">Unit Price</th><th style="text-align:right;width:100px">Total</th>
   </tr></thead><tbody>${rows}</tbody></table>
   <div class="tot">
-    <div class="tot-row"><span>Subtotal</span><span>₹${order.subtotal ?? 0}</span></div>
-    <div class="tot-row"><span>Shipping</span><span>₹${order.shipping ?? 0}</span></div>
-    <div class="tot-row"><span>Tax (GST)</span><span>₹${order.tax ?? 0}</span></div>
-    ${order.discount > 0 ? `<div class="tot-row" style="color:#16a34a"><span>Discount</span><span>-₹${order.discount}</span></div>` : ''}
-    <div class="tot-row grand"><span>Grand Total</span><span>₹${order.total}</span></div>
+    <div class="tot-row"><span>Subtotal</span><span>&#x20B9;${order.subtotal ?? 0}</span></div>
+    <div class="tot-row"><span>Shipping</span><span>&#x20B9;${order.shipping ?? 0}</span></div>
+    <div class="tot-row"><span>Packing Charges</span><span>&#x20B9;20</span></div>
+    <div class="tot-row"><span>Tax (GST)</span><span>&#x20B9;${order.tax ?? 0}</span></div>
+    ${order.discount > 0 ? `<div class="tot-row" style="color:#16a34a"><span>Discount</span><span>-&#x20B9;${order.discount}</span></div>` : ''}
+    <div class="tot-row grand"><span>Grand Total</span><span>&#x20B9;${order.total}</span></div>
   </div>
   <div class="ftr"><p>Thank you for choosing Om Natural wood-pressed oils!</p><p>Computer-generated invoice. No physical signature required.</p></div>
   <script>window.onload=()=>window.print();</script>
@@ -476,7 +477,7 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
   const trkId = getTrackingId(order.orderId);
   const progressPct = getProgressPct(order.orderStatus);
   const isCancelled = order.orderStatus === 'CANCELLED';
-  const canCancel = ['PENDING', 'CONFIRMED', 'PROCESSING'].includes(order.orderStatus);
+  const canCancel = ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED'].includes(order.orderStatus);
   const statusInfo = STATUS_STYLES[order.orderStatus] ?? STATUS_STYLES['PENDING'];
 
   const handleCopy = (id: string) => {
@@ -584,12 +585,19 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
               <Navigation2 size={12}/> Track Order
             </button>
             {canCancel && (
-              <button
-                onClick={() => setShowCancel(true)}
-                className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 text-xs font-bold px-3.5 py-2 rounded-xl transition-colors"
-              >
-                <X size={12}/> Cancel
-              </button>
+              <>
+                <button
+                  onClick={() => setShowCancel(true)}
+                  className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 text-xs font-bold px-3.5 py-2 rounded-xl transition-colors"
+                >
+                  <X size={12}/> Cancel
+                </button>
+              </>
+            )}
+            {['OUT_FOR_DELIVERY', 'SHIPPED'].includes(order.orderStatus) && (
+              <span className="text-[10px] text-gray-400 font-semibold italic">
+                ⚠️ Cannot cancel — Out for Delivery
+              </span>
             )}
             <button
               onClick={() => printInvoice(order)}

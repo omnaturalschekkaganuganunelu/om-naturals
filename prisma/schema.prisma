@@ -155,10 +155,22 @@ model SiteSettings {
   id                String  @id @default("singleton")
   codEnabled        Boolean @default(true)
   freeShippingAbove Float   @default(500)
-  shippingFee       Float   @default(40)
+  shippingFee       Float   @default(30)
+  packingFee        Float   @default(20)
   gstRate           Float   @default(5) // percent
   contactPhone      String  @default("+919999999999")
   whatsappNumber    String  @default("+919999999999")
   businessName      String  @default("నూనె బజార్ / Nune Bazaar")
   businessEmail     String  @default("support@nunebazaar.com")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  body      String
+  type      String   @default("INFO") // INFO | ORDER | OFFER
+  userId    String?  // null = broadcast to ALL users
+  isRead    Boolean  @default(false)
+  orderId   String?
+  createdAt DateTime @default(now())
 }
