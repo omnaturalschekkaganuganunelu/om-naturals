@@ -2,86 +2,80 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, Droplet, ShoppingCart, User } from 'lucide-react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Home, Droplet, Droplets, ShoppingCart, User } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { t } = useLanguage();
   const cartItemsCount = useCartStore((state) => state.getCartCount());
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const isHome    = pathname === '/';
-  const isOils    = pathname === '/products';
-  const isCart    = pathname === '/cart';
+  // Determine active states
+  const isHome = pathname === '/';
+  const isOils = pathname === '/products';
+  const isCart = pathname === '/cart';
   const isAccount = pathname === '/account' || pathname === '/login';
 
   const items = [
     {
-      label: 'Home',
+      label: t('nav_home_mobile'),
       href: '/',
       active: isHome,
-      icon: <Home size={22} strokeWidth={isHome ? 2.5 : 1.8} />,
+      icon: <Home size={20} className={isHome ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />,
     },
     {
-      label: 'Oils',
+      label: t('nav_oils_mobile'),
       href: '/products',
       active: isOils,
-      icon: <Droplet size={22} strokeWidth={isOils ? 2.5 : 1.8} />,
+      icon: <Droplet size={20} className={isOils ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />,
     },
     {
-      label: 'Cart',
+      label: t('cart_title').split(' ')[0],
       href: '/cart',
       active: isCart,
       icon: (
         <div className="relative">
-          <ShoppingCart size={22} strokeWidth={isCart ? 2.5 : 1.8} />
+          <ShoppingCart size={20} className={isCart ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />
           {mounted && cartItemsCount > 0 && (
-            <span className="absolute -top-2.5 -right-2.5 bg-gradient-to-br from-amber-500 to-amber-700 text-white text-[9px] font-black w-[18px] h-[18px] rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-              {cartItemsCount > 9 ? '9+' : cartItemsCount}
+            <span className="absolute -top-2.5 -right-2.5 bg-gradient-to-br from-amber-600 to-amber-700 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border border-white shadow-sm">
+              {cartItemsCount}
             </span>
           )}
         </div>
       ),
     },
     {
-      label: 'Account',
+      label: t('nav_my_account').split(' ').pop() || t('nav_my_account'),
       href: '/account',
       active: isAccount,
-      icon: <User size={22} strokeWidth={isAccount ? 2.5 : 1.8} />,
+      icon: <User size={20} className={isAccount ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />,
     },
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 safe-bottom">
-      <div className="bg-white/98 backdrop-blur-xl border-t border-amber-100/80 shadow-[0_-4px_24px_rgba(161,98,7,0.08)]">
-        <div className="flex items-center justify-around px-1 py-2">
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex flex-col items-center justify-center flex-1 py-1.5 min-w-0 group"
-            >
-              <div className={`relative flex items-center justify-center w-10 h-10 rounded-2xl transition-all duration-200 ${
-                item.active
-                  ? 'bg-amber-800 text-white shadow-md shadow-amber-500/30 scale-105'
-                  : 'text-gray-400 group-hover:text-amber-700 group-hover:bg-amber-50'
-              }`}>
-                {item.icon}
-              </div>
-              <span className={`text-[10px] font-bold mt-0.5 truncate tracking-tight transition-colors ${
-                item.active ? 'text-amber-800' : 'text-gray-400 group-hover:text-amber-700'
-              }`}>
-                {item.label}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </nav>
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-amber-100 flex items-center justify-around py-2.5 pb-safe smooth-shadow">
+      {items.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          className={`flex flex-col items-center justify-center flex-1 text-[10px] font-bold transition-all duration-200 ${
+            item.active ? 'text-amber-800 scale-105' : 'text-amber-900/60 hover:text-amber-800'
+          }`}
+        >
+          <div className={`mb-1 p-1 rounded-xl transition-all duration-200 ${item.active ? 'bg-amber-50 text-amber-800' : ''}`}>
+            {item.icon}
+          </div>
+          <span className="truncate max-w-[70px] tracking-tight">{item.label}</span>
+        </Link>
+      ))}
+    </div>
   );
 }

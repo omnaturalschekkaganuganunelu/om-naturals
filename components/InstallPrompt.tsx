@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Download, Smartphone, Zap, Package, Share2, Star } from 'lucide-react';
+import { X, Download, Smartphone, Monitor, Zap, Package, Share } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -15,49 +15,51 @@ export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
   const [installing, setInstalling] = useState(false);
-  const [installed, setInstalled] = useState(false);
   const [isIOSDevice, setIsIOSDevice] = useState(false);
-  const [isAndroid, setIsAndroid] = useState(false);
 
   useEffect(() => {
-    // Register service worker
+    // Register service worker to satisfy PWA installation requirements
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => console.log('Service Worker registered successfully', reg.scope))
+        .catch((err) => console.error('Service Worker registration failed', err));
     }
 
     // Check if dismissed recently
     const dismissed = localStorage.getItem(STORAGE_KEY);
     if (dismissed) {
-      const daysSince = (Date.now() - parseInt(dismissed, 10)) / (1000 * 60 * 60 * 24);
+      const dismissedAt = parseInt(dismissed, 10);
+      const daysSince = (Date.now() - dismissedAt) / (1000 * 60 * 60 * 24);
       if (daysSince < DISMISS_DAYS) return;
     }
 
-    // Already installed
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
+    // Check if already installed / running in standalone mode
+    const isStandalone = 
+      window.matchMedia('(display-mode: standalone)').matches || 
       (navigator as any).standalone === true;
+
     if (isStandalone) return;
 
-    const ua = window.navigator.userAgent.toLowerCase();
-    const ios = /iphone|ipad|ipod/.test(ua);
-    const android = /android/.test(ua);
-    setIsIOSDevice(ios);
-    setIsAndroid(android);
+    // Detect if iOS device
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOSDevice(isIOS);
 
-    if (ios) {
-      // Show iOS prompt after 4s
-      const t = setTimeout(() => setShow(true), 4000);
-      return () => clearTimeout(t);
+    if (isIOS) {
+      // Show iOS install guidelines after 3s
+      const timer = setTimeout(() => setShow(true), 3000);
+      return () => clearTimeout(timer);
+    } else {
+      const handler = (e: Event) => {
+        e.preventDefault();
+        setDeferredPrompt(e as BeforeInstallPromptEvent);
+        // Show after 3s so it doesn't interrupt initial page load
+        setTimeout(() => setShow(true), 3000);
+      };
+
+      window.addEventListener('beforeinstallprompt', handler);
+      return () => window.removeEventListener('beforeinstallprompt', handler);
     }
-
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setTimeout(() => setShow(true), 4000);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener('appinstalled', () => { setInstalled(true); setShow(false); });
-    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const handleInstall = async () => {
@@ -66,8 +68,12 @@ export default function InstallPrompt() {
     try {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') { setInstalled(true); setShow(false); }
-    } catch {}
+      if (outcome === 'accepted') {
+        setShow(false);
+      }
+    } catch (err) {
+      console.error('Error during PWA installation:', err);
+    }
     setInstalling(false);
     setDeferredPrompt(null);
   };
@@ -77,130 +83,88 @@ export default function InstallPrompt() {
     setShow(false);
   };
 
-  if (!show || installed) return null;
+  if (!show) return null;
 
   return (
-    <>
-      {/* Backdrop overlay */}
-      <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[290]"
-        onClick={handleDismiss}
-      />
+    <div className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-auto md:right-6 md:w-[380px] z-[300] animate-fade-in-up">
+      <div className="bg-white rounded-3xl shadow-2xl border border-amber-100 overflow-hidden">
+        {/* Gradient Header */}
+        <div className="bg-gradient-to-r from-amber-800 to-amber-900 px-5 pt-5 pb-4 relative">
+          <button
+            onClick={handleDismiss}
+            className="absolute top-3 right-3 p-1.5 hover:bg-amber-700/60 rounded-full transition-colors"
+            aria-label="Close"
+          >
+            <X size={14} className="text-amber-200" />
+          </button>
 
-      {/* Install Card */}
-      <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-6 md:max-w-[400px] z-[300]">
-        <div className="bg-white md:rounded-3xl rounded-t-3xl shadow-2xl border border-amber-100 overflow-hidden animate-slide-up">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur border border-white/20 flex items-center justify-center shadow-inner overflow-hidden">
+              <img src="/images/logo.jpg" alt="OM Natural Logo" className="w-full h-full object-cover" />
+            </div>
+            <div>
+              <p className="text-white font-black text-sm leading-tight">Install OM Natural</p>
+              <p className="text-amber-300 text-[11px] font-semibold mt-0.5">Pure Oils · Fast Orders · Free</p>
+            </div>
+          </div>
+        </div>
 
-          {/* Amber Gradient Header */}
-          <div className="relative bg-gradient-to-br from-amber-700 via-amber-800 to-amber-900 px-6 pt-6 pb-5 overflow-hidden">
-            {/* Decorative circles */}
-            <div className="absolute -top-8 -right-8 w-32 h-32 bg-amber-600/20 rounded-full" />
-            <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-amber-500/20 rounded-full" />
+        {/* Features list */}
+        <div className="px-5 py-4 space-y-3.5">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { icon: Zap,       text: 'Faster\nOrdering',  color: 'text-amber-600',  bg: 'bg-amber-50'  },
+              { icon: Package,   text: 'Order\nTracking',   color: 'text-blue-600',   bg: 'bg-blue-50'   },
+              { icon: Smartphone, text: 'Works\nOffline',   color: 'text-green-600',  bg: 'bg-green-50'  },
+            ].map(({ icon: Icon, text, color, bg }) => (
+              <div key={text} className={`${bg} rounded-2xl p-3 flex flex-col items-center gap-1.5 text-center`}>
+                <Icon size={16} className={color} />
+                <p className={`text-[10px] font-bold leading-tight ${color}`} style={{ whiteSpace: 'pre-line' }}>{text}</p>
+              </div>
+            ))}
+          </div>
 
+          {isIOSDevice ? (
+            <div className="bg-amber-50/50 border border-amber-100/50 rounded-2xl p-3 flex items-start gap-2.5">
+              <Share className="text-amber-700 shrink-0 mt-0.5" size={15} />
+              <div className="text-[11px] text-amber-950 font-medium leading-relaxed">
+                To install on iOS:
+                <ol className="list-decimal ml-4 mt-1 space-y-1">
+                  <li>Tap the <strong className="font-bold">Share</strong> button in Safari browser.</li>
+                  <li>Scroll down and select <strong className="font-bold">Add to Home Screen</strong>.</li>
+                </ol>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[11px] text-gray-400 font-medium text-center leading-snug">
+              Add to your home screen for the fastest shopping experience. No app store needed!
+            </p>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-1">
             <button
               onClick={handleDismiss}
-              className="absolute top-4 right-4 p-1.5 hover:bg-amber-700/60 rounded-full transition-colors z-10"
-              aria-label="Close"
+              className="flex-1 py-2.5 border border-gray-200 text-gray-500 text-xs font-bold rounded-2xl hover:bg-gray-50 transition-colors"
             >
-              <X size={16} className="text-amber-200" />
+              Maybe Later
             </button>
-
-            <div className="flex items-center gap-4 relative z-10">
-              <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur border-2 border-white/30 flex items-center justify-center shadow-xl overflow-hidden flex-shrink-0">
-                <img src="/images/logo.jpg" alt="OM Natural" className="w-full h-full object-cover" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-white font-black text-base leading-tight">Install OM Natural</p>
-                  <span className="bg-amber-400 text-amber-900 text-[9px] font-black px-2 py-0.5 rounded-full">FREE</span>
-                </div>
-                <p className="text-amber-300 text-xs font-semibold">100% Pure Wood Pressed Oils</p>
-                <div className="flex items-center gap-0.5 mt-1.5">
-                  {[1,2,3,4,5].map(i => (
-                    <Star key={i} size={10} className="fill-amber-400 text-amber-400" />
-                  ))}
-                  <span className="text-amber-300/80 text-[9px] font-bold ml-1">4.9 · 500+ orders</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Feature Pills */}
-          <div className="px-6 py-4">
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              {[
-                { icon: Zap,       label: 'Faster\nOrdering',  bg: 'bg-amber-50',  color: 'text-amber-600' },
-                { icon: Package,   label: 'Order\nTracking',   bg: 'bg-blue-50',   color: 'text-blue-600'  },
-                { icon: Smartphone, label: 'Works\nOffline',   bg: 'bg-green-50',  color: 'text-green-600' },
-              ].map(({ icon: Icon, label, bg, color }) => (
-                <div key={label} className={`${bg} rounded-2xl p-3 flex flex-col items-center gap-1.5 text-center`}>
-                  <Icon size={18} className={color} />
-                  <p className={`text-[10px] font-bold leading-tight ${color}`} style={{ whiteSpace: 'pre-line' }}>
-                    {label}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {isIOSDevice ? (
-              /* iOS Instructions */
-              <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4">
-                <p className="text-xs font-black text-amber-900 mb-2.5 flex items-center gap-1.5">
-                  <Share2 size={13} className="text-amber-700" />
-                  Install on iPhone / iPad
-                </p>
-                <div className="space-y-2">
-                  {[
-                    'Open this site in Safari browser',
-                    'Tap the Share button (□↑) in the toolbar',
-                    'Scroll down and tap "Add to Home Screen"',
-                    'Tap "Add" in the top right corner',
-                  ].map((step, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <span className="w-5 h-5 bg-amber-700 text-white rounded-full text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">
-                        {i + 1}
-                      </span>
-                      <p className="text-[11px] text-gray-600 font-medium leading-snug">{step}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <p className="text-[11px] text-gray-400 font-medium text-center leading-snug mb-4">
-                Add to your home screen — no app store needed. Works on Android & Desktop!
-              </p>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
+            {!isIOSDevice && (
               <button
-                onClick={handleDismiss}
-                className="flex-1 py-3 border-2 border-gray-100 text-gray-500 text-xs font-bold rounded-2xl hover:bg-gray-50 transition-colors"
+                onClick={handleInstall}
+                disabled={installing || !deferredPrompt}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-gradient-to-r from-amber-700 to-amber-900 text-white text-xs font-black rounded-2xl shadow-md hover:shadow-amber-500/30 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
               >
-                Maybe Later
+                {installing ? (
+                  <><span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Installing…</>
+                ) : (
+                  <><Download size={13} /> Install App</>
+                )}
               </button>
-              {!isIOSDevice && (
-                <button
-                  onClick={handleInstall}
-                  disabled={installing || !deferredPrompt}
-                  className="flex-[2] flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-amber-700 to-amber-900 text-white text-sm font-black rounded-2xl shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:shadow-xl transition-all active:scale-95 disabled:opacity-50"
-                >
-                  {installing ? (
-                    <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Installing…</>
-                  ) : (
-                    <><Download size={15} /> INSTALL NOW</>
-                  )}
-                </button>
-              )}
-            </div>
-
-            <p className="text-center text-[10px] text-gray-300 font-semibold mt-3">
-              Free · No app store · Works instantly
-            </p>
+            )}
           </div>
-
         </div>
       </div>
-    </>
+    </div>
   );
 }
