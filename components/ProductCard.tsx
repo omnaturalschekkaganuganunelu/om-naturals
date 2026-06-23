@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Plus, Minus, Check, ChevronDown } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
@@ -42,6 +43,7 @@ export function extractBaseNameTe(nameTe: string): string {
 
 export default function ProductCard({ group }: ProductCardProps) {
   const { representative, variants, minPrice, minMrp, groupKey } = group;
+  const router = useRouter();
 
   const addItem = useCartStore((s) => s.addItem);
   const items = useCartStore((s) => s.items);
@@ -227,8 +229,8 @@ export default function ProductCard({ group }: ProductCardProps) {
             </p>
           )}
 
-          {/* Price */}
-          <div className="mt-auto">
+          {/* Price & Buy Now Button */}
+          <div className="mt-auto flex items-center justify-between gap-1.5">
             <div className="flex items-baseline gap-1.5 flex-wrap">
               <span className="text-sm sm:text-[15px] font-black text-gray-900">₹{minPrice}</span>
               {minMrp > minPrice && (
@@ -238,6 +240,36 @@ export default function ProductCard({ group }: ProductCardProps) {
                 <span className="text-[9px] text-gray-400 font-medium">onwards</span>
               )}
             </div>
+
+            {!outOfStock && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (isSingleVariant) {
+                    addItem({
+                      productId: representative.id,
+                      name: representative.name,
+                      nameTe: representative.nameTe,
+                      price: representative.price,
+                      mrp: representative.mrp,
+                      quantity: 1,
+                      image: representative.images?.[0] || FALLBACK_IMAGE,
+                      weight: representative.weight,
+                      unit: representative.unit,
+                      stock: representative.stock,
+                      variantLabel: formatVariantLabel(representative),
+                    });
+                    router.push('/cart');
+                  } else {
+                    setModalOpen(true);
+                  }
+                }}
+                className="bg-amber-800 hover:bg-amber-700 active:scale-95 text-white text-[10px] font-black px-2.5 py-1.5 rounded-lg sm:rounded-xl transition-all duration-200 uppercase tracking-wider shrink-0 shadow-sm"
+              >
+                {language === 'te' ? 'కొనండి' : 'Buy Now'}
+              </button>
+            )}
           </div>
         </div>
       </div>
