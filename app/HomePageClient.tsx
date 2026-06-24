@@ -126,7 +126,7 @@ export default function HomePageClient({ categories, products }: Props) {
       setActiveReviewIndex((prev) => (prev + 1) % reviews.length);
     }, 4000);
     return () => clearInterval(timer);
-  }, []);
+  }, [reviews.length]);
 
   return (
     <main className="flex-1 pb-16">
