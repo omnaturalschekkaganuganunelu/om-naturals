@@ -11,17 +11,17 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const { t } = useLanguage();
 
-  // Hide bottom navigation on all admin routes to prevent layout overlap
-  if (pathname.startsWith('/admin')) {
-    return null;
-  }
-
   const cartItemsCount = useCartStore((state) => state.getCartCount());
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Hide bottom navigation on all admin routes to prevent layout overlap
+  if (pathname.startsWith('/admin')) {
+    return null;
+  }
 
   // Determine active states
   const isHome = pathname === '/';

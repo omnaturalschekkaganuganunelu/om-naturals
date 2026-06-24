@@ -7,17 +7,37 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, email, password, phone } = body;
 
-    if (!name || !email || !password) {
-      return NextResponse.json({ error: 'పేరు, ఈమెయిల్ మరియు పాస్‌వర్డ్ అవసరం. (Name, email and password are required)' }, { status: 400 });
+    if (!name || !password || (!email && !phone)) {
+      return NextResponse.json({ 
+        error: 'పేరు, పాస్‌వర్డ్ మరియు ఈమెయిల్ లేదా ఫోన్ నెంబర్ అవసరం. (Name, password, and either email or phone number are required)' 
+      }, { status: 400 });
     }
+
+    const finalEmail = email || `${phone}@no-email.com`;
 
     // Email check
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: finalEmail },
     });
 
     if (existingUser) {
-      return NextResponse.json({ error: 'ఈ ఈమెయిల్ ఇప్పటికే నమోదు చేయబడింది. (This email is already registered)' }, { status: 400 });
+      return NextResponse.json({ 
+        error: email 
+          ? 'ఈ ఈమెయిల్ ఇప్పటికే నమోదు చేయబడింది. (This email is already registered)' 
+          : 'ఈ ఫోన్ నెంబర్ ఇప్పటికే నమోదు చేయబడింది. (This phone number is already registered)' 
+      }, { status: 400 });
+    }
+
+    // Phone unique check
+    if (phone) {
+      const existingPhoneUser = await prisma.user.findFirst({
+        where: { phone },
+      });
+      if (existingPhoneUser) {
+        return NextResponse.json({ 
+          error: 'ఈ ఫోన్ నెంబర్ ఇప్పటికే నమోదు చేయబడింది. (This phone number is already registered)' 
+        }, { status: 400 });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -25,9 +45,9 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.create({
       data: {
         name,
-        email,
+        email: finalEmail,
         password: hashedPassword,
-        phone,
+        phone: phone || null,
         role: 'CUSTOMER',
       },
     });
@@ -38,7 +58,7 @@ export async function POST(req: NextRequest) {
       user: {
         id: user.id,
         name: user.name,
-        email: user.email,
+        email: user.email.endsWith('@no-email.com') ? null : user.email,
         phone: user.phone,
       },
     });

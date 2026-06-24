@@ -222,7 +222,7 @@ export default function CartPage() {
                       alt={item.name}
                       className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shadow-sm shrink-0 border border-amber-50"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=100&auto=format&fit=crop';
+                        (e.target as HTMLImageElement).src = '/images/logo-512.png';
                       }}
                     />
                     

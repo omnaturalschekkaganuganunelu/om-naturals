@@ -17,8 +17,7 @@ interface VariantSelectorModalProps {
   anchorRef?: React.RefObject<HTMLElement>;
 }
 
-const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=120&auto=format&fit=crop';
+const FALLBACK_IMAGE = '/images/logo-512.png';
 
 export default function VariantSelectorModal({
   isOpen,

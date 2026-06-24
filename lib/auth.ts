@@ -1,22 +1,27 @@
 import './env-sanitize';
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { sendEmail } from '@/lib/email';
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    }),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        email: { label: 'Email or Phone', type: 'text' },
         password: { label: 'Password', type: 'password' },
         otp: { label: 'OTP', type: 'text' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Please enter an email and password');
+          throw new Error('Please enter an email/phone and password');
         }
 
         const systemAdminEmail = process.env.GMAIL_USER || 'omnaturalschekkaganuganunelu@gmail.com';
@@ -79,12 +84,18 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+        // Support both Email and Phone login lookup
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email: credentials.email },
+              { phone: credentials.email },
+            ]
+          },
         });
 
         if (!user || !(await bcrypt.compare(credentials.password, user.password))) {
-          throw new Error('Invalid email or password');
+          throw new Error('Invalid email/phone or password');
         }
 
         return {
@@ -98,6 +109,34 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === 'google') {
+        const email = user.email;
+        if (!email) return false;
+
+        let dbUser = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        if (!dbUser) {
+          dbUser = await prisma.user.create({
+            data: {
+              name: user.name || 'Google User',
+              email: email,
+              password: '', // OAuth users have no password
+              phone: null,
+              role: 'CUSTOMER',
+            },
+          });
+        }
+
+        // Propagate DB values to Next-Auth user object
+        user.id = dbUser.id;
+        user.role = dbUser.role;
+        user.phone = dbUser.phone;
+      }
+      return true;
+    },
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;

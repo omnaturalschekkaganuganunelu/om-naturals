@@ -104,7 +104,7 @@ function AccountContent() {
       })
       .then((data) => {
         setProfileName(data.name || '');
-        setProfileEmail(data.email || '');
+        setProfileEmail(data.email && data.email.endsWith('@no-email.com') ? '' : data.email || '');
         setProfilePhone(data.phone || '');
         setProfileRole(data.role || 'CUSTOMER');
         setLoadingProfile(false);
@@ -114,7 +114,7 @@ function AccountContent() {
         // Fallback to session values
         if (session?.user) {
           setProfileName(session.user.name || '');
-          setProfileEmail(session.user.email || '');
+          setProfileEmail(session.user.email && session.user.email.endsWith('@no-email.com') ? '' : session.user.email || '');
           setProfilePhone(session.user.phone || '');
           setProfileRole(session.user.role || 'CUSTOMER');
         }
@@ -128,8 +128,18 @@ function AccountContent() {
     setProfileSuccessMsg('');
     setUpdatingProfile(true);
 
-    if (!profileName.trim() || !profileEmail.trim()) {
-      setProfileErrorMsg(language === 'te' ? 'దయచేసి పేరు మరియు ఈమెయిల్ నింపండి.' : 'Name and email are required.');
+    if (!profileName.trim()) {
+      setProfileErrorMsg(language === 'te' ? 'దయచేసి పేరు నమోదు చేయండి.' : 'Name is required.');
+      setUpdatingProfile(false);
+      return;
+    }
+
+    if (!profileEmail.trim() && !profilePhone.trim()) {
+      setProfileErrorMsg(
+        language === 'te'
+          ? 'దయచేసి ఈమెయిల్ లేదా ఫోన్ నెంబర్ ఏదైనా ఒకటి నమోదు చేయండి.'
+          : 'Please provide either an Email address or a Mobile number.'
+      );
       setUpdatingProfile(false);
       return;
     }

@@ -10,6 +10,17 @@ import PremiumLoader from '@/components/PremiumLoader';
 import { useLanguage } from '@/context/LanguageContext';
 import Image from 'next/image';
 
+const FALLBACK_PRODUCT_IMAGES = [
+  '/images/logo-512.png',
+  '/images/logo-512.png',
+  '/images/logo-512.png',
+  '/images/logo-512.png',
+  '/images/logo-512.png',
+  '/images/logo-512.png',
+  '/images/logo-512.png',
+  '/images/logo-512.png',
+];
+
 function LoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -45,6 +56,39 @@ function LoginContent() {
   const [forgotError, setForgotError] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
 
+  // Dynamic product images loading
+  const [productImages, setProductImages] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const imgs = data.map((p: any) => p.images?.[0]).filter(Boolean);
+          if (imgs.length > 0) {
+            setProductImages(imgs);
+          }
+        }
+      })
+      .catch((err) => console.error('Failed to load product images:', err));
+  }, []);
+
+  const displayImages = productImages.length > 0 ? productImages : FALLBACK_PRODUCT_IMAGES;
+  
+  // Distribute images to two columns for scrolling effects
+  let col1Images = displayImages.slice(0, Math.ceil(displayImages.length / 2));
+  let col2Images = displayImages.slice(Math.ceil(displayImages.length / 2));
+  
+  while (col1Images.length < 4) {
+    col1Images = [...col1Images, ...col1Images];
+  }
+  while (col2Images.length < 4) {
+    col2Images = [...col2Images, ...col2Images];
+  }
+  
+  const fullCol1 = [...col1Images.slice(0, 4), ...col1Images.slice(0, 4)];
+  const fullCol2 = [...col2Images.slice(0, 4), ...col2Images.slice(0, 4)];
+
   // Redirect if already authenticated
   useEffect(() => {
     if (authStatus === 'authenticated') {
@@ -61,8 +105,8 @@ function LoginContent() {
     if (!email || !password) {
       setErrorMsg(
         language === 'te'
-          ? 'దయచేసి ఈమెయిల్ మరియు పాస్‌వర్డ్ నమోదు చేయండి.'
-          : 'Please enter both your email and password.'
+          ? 'దయచేసి ఈమెయిల్/ఫోన్ మరియు పాస్‌వర్డ్ నమోదు చేయండి.'
+          : 'Please enter both your email/phone and password.'
       );
       setLoading(false);
       return;
@@ -93,8 +137,8 @@ function LoginContent() {
         } else {
           setErrorMsg(
             language === 'te'
-              ? 'లాగిన్ విఫలమైంది. ఈమెయిల్ లేదా పాస్‌వర్డ్ తప్పుగా ఉంది.'
-              : 'Login failed. Incorrect email or password.'
+              ? 'లాగిన్ విఫలమైంది. తప్పు వివరాలు నమోదు చేసారు.'
+              : 'Login failed. Incorrect email/phone or password.'
           );
         }
         setLoading(false);
@@ -125,11 +169,21 @@ function LoginContent() {
     setSuccessMsg('');
     setLoading(true);
 
-    if (!name || !email || !password) {
+    if (!name || !password) {
       setErrorMsg(
         language === 'te'
-          ? 'దయచేసి పేరు, ఈమెయిల్ మరియు పాస్‌వర్డ్ వివరాలు నింపండి.'
-          : 'Please fill in all required fields (Name, Email, Password).'
+          ? 'దయచేసి పేరు మరియు పాస్‌వర్డ్ నమోదు చేయండి.'
+          : 'Please enter your name and password.'
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (!email && !phone) {
+      setErrorMsg(
+        language === 'te'
+          ? 'దయచేసి ఈమెయిల్ లేదా ఫోన్ నెంబర్ ఏదైనా ఒకటి నమోదు చేయండి.'
+          : 'Please provide either an Email address or a Mobile number.'
       );
       setLoading(false);
       return;
@@ -151,9 +205,9 @@ function LoginContent() {
             : 'Registration successful! Logging in automatically...'
         );
         
-        // Log in immediately
+        // Log in immediately with email or phone number
         const loginRes = await signIn('credentials', {
-          email,
+          email: email || phone,
           password,
           redirect: false,
         });
@@ -262,7 +316,7 @@ function LoginContent() {
           <div className="absolute inset-0 z-0">
             <div className="absolute top-[-15%] left-[-10%] w-[600px] h-[600px] rounded-full bg-amber-600/30 blur-[120px]"></div>
             <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-amber-800/40 blur-[100px]"></div>
-            <div className="absolute inset-0 bg-[url('/grain.png')] opacity-[0.03] mix-blend-overlay"></div>
+            <div className="absolute inset-0 bg-repeat bg-center opacity-[0.02] mix-blend-overlay" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg viewBox=\"0 0 200 200\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"noise\"%3E%3CfeTurbulence type=\"fractalNoise\" baseFrequency=\"0.65\" numOctaves=\"3\" stitchTiles=\"stitch\"/%3E%3C/filter%3E%3Crect width=\"100%25\" height=\"100%25\" filter=\"url(%23noise)\"/%3E%3C/svg%3E')" }}></div>
           </div>
           
           {/* Custom Styles for Carousel */}
@@ -297,16 +351,7 @@ function LoginContent() {
             
             {/* Column 1 */}
             <div className="flex flex-col gap-6 md:gap-8 animate-scroll pt-[50%]">
-               {[
-                 '/images/products/cold_pressed_groundnut_oil.png',
-                 '/images/products/pure_sesame_oil.png',
-                 '/images/products/cold_pressed_coconut_oil.png',
-                 '/images/products/safflower_oil.png',
-                 '/images/products/cold_pressed_groundnut_oil.png',
-                 '/images/products/pure_sesame_oil.png',
-                 '/images/products/cold_pressed_coconut_oil.png',
-                 '/images/products/safflower_oil.png'
-               ].map((img, idx) => (
+               {fullCol1.map((img, idx) => (
                  <div key={idx} className="relative w-48 h-64 md:w-56 md:h-72 rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(0,0,0,0.5)] border border-amber-500/20 bg-gradient-to-br from-amber-800/40 to-amber-950/80 backdrop-blur-sm group">
                     <div className="absolute inset-0 bg-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"></div>
                     <Image src={img} alt="Product" fill className="object-contain p-6 group-hover:scale-110 transition-transform duration-700 ease-out z-0" />
@@ -316,16 +361,7 @@ function LoginContent() {
 
             {/* Column 2 */}
             <div className="flex flex-col gap-6 md:gap-8 animate-scroll-reverse pb-[50%] mt-32">
-               {[
-                 '/images/products/mustard_oil.png',
-                 '/images/products/badam_oil.png',
-                 '/images/products/pure_desi_cow_ghee.png',
-                 '/images/products/sunflower_oil.png',
-                 '/images/products/mustard_oil.png',
-                 '/images/products/badam_oil.png',
-                 '/images/products/pure_desi_cow_ghee.png',
-                 '/images/products/sunflower_oil.png'
-               ].map((img, idx) => (
+               {fullCol2.map((img, idx) => (
                  <div key={`col2-${idx}`} className="relative w-48 h-64 md:w-56 md:h-72 rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(0,0,0,0.5)] border border-amber-500/20 bg-gradient-to-br from-amber-800/40 to-amber-950/80 backdrop-blur-sm group">
                     <div className="absolute inset-0 bg-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"></div>
                     <Image src={img} alt="Product" fill className="object-contain p-6 group-hover:scale-110 transition-transform duration-700 ease-out z-0" />
@@ -415,18 +451,18 @@ function LoginContent() {
                 
                 <div className="space-y-2">
                   <label htmlFor="login-email" className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
-                    {language === 'te' ? 'ఈమెయిల్ చిరునామా' : 'Email Address'}
+                    {language === 'te' ? 'ఈమెయిల్ లేదా ఫోన్ నెంబర్' : 'Email or Mobile Number'}
                   </label>
                   <div className="relative group">
                     <input
-                      type="email"
+                      type="text"
                       id="login-email"
-                      placeholder="name@example.com"
+                      placeholder={language === 'te' ? 'ఉదా: name@example.com లేదా 9876543210' : 'e.g. name@example.com or 9876543210'}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full bg-amber-50/40 text-sm border-2 border-amber-100 rounded-xl py-2.5 pl-11 pr-4 focus:outline-none focus:border-amber-500 focus:bg-white transition-all font-semibold text-amber-950 placeholder-gray-400"
                     />
-                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-600/50 group-focus-within:text-amber-600 transition-colors" />
+                    <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-600/50 group-focus-within:text-amber-600 transition-colors" />
                   </div>
                 </div>
 
@@ -507,6 +543,42 @@ function LoginContent() {
                   )}
                 </button>
 
+                {/* Separator */}
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-amber-100"></div>
+                  <span className="flex-shrink mx-4 text-gray-400 text-xs font-bold uppercase tracking-wider">
+                    {language === 'te' ? 'లేదా' : 'or'}
+                  </span>
+                  <div className="flex-grow border-t border-amber-100"></div>
+                </div>
+
+                {/* Google Button */}
+                <button
+                  type="button"
+                  onClick={() => signIn('google', { callbackUrl: redirectUrl })}
+                  className="w-full flex items-center justify-center gap-3 py-2.5 border-2 border-amber-100 hover:border-amber-500 rounded-xl bg-white hover:bg-amber-50/20 text-gray-700 hover:text-amber-950 font-bold text-sm transition-all duration-300 active:scale-98 shadow-sm hover:shadow"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.65 1.42 7.54l3.79 2.94C6.12 7.55 8.84 5.04 12 5.04z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.76 2.91c2.2-2.03 3.67-5.02 3.67-8.64z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.21 14.59c-.25-.75-.4-1.56-.4-2.59s.15-1.84.4-2.59L1.42 6.47C.51 8.28 0 10.28 0 12s.51 3.72 1.42 5.53l3.79-2.94z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.76-2.91c-1.1.74-2.5 1.18-4.2 1.18-3.16 0-5.88-2.51-6.79-5.44L1.42 16.35C3.37 20.35 7.35 23 12 23z"
+                    />
+                  </svg>
+                  <span>{language === 'te' ? 'గూగుల్ తో కొనసాగండి' : 'Continue with Google'}</span>
+                </button>
+
               </form>
             ) : (
               /* REGISTRATION FORM */
@@ -531,7 +603,7 @@ function LoginContent() {
 
                 <div className="space-y-2">
                   <label htmlFor="register-email" className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
-                    {language === 'te' ? 'ఈమెయిల్ చిరునామా' : 'Email Address'}
+                    {language === 'te' ? 'ఈమెయిల్ చిరునామా (ఐచ్ఛికం)' : 'Email Address (Optional)'}
                   </label>
                   <div className="relative group">
                     <input
@@ -548,7 +620,7 @@ function LoginContent() {
 
                 <div className="space-y-2">
                   <label htmlFor="register-phone" className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
-                    {language === 'te' ? 'ఫోన్ నెంబర్ (ఐచ్ఛికం)' : 'Mobile Number (Optional)'}
+                    {language === 'te' ? 'ఫోన్ నెంబర్' : 'Mobile Number'}
                   </label>
                   <div className="relative group">
                     <input
@@ -561,6 +633,9 @@ function LoginContent() {
                     />
                     <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-600/50 group-focus-within:text-amber-600 transition-colors" />
                   </div>
+                  <p className="text-[10px] text-amber-800 font-semibold ml-1">
+                    {language === 'te' ? '* ఈమెయిల్ లేకపోతే ఫోన్ నెంబర్ తప్పనిసరి.' : '* Mobile number is required if Email is not provided.'}
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -604,6 +679,42 @@ function LoginContent() {
                       <ArrowRight size={18} />
                     </>
                   )}
+                </button>
+
+                {/* Separator */}
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-amber-100"></div>
+                  <span className="flex-shrink mx-4 text-gray-400 text-xs font-bold uppercase tracking-wider">
+                    {language === 'te' ? 'లేదా' : 'or'}
+                  </span>
+                  <div className="flex-grow border-t border-amber-100"></div>
+                </div>
+
+                {/* Google Button */}
+                <button
+                  type="button"
+                  onClick={() => signIn('google', { callbackUrl: redirectUrl })}
+                  className="w-full flex items-center justify-center gap-3 py-2.5 border-2 border-amber-100 hover:border-amber-500 rounded-xl bg-white hover:bg-amber-50/20 text-gray-700 hover:text-amber-950 font-bold text-sm transition-all duration-300 active:scale-98 shadow-sm hover:shadow"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.65 1.42 7.54l3.79 2.94C6.12 7.55 8.84 5.04 12 5.04z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.76 2.91c2.2-2.03 3.67-5.02 3.67-8.64z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.21 14.59c-.25-.75-.4-1.56-.4-2.59s.15-1.84.4-2.59L1.42 6.47C.51 8.28 0 10.28 0 12s.51 3.72 1.42 5.53l3.79-2.94z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.76-2.91c-1.1.74-2.5 1.18-4.2 1.18-3.16 0-5.88-2.51-6.79-5.44L1.42 16.35C3.37 20.35 7.35 23 12 23z"
+                    />
+                  </svg>
+                  <span>{language === 'te' ? 'గూగుల్ తో కొనసాగండి' : 'Continue with Google'}</span>
                 </button>
 
               </form>

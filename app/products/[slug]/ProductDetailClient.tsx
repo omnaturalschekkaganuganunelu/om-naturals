@@ -51,8 +51,7 @@ interface ProductDetailClientProps {
   siblings?: Variant[];
 }
 
-const FALLBACK_IMG =
-  'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=500&auto=format&fit=crop';
+const FALLBACK_IMG = '/images/logo-512.png';
 
 /* ─── Small Related Product Card ─────────────────────────────────────────── */
 function RelatedCard({ rel, language }: { rel: any; language: string }) {

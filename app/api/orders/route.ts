@@ -81,10 +81,31 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { items, address, couponCode, paymentMethod, notes } = body;
+    const { items, address, couponCode, paymentMethod, notes, email } = body;
 
     if (!items || items.length === 0 || !address) {
       return NextResponse.json({ error: 'Missing items or address details' }, { status: 400 });
+    }
+
+    // If they supplied an email at checkout, update their profile email if they had a placeholder
+    let userEmail = session.user.email;
+    if (email && email.trim() !== '') {
+      const currentUser = await prisma.user.findUnique({
+        where: { id: session.user.id }
+      });
+      if (currentUser && currentUser.email.endsWith('@no-email.com')) {
+        // Enforce email uniqueness
+        const emailInUse = await prisma.user.findFirst({
+          where: { email: email.trim() }
+        });
+        if (!emailInUse) {
+          await prisma.user.update({
+            where: { id: session.user.id },
+            data: { email: email.trim() }
+          });
+          userEmail = email.trim();
+        }
+      }
     }
 
     // Fetch site settings
@@ -276,7 +297,7 @@ export async function POST(req: NextRequest) {
     // Send Order Confirmation Email immediately ONLY for COD
     // Prepaid orders will send this email upon successful payment in the webhook
     if (paymentMethod === 'COD') {
-      await sendOrderConfirmationEmail(order.id, session.user.email as string, session.user.name as string);
+      await sendOrderConfirmationEmail(order.id, userEmail as string, session.user.name as string);
     }
 
     return NextResponse.json({

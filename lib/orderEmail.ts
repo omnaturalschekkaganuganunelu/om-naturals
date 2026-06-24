@@ -3,6 +3,10 @@ import { prisma } from './db';
 
 export const sendOrderConfirmationEmail = async (orderId: string, userEmail: string, userName: string) => {
   try {
+    if (!userEmail || userEmail.endsWith('@no-email.com')) {
+      return true; // Skip sending email since user doesn't have an email address
+    }
+
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: { items: true },

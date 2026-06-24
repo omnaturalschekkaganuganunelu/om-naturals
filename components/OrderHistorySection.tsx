@@ -747,7 +747,7 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
                       src={item.image}
                       alt={item.name}
                       className="w-12 h-12 rounded-2xl object-cover border border-amber-100 bg-amber-50 shrink-0"
-                      onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=100&auto=format&fit=crop'; }}
+                      onError={e => { (e.target as HTMLImageElement).src = '/images/logo-512.png'; }}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-black text-amber-950 truncate">{language === 'te' ? (item.nameTe || item.name) : item.name}</p>

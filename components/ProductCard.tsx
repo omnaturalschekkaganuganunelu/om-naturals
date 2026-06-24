@@ -14,8 +14,7 @@ interface ProductCardProps {
   group: GroupedProduct;
 }
 
-const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=400&auto=format&fit=crop';
+const FALLBACK_IMAGE = '/images/logo-512.png';
 
 /** Formats weight + unit into a readable label like "1 L", "500 g", "5 Kg" */
 export function formatVariantLabel(product: { weight: number; unit: string }): string {
@@ -211,7 +210,7 @@ export default function ProductCard({ group }: ProductCardProps) {
         </div>
 
         {/* ── Card Body ── */}
-        <div className="p-3 flex flex-col flex-1 font-sans">
+        <div className="p-2.5 sm:p-3 flex flex-col flex-1 font-sans">
 
           <p className="text-[9px] sm:text-[10px] font-black text-amber-700 uppercase tracking-wider mb-1">
             ⚡ {language === 'te' ? '15 నిమిషాలు' : '15 MINS'}
@@ -239,16 +238,16 @@ export default function ProductCard({ group }: ProductCardProps) {
           )}
 
           {/* Price & Buy Now Button */}
-          <div className="mt-auto flex items-center justify-between gap-1.5 pt-1.5 min-w-0">
-            <div className="flex flex-col items-start gap-0.5 min-w-0">
+          <div className="mt-auto flex items-center justify-between gap-1 pt-1.5 min-w-0">
+            <div className="flex flex-col items-start min-w-0">
               <div className="flex items-baseline gap-1 flex-wrap">
-                <span className="text-sm sm:text-[15px] font-black text-gray-900">₹{minPrice}</span>
+                <span className="text-xs min-[360px]:text-sm sm:text-[15px] font-black text-gray-900 leading-tight">₹{minPrice}</span>
                 {minMrp > minPrice && (
-                  <span className="text-[10px] text-gray-400 line-through font-medium">₹{minMrp}</span>
+                  <span className="text-[9px] sm:text-[10px] text-gray-400 line-through font-medium leading-none">₹{minMrp}</span>
                 )}
               </div>
               {!isSingleVariant && (
-                <span className="text-[9px] text-amber-850 font-bold leading-none uppercase tracking-tight">
+                <span className="text-[8px] sm:text-[9px] text-amber-800 font-extrabold uppercase tracking-tight mt-0.5 block leading-none">
                   {language === 'te' ? 'నుండి' : 'onwards'}
                 </span>
               )}
@@ -279,12 +278,12 @@ export default function ProductCard({ group }: ProductCardProps) {
                   }
                 }}
                 aria-label={language === 'te' ? `${displayName} ని ఇప్పుడే కొనండి` : `Buy ${displayName} now`}
-                className="relative overflow-hidden group/btn flex items-center justify-center gap-1 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 active:scale-95 text-white text-[9px] sm:text-[10px] font-black px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-xl transition-all duration-200 shrink-0 shadow-md hover:shadow-amber-500/40 hover:shadow-lg"
+                className="relative overflow-hidden group/btn flex items-center justify-center gap-0.5 sm:gap-1 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 active:scale-95 text-white text-[8px] min-[360px]:text-[9px] sm:text-[10px] font-black px-1.5 py-1.5 min-[360px]:px-2.5 sm:px-3 sm:py-1.5 rounded-xl transition-all duration-200 shrink-0 shadow-md hover:shadow-amber-500/40 hover:shadow-lg"
               >
                 {/* shimmer sweep */}
                 <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
-                <span className="text-amber-200 text-[10px] sm:text-[11px] hidden min-[360px]:inline">⚡</span>
-                <span className="uppercase tracking-wider relative z-10 text-[9px] sm:text-[10px]">
+                <span className="text-amber-200 text-[10px] sm:text-[11px] hidden min-[380px]:inline">⚡</span>
+                <span className="uppercase tracking-wider relative z-10 text-[8px] min-[360px]:text-[9px] sm:text-[10px]">
                   {language === 'te' ? 'కొనండి' : 'Buy Now'}
                 </span>
               </button>

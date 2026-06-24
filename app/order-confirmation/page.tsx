@@ -167,7 +167,7 @@ function OrderConfirmationContent() {
                         alt=""
                         className="w-8 h-8 rounded-lg object-cover border border-amber-50"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=100&auto=format&fit=crop';
+                          (e.target as HTMLImageElement).src = '/images/logo-512.png';
                         }}
                       />
                       <div>

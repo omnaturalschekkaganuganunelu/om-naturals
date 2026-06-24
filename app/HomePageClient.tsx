@@ -10,7 +10,7 @@ import { useGroupedProducts } from '@/hooks/useGroupedProducts';
 
 import { useRealtime } from '@/hooks/useRealtime';
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=500&auto=format&fit=crop';
+const FALLBACK_IMAGE = '/images/logo-512.png';
 
 // ─── Home page product grid with client-side variant grouping ────────────────
 // Defined before HomePageClient so it's available when JSX is evaluated

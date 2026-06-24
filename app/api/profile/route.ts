@@ -47,24 +47,54 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const { name, email, phone } = body;
 
-    if (!name || !email) {
-      return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
+    if (!name) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    });
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    let finalEmail = email?.trim();
+    if (!finalEmail) {
+      const finalPhone = (phone || currentUser.phone)?.trim();
+      if (finalPhone) {
+        finalEmail = `${finalPhone}@no-email.com`;
+      } else {
+        finalEmail = currentUser.email;
+      }
     }
 
     // Check if email is already in use by someone else
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    if (finalEmail !== currentUser.email) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: finalEmail },
+      });
 
-    if (existingUser && existingUser.id !== session.user.id) {
-      return NextResponse.json({ error: 'Email already in use by another account' }, { status: 400 });
+      if (existingUser && existingUser.id !== session.user.id) {
+        return NextResponse.json({ error: 'Email already in use by another account' }, { status: 400 });
+      }
+    }
+
+    // Check if phone is already in use by someone else
+    if (phone && phone.trim() !== '' && phone !== currentUser.phone) {
+      const existingPhoneUser = await prisma.user.findFirst({
+        where: { phone: phone.trim() },
+      });
+      if (existingPhoneUser && existingPhoneUser.id !== session.user.id) {
+        return NextResponse.json({ error: 'Phone number already in use by another account' }, { status: 400 });
+      }
     }
 
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: {
         name,
-        email,
+        email: finalEmail,
         phone: phone || null,
       },
       select: {

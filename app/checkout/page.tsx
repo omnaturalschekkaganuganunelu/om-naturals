@@ -48,6 +48,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<'PHONEPE' | 'COD'>('PHONEPE');
   const [placingOrder, setPlacingOrder] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+  const [checkoutEmail, setCheckoutEmail] = useState('');
 
   // Settings values — loaded dynamically from /api/settings
   const [codEnabled, setCodEnabled] = useState(true);
@@ -242,6 +243,16 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (checkoutEmail && !/\S+@\S+\.\S+/.test(checkoutEmail)) {
+      setCheckoutError(
+        language === 'te'
+          ? 'దయచేసి సరైన ఈమెయిల్ చిరునామా నమోదు చేయండి.'
+          : 'Please enter a valid email address.'
+      );
+      setPlacingOrder(false);
+      return;
+    }
+
     // Prepare order details
     const orderPayload = {
       items: items.map((i) => ({
@@ -260,6 +271,7 @@ export default function CheckoutPage() {
       },
       couponCode: coupon?.code || null,
       paymentMethod,
+      email: checkoutEmail || null,
     };
 
     try {
@@ -553,6 +565,30 @@ export default function CheckoutPage() {
               )}
             </div>
 
+            {/* Email Field for Confirmation (Only if user has no real email) */}
+            {session?.user?.email?.endsWith('@no-email.com') && (
+              <div className="bg-white border border-amber-100 rounded-3xl p-5 sm:p-6 smooth-shadow space-y-3">
+                <h3 className="font-bold text-sm sm:text-base text-amber-950 flex items-center space-x-1.5">
+                  <span className="text-amber-700">📧</span>
+                  <span>{language === 'te' ? 'ఈమెయిల్ చిరునామా (ఆర్డర్ రసీదు కొరకు)' : 'Email Address (For Order Confirmation)'}</span>
+                </h3>
+                <p className="text-xs text-gray-500 font-semibold leading-relaxed">
+                  {language === 'te' 
+                    ? 'మీకు ఆర్డర్ వివరాలు మరియు నిర్ధారణ ఈమెయిల్ పంపడానికి దయచేసి మీ ఈమెయిల్ ఐడీని నమోదు చేయండి.' 
+                    : 'Please enter your email to receive order confirmation updates and receipts.'}
+                </p>
+                <div className="relative group max-w-md">
+                  <input
+                    type="email"
+                    placeholder="name@example.com"
+                    value={checkoutEmail}
+                    onChange={(e) => setCheckoutEmail(e.target.value)}
+                    className="w-full bg-amber-50/40 text-sm border-2 border-amber-100 rounded-xl py-2.5 px-4 focus:outline-none focus:border-amber-500 focus:bg-white transition-all font-semibold text-amber-950 placeholder-gray-400"
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Payment Method Selection Card */}
             <div className="bg-white border border-amber-100 rounded-3xl p-5 sm:p-6 smooth-shadow space-y-4">
               <h3 className="font-bold text-sm sm:text-base text-amber-950 border-b border-amber-50 pb-3 flex items-center space-x-1.5">
@@ -635,7 +671,7 @@ export default function CheckoutPage() {
                         alt=""
                         className="w-8 h-8 rounded-lg object-cover border border-amber-50"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=100&auto=format&fit=crop';
+                          (e.target as HTMLImageElement).src = '/images/logo-512.png';
                         }}
                       />
                       <div className="font-semibold text-amber-950 max-w-[150px] truncate">

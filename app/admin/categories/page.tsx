@@ -232,7 +232,7 @@ export default function AdminCategoriesPage() {
                 ) : filteredCategories.map((c) => (
                   <div key={c.id} className="p-4 flex items-center gap-3">
                     <img
-                      src={c.slug === 'oils' ? 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=100&auto=format&fit=crop' : 'https://images.unsplash.com/photo-1609137144813-7d2d0b57e4e1?q=80&w=100&auto=format&fit=crop'}
+                      src="/images/logo-512.png"
                       alt=""
                       className="w-12 h-12 rounded-xl object-cover border border-amber-50 flex-shrink-0"
                     />
@@ -284,7 +284,7 @@ export default function AdminCategoriesPage() {
                       <tr key={c.id} className="hover:bg-amber-50/10">
                         <td className="py-3 px-4">
                           <img
-                            src={c.slug === 'oils' ? 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=100&auto=format&fit=crop' : 'https://images.unsplash.com/photo-1609137144813-7d2d0b57e4e1?q=80&w=100&auto=format&fit=crop'}
+                            src="/images/logo-512.png"
                             alt=""
                             className="w-10 h-10 rounded-lg object-cover border border-amber-50"
                           />
