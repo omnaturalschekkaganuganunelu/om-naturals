@@ -105,6 +105,8 @@ export default function ProductCard({ group }: ProductCardProps) {
         {/* ── Image ── */}
         <Link
           href={`/products/${representative.slug}`}
+          tabIndex={-1}
+          aria-hidden="true"
           className="block relative overflow-hidden bg-[#fdfaf6] aspect-square flex-shrink-0"
         >
           <Image
@@ -146,6 +148,7 @@ export default function ProductCard({ group }: ProductCardProps) {
                         e.preventDefault(); e.stopPropagation();
                         singleQty === 1 ? removeItem(representative.id) : updateQuantity(representative.id, singleQty - 1);
                       }}
+                      aria-label="Decrease quantity"
                       className="w-7 h-8 flex items-center justify-center text-white hover:bg-amber-700 transition-colors"
                     >
                       <Minus size={12} strokeWidth={3} />
@@ -158,6 +161,7 @@ export default function ProductCard({ group }: ProductCardProps) {
                         e.preventDefault(); e.stopPropagation();
                         if (singleQty < representative.stock) updateQuantity(representative.id, singleQty + 1);
                       }}
+                      aria-label="Increase quantity"
                       className="w-7 h-8 flex items-center justify-center text-white hover:bg-amber-700 transition-colors"
                     >
                       <Plus size={12} strokeWidth={3} />
@@ -166,6 +170,7 @@ export default function ProductCard({ group }: ProductCardProps) {
                 ) : (
                   <button
                     onClick={handleAddSingle}
+                    aria-label={`Add ${displayName} to cart`}
                     className="w-9 h-9 rounded-xl bg-white border-2 border-amber-800 text-amber-800 shadow-md flex items-center justify-center hover:bg-amber-800 hover:text-white transition-all duration-200 active:scale-90"
                   >
                     <Plus size={17} strokeWidth={3} />
@@ -176,6 +181,7 @@ export default function ProductCard({ group }: ProductCardProps) {
                   <div className="flex items-center bg-amber-800 rounded-xl h-8 shadow-md overflow-hidden">
                     <button
                       onClick={handleOpenModal}
+                      aria-label="Decrease quantity"
                       className="w-7 h-8 flex items-center justify-center text-white hover:bg-amber-700 transition-colors"
                     >
                       <Minus size={12} strokeWidth={3} />
@@ -185,6 +191,7 @@ export default function ProductCard({ group }: ProductCardProps) {
                     </span>
                     <button
                       onClick={handleOpenModal}
+                      aria-label="Increase quantity"
                       className="w-7 h-8 flex items-center justify-center text-white hover:bg-amber-700 transition-colors"
                     >
                       <Plus size={12} strokeWidth={3} />
@@ -193,6 +200,7 @@ export default function ProductCard({ group }: ProductCardProps) {
                 ) : (
                   <button
                     onClick={handleOpenModal}
+                    aria-label={`Select options for ${displayName}`}
                     className="w-9 h-9 rounded-xl bg-white border-2 border-amber-800 text-amber-800 shadow-md flex items-center justify-center hover:bg-amber-800 hover:text-white transition-all duration-200 active:scale-90"
                   >
                     <Plus size={17} strokeWidth={3} />
@@ -269,6 +277,7 @@ export default function ProductCard({ group }: ProductCardProps) {
                     setModalOpen(true);
                   }
                 }}
+                aria-label={language === 'te' ? `${displayName} ని ఇప్పుడే కొనండి` : `Buy ${displayName} now`}
                 className="relative overflow-hidden group/btn flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 active:scale-95 text-white text-[10px] font-black px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl transition-all duration-200 shrink-0 shadow-md hover:shadow-amber-500/40 hover:shadow-lg"
               >
                 {/* shimmer sweep */}

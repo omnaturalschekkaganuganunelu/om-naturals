@@ -57,6 +57,19 @@ function NavbarContent() {
     setIsSearching(false);
   }, [pathname, searchParams]);
 
+  // Fallback timeout to reset search indicator (prevent stuck search spinning)
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    if (isSearching) {
+      timeoutId = setTimeout(() => {
+        setIsSearching(false);
+      }, 5000); // 5 seconds safety timeout
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isSearching]);
+
   // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -70,9 +83,16 @@ function NavbarContent() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
+    const query = searchQuery.trim();
+    if (query) {
+      // If we are already on products page searching for the exact same query, skip showing loader
+      const currentSearch = searchParams.get('search') || '';
+      if (pathname === '/products' && query === currentSearch) {
+        setIsSearching(false);
+        return;
+      }
       setIsSearching(true);
-      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      router.push(`/products?search=${encodeURIComponent(query)}`);
       setMobileMenuOpen(false);
       setShowMobileSearch(false);
     }
@@ -145,9 +165,11 @@ function NavbarContent() {
           </div>
 
           {/* Desktop Search — takes all available middle space */}
-          <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-auto relative group">
+          <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-auto relative group" role="search">
             <input
               type="text"
+              id="desktop-search-input"
+              aria-label={t('nav_search_placeholder')}
               placeholder={t('nav_search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -155,6 +177,7 @@ function NavbarContent() {
             />
             <button
               type="submit"
+              aria-label="Search"
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-amber-700 hover:text-amber-800 transition-colors duration-200"
               disabled={isSearching}
             >
@@ -230,6 +253,7 @@ function NavbarContent() {
             {/* Cart */}
             <Link
               href="/cart"
+              aria-label="Shopping Cart"
               className="relative p-1 text-amber-800 hover:text-amber-600 transition-all rounded-full hover:bg-amber-50/50"
             >
               <ShoppingCart size={22} />
@@ -339,9 +363,11 @@ function NavbarContent() {
           ? 'max-h-[70px] opacity-100 py-3 border-b border-amber-100/50' 
           : 'max-h-0 opacity-0 py-0 overflow-hidden pointer-events-none'
       }`}>
-        <form onSubmit={handleSearchSubmit} className="relative w-full">
+        <form onSubmit={handleSearchSubmit} className="relative w-full" role="search">
           <input
             type="text"
+            id="mobile-sliding-search-input"
+            aria-label={t('nav_search_placeholder')}
             placeholder={t('nav_search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -349,6 +375,7 @@ function NavbarContent() {
           />
           <button
             type="submit"
+            aria-label="Search"
             className="absolute right-3.5 top-1/2 -translate-y-1/2 text-amber-800"
             disabled={isSearching}
           >
@@ -363,15 +390,17 @@ function NavbarContent() {
           ? 'max-h-[450px] opacity-100 py-4 border-b pointer-events-auto' 
           : 'max-h-0 opacity-0 py-0 overflow-hidden pointer-events-none'
       }`}>
-        <form onSubmit={handleSearchSubmit} className="relative w-full">
+        <form onSubmit={handleSearchSubmit} className="relative w-full" role="search">
           <input
             type="text"
+            id="mobile-drawer-search-input"
+            aria-label={t('nav_search_placeholder')}
             placeholder={t('nav_search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-amber-50 text-amber-950 border border-amber-200 rounded-full py-2.5 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
-          <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-850" disabled={isSearching}>
+          <button type="submit" aria-label="Search" className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-850" disabled={isSearching}>
             {isSearching ? <Loader2 size={18} className="animate-spin text-amber-850" /> : <Search size={18} />}
           </button>
         </form>

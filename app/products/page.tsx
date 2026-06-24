@@ -150,12 +150,13 @@ function ProductListingContent() {
 
           {/* Keyword Search */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-amber-950 block">
+            <label htmlFor="products-keyword-search" className="text-xs font-bold text-amber-950 block">
               {t('products_search_keyword')}
             </label>
             <div className="relative">
               <input
                 type="text"
+                id="products-keyword-search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t('products_search_placeholder')}
@@ -206,11 +207,12 @@ function ProductListingContent() {
 
           {/* Price Range */}
           <div className="space-y-3">
-            <label className="text-xs font-bold text-amber-950 block">
+            <label htmlFor="products-price-range" className="text-xs font-bold text-amber-950 block">
               {t('products_price_range')}
             </label>
             <input
               type="range" min="0" max="2500" step="50"
+              id="products-price-range"
               value={maxPrice}
               onChange={(e) => setMaxPrice(parseInt(e.target.value))}
               className="w-full accent-amber-800 cursor-pointer h-1.5 bg-amber-100 rounded-full"
@@ -277,9 +279,11 @@ function ProductListingContent() {
               </div>
               {/* Keyword */}
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-gray-500 block">{t('products_search_keyword')}</span>
+                <label htmlFor="mobile-products-keyword-search" className="text-[10px] font-bold text-gray-500 block">{t('products_search_keyword')}</label>
                 <input
-                  type="text" value={search}
+                  type="text"
+                  id="mobile-products-keyword-search"
+                  value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={t('products_search_placeholder')}
                   className="w-full bg-amber-50/20 text-xs text-amber-900 border border-amber-100 rounded-lg py-1.5 px-3 focus:outline-none"
@@ -312,9 +316,10 @@ function ProductListingContent() {
               </div>
               {/* Price */}
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-gray-500 block">Up to ₹{maxPrice}</span>
+                <label htmlFor="mobile-products-price-range" className="text-[10px] font-bold text-gray-500 block">Up to ₹{maxPrice}</label>
                 <input
                   type="range" min="0" max="2500" step="50"
+                  id="mobile-products-price-range"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(parseInt(e.target.value))}
                   className="w-full accent-amber-800 h-1.5 bg-amber-100 rounded-full cursor-pointer"

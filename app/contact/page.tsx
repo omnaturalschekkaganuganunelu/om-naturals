@@ -110,16 +110,16 @@ export default function ContactPage() {
               }}
             >
               <div>
-                <label className="block text-xs font-bold text-amber-200/80 mb-1 ml-1">{isTe ? 'మీ పేరు' : 'Full Name'}</label>
-                <input name="name" type="text" required placeholder={isTe ? 'మీ పేరు...' : 'Your name...'} className="w-full bg-amber-900/50 border border-amber-700/50 rounded-xl px-4 py-3 text-sm text-white placeholder:text-amber-300/30 focus:outline-none focus:border-amber-400" />
+                <label htmlFor="contact-name" className="block text-xs font-bold text-amber-200/80 mb-1 ml-1">{isTe ? 'మీ పేరు' : 'Full Name'}</label>
+                <input id="contact-name" name="name" type="text" required placeholder={isTe ? 'మీ పేరు...' : 'Your name...'} className="w-full bg-amber-900/50 border border-amber-700/50 rounded-xl px-4 py-3 text-sm text-white placeholder:text-amber-300/30 focus:outline-none focus:border-amber-400" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-amber-200/80 mb-1 ml-1">{isTe ? 'ఫోన్ నెంబర్ లేదా ఈమెయిల్' : 'Phone or Email'}</label>
-                <input name="contact" type="text" required placeholder={isTe ? 'ఫోన్ నెంబర్...' : 'Your contact info...'} className="w-full bg-amber-900/50 border border-amber-700/50 rounded-xl px-4 py-3 text-sm text-white placeholder:text-amber-300/30 focus:outline-none focus:border-amber-400" />
+                <label htmlFor="contact-info" className="block text-xs font-bold text-amber-200/80 mb-1 ml-1">{isTe ? 'ఫోన్ నెంబర్ లేదా ఈమెయిల్' : 'Phone or Email'}</label>
+                <input id="contact-info" name="contact" type="text" required placeholder={isTe ? 'ఫోన్ నెంబర్...' : 'Your contact info...'} className="w-full bg-amber-900/50 border border-amber-700/50 rounded-xl px-4 py-3 text-sm text-white placeholder:text-amber-300/30 focus:outline-none focus:border-amber-400" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-amber-200/80 mb-1 ml-1">{isTe ? 'సందేశం' : 'Message'}</label>
-                <textarea name="message" required rows={4} placeholder={isTe ? 'మీ సందేశం...' : 'How can we help you?'} className="w-full bg-amber-900/50 border border-amber-700/50 rounded-xl px-4 py-3 text-sm text-white placeholder:text-amber-300/30 focus:outline-none focus:border-amber-400 resize-none"></textarea>
+                <label htmlFor="contact-message" className="block text-xs font-bold text-amber-200/80 mb-1 ml-1">{isTe ? 'సందేశం' : 'Message'}</label>
+                <textarea id="contact-message" name="message" required rows={4} placeholder={isTe ? 'మీ సందేశం...' : 'How can we help you?'} className="w-full bg-amber-900/50 border border-amber-700/50 rounded-xl px-4 py-3 text-sm text-white placeholder:text-amber-300/30 focus:outline-none focus:border-amber-400 resize-none"></textarea>
               </div>
               <button type="submit" className="w-full bg-amber-500 hover:bg-amber-400 text-amber-950 font-black py-3 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2 mt-2">
                 <Send size={16} />

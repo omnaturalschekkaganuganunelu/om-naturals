@@ -414,12 +414,13 @@ function LoginContent() {
               <form onSubmit={handleLoginSubmit} className="space-y-4 animate-fade-in-up">
                 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
+                  <label htmlFor="login-email" className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
                     {language === 'te' ? 'ఈమెయిల్ చిరునామా' : 'Email Address'}
                   </label>
                   <div className="relative group">
                     <input
                       type="email"
+                      id="login-email"
                       placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -431,7 +432,7 @@ function LoginContent() {
 
                 <div className="space-y-2">
                   <div className="flex justify-between items-center ml-1">
-                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                    <label htmlFor="login-password" className="text-xs font-bold text-gray-600 uppercase tracking-wider">
                       {language === 'te' ? 'పాస్‌వర్డ్' : 'Password'}
                     </label>
                     <button 
@@ -445,6 +446,7 @@ function LoginContent() {
                   <div className="relative group">
                     <input
                       type={showPassword ? 'text' : 'password'}
+                      id="login-password"
                       placeholder="••••••••"
                       value={password}
                       disabled={showOtp}
@@ -465,12 +467,13 @@ function LoginContent() {
 
                 {showOtp && (
                   <div className="space-y-2 animate-fade-in-up pt-2 border-t border-dashed border-amber-200">
-                    <label className="text-xs font-bold text-amber-800 block ml-1 uppercase tracking-wider">
+                    <label htmlFor="login-otp" className="text-xs font-bold text-amber-800 block ml-1 uppercase tracking-wider">
                       {language === 'te' ? 'OTP నమోదు చేయండి' : 'Enter OTP Sent to Email'}
                     </label>
                     <div className="relative group">
                       <input
                         type="text"
+                        id="login-otp"
                         placeholder="123456"
                         value={otp}
                         onChange={(e) => setOtp(e.target.value)}
@@ -510,12 +513,13 @@ function LoginContent() {
               <form onSubmit={handleRegisterSubmit} className="space-y-4 animate-fade-in-up">
                 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
+                  <label htmlFor="register-name" className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
                     {language === 'te' ? 'పూర్తి పేరు' : 'Full Name'}
                   </label>
                   <div className="relative group">
                     <input
                       type="text"
+                      id="register-name"
                       placeholder={language === 'te' ? 'ఉదా: వెంకట్ సుబ్బారావు' : 'e.g. Venkat Subbarao'}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
@@ -526,12 +530,13 @@ function LoginContent() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
+                  <label htmlFor="register-email" className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
                     {language === 'te' ? 'ఈమెయిల్ చిరునామా' : 'Email Address'}
                   </label>
                   <div className="relative group">
                     <input
                       type="email"
+                      id="register-email"
                       placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -542,12 +547,13 @@ function LoginContent() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
+                  <label htmlFor="register-phone" className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
                     {language === 'te' ? 'ఫోన్ నెంబర్ (ఐచ్ఛికం)' : 'Mobile Number (Optional)'}
                   </label>
                   <div className="relative group">
                     <input
                       type="text"
+                      id="register-phone"
                       placeholder={language === 'te' ? 'ఉదా: 9876543210' : 'e.g. 9876543210'}
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
@@ -558,12 +564,13 @@ function LoginContent() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
+                  <label htmlFor="register-password" className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
                     {language === 'te' ? 'పాస్‌వర్డ్' : 'Password'}
                   </label>
                   <div className="relative group">
                     <input
                       type={showPassword ? 'text' : 'password'}
+                      id="register-password"
                       placeholder={language === 'te' ? 'కనీసం 6 అక్షరాలు...' : 'Min 6 characters...'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -652,6 +659,7 @@ function LoginContent() {
                     {forgotStep === 'email' && (
                       <input
                         type="email"
+                        aria-label={language === 'te' ? 'పాస్‌వర్డ్ రీసెట్ కొరకు ఈమెయిల్' : 'Email address for password reset'}
                         placeholder="name@example.com"
                         value={forgotEmail}
                         onChange={(e) => setForgotEmail(e.target.value)}
@@ -661,6 +669,7 @@ function LoginContent() {
                     {forgotStep === 'otp' && (
                       <input
                         type="text"
+                        aria-label={language === 'te' ? 'OTP నమోదు చేయండి' : 'Enter OTP'}
                         placeholder="123456"
                         value={forgotOtp}
                         onChange={(e) => setForgotOtp(e.target.value)}
@@ -671,6 +680,7 @@ function LoginContent() {
                       <div className="relative group">
                         <input
                           type={showPassword ? 'text' : 'password'}
+                          aria-label={language === 'te' ? 'కొత్త పాస్‌వర్డ్' : 'New password'}
                           placeholder={language === 'te' ? 'కొత్త పాస్‌వర్డ్...' : 'New password...'}
                           value={forgotNewPassword}
                           onChange={(e) => setForgotNewPassword(e.target.value)}

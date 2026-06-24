@@ -4,6 +4,20 @@ import Providers from '@/components/Providers';
 import { Suspense } from 'react';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import InstallPrompt from '@/components/InstallPrompt';
+import { Inter, Outfit } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-sans',
+});
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-heading',
+});
+
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.om-naturals.com'),
@@ -54,7 +68,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="overflow-x-hidden max-w-full">
+    <html lang="en" className={`overflow-x-hidden max-w-full ${inter.variable} ${outfit.variable}`}>
       <body className="antialiased min-h-screen flex flex-col bg-[#fdfbf7] pb-24 md:pb-0 overflow-x-hidden">
         <Providers>
           <Suspense fallback={null}>

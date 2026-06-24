@@ -115,6 +115,7 @@ export default function Footer() {
               allowFullScreen={false} 
               loading="lazy" 
               referrerPolicy="no-referrer-when-downgrade"
+              title="OM Natural Store Location on Google Maps"
             ></iframe>
             
             <div className="absolute bottom-2.5 left-2.5 z-20 bg-[#1c1009]/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-amber-900/50 shadow-md flex items-center gap-1.5 group-hover:translate-y-10 group-hover:opacity-0 transition-all duration-300">

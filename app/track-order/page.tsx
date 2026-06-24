@@ -286,6 +286,8 @@ function TrackOrderContent() {
         <div className="relative flex-1">
           <input
             type="text"
+            id="track-order-input"
+            aria-label={language === 'te' ? 'ఆర్డర్ లేదా ట్రాకింగ్ ఐడీ' : 'Order ID or Tracking ID'}
             placeholder={language === 'te' ? 'ఆర్డర్ లేదా ట్రాకింగ్ ఐడీని నమోదు చేయండి' : 'Enter Order ID / Tracking ID'}
             value={orderIdQuery}
             onChange={(e) => setOrderIdQuery(e.target.value)}
