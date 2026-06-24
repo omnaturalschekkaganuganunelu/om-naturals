@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/coupons - List all coupons (Admin Only)
 export async function GET(req: NextRequest) {
   try {

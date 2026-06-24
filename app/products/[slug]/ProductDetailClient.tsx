@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   ShoppingCart, ShoppingBag, Check, Plus, Minus,
   ShieldCheck, Truck, Leaf, Star, ChevronRight,
-  Zap, Award
+  Zap, Award, ChevronDown
 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
@@ -32,6 +32,7 @@ interface ProductDetailClientProps {
     nameTe: string;
     slug: string;
     description: string;
+    descriptionTe?: string | null;
     images: string[];
     price: number;
     mrp: number;
@@ -39,8 +40,11 @@ interface ProductDetailClientProps {
     unit: string;
     weight: number;
     benefits: string[];
+    benefitsTe?: string[];
     ingredients: string[];
+    ingredientsTe?: string[];
     usage: string[];
+    usageTe?: string[];
     category: { name: string; nameTe: string; slug: string };
   };
   relatedProducts: any[];
@@ -89,7 +93,7 @@ function RelatedCard({ rel, language }: { rel: any; language: string }) {
   return (
     <>
       <div
-        className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer flex flex-col"
+        className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer flex flex-col w-full min-w-0"
         onClick={() => router.push(`/products/${rel.slug}`)}
       >
         {/* Image */}
@@ -167,6 +171,11 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'benefits' | 'ingredients' | 'usage'>('details');
+  const [modalOpen, setModalOpen] = useState(false);
+
+  React.useEffect(() => {
+    setActiveImage(product.images[0] || FALLBACK_IMG);
+  }, [product.id, product.images]);
 
   const allVariants: Variant[] = [
     { ...product },
@@ -213,26 +222,26 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
   return (
     <>
       {/* ── Page wrapper: pb-32 on mobile so content never hides behind sticky bar + nav ── */}
-      <div className="bg-[#f8f5f0] min-h-screen pb-8 md:pb-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+      <div className="pb-8 md:pb-10 w-full max-w-full overflow-x-hidden">
+        <div className="max-w-6xl mx-auto w-full min-w-0">
 
           {/* ── Breadcrumb ── */}
-          <nav className="text-[11px] text-gray-400 flex flex-wrap items-center gap-1 font-medium pt-4 pb-3">
-            <span className="hover:text-amber-700 cursor-pointer" onClick={() => router.push('/')}>{t('nav_home')}</span>
-            <ChevronRight size={11} />
-            <span className="hover:text-amber-700 cursor-pointer" onClick={() => router.push('/products')}>{t('products_title')}</span>
-            <ChevronRight size={11} />
-            <span className="hover:text-amber-700 cursor-pointer truncate max-w-[100px] sm:max-w-none"
+          <nav className="text-[11px] text-gray-400 flex items-center gap-1 font-medium pt-4 pb-3 overflow-x-auto no-scrollbar whitespace-nowrap">
+            <span className="hover:text-amber-700 cursor-pointer shrink-0" onClick={() => router.push('/')}>{t('nav_home')}</span>
+            <ChevronRight size={11} className="shrink-0" />
+            <span className="hover:text-amber-700 cursor-pointer shrink-0" onClick={() => router.push('/products')}>{t('products_title')}</span>
+            <ChevronRight size={11} className="shrink-0" />
+            <span className="hover:text-amber-700 cursor-pointer truncate max-w-[120px] sm:max-w-none shrink-0"
               onClick={() => router.push(`/products?category=${product.category.slug}`)}>
               {(language === 'te' ? product.category.nameTe : product.category.name).split('(')[0].trim()}
             </span>
-            <ChevronRight size={11} />
-            <span className="text-amber-900 font-semibold truncate max-w-[140px] sm:max-w-xs">{displayName}</span>
+            <ChevronRight size={11} className="shrink-0" />
+            <span className="text-amber-900 font-semibold truncate max-w-[180px] sm:max-w-xs shrink-0">{displayName}</span>
           </nav>
 
           {/* ── Main Card ── */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden min-w-0 w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 min-w-0 w-full">
 
               {/* ══ LEFT: Images ══ */}
               <div className="relative bg-[#fdfaf6] md:border-r border-gray-100">
@@ -275,7 +284,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
               </div>
 
               {/* ══ RIGHT: Product Info ══ */}
-              <div className="p-5 sm:p-7 flex flex-col gap-4">
+              <div className="p-5 sm:p-7 flex flex-col gap-4 min-w-0">
 
                 {/* Tags */}
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -290,10 +299,10 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
                 </div>
 
                 {/* Name */}
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-black text-gray-900 leading-tight">{displayName}</h1>
+                <div className="min-w-0">
+                  <h1 className="text-xl sm:text-2xl font-black text-gray-900 leading-tight break-words">{displayName}</h1>
                   {altName && altName !== displayName && (
-                    <p className="text-sm text-gray-400 font-medium mt-0.5">{altName}</p>
+                    <p className="text-sm text-gray-400 font-medium mt-0.5 break-words">{altName}</p>
                   )}
                 </div>
 
@@ -413,7 +422,10 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
                       )}
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <button onClick={() => handleAddToCart(false)}
+                      <button onClick={() => {
+                          if (hasVariants) setModalOpen(true);
+                          else handleAddToCart(false);
+                        }}
                         className={`flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm transition-all border-2 ${
                           added || inCart
                             ? 'bg-emerald-600 border-emerald-600 text-white'
@@ -424,7 +436,10 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
                           : <><ShoppingCart size={16} />{t('misc_add_to_cart')}</>
                         }
                       </button>
-                      <button onClick={() => handleAddToCart(true)}
+                      <button onClick={() => {
+                          if (hasVariants) setModalOpen(true);
+                          else handleAddToCart(true);
+                        }}
                         className="flex items-center justify-center gap-2 py-3.5 bg-amber-800 hover:bg-amber-700 active:scale-[0.98] text-white rounded-2xl font-black text-sm shadow-lg shadow-amber-800/20 transition-all">
                         <ShoppingBag size={16} />
                         {t('misc_buy_now')}
@@ -434,7 +449,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
                 )}
 
                 {/* Trust Badges */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {[
                     { icon: <ShieldCheck size={14} className="text-emerald-600" />, text: language === 'te' ? '100% ప్యూర్' : '100% Pure & Safe' },
                     { icon: <Truck size={14} className="text-blue-500" />, text: language === 'te' ? 'వేగవంతమైన డెలివరీ' : 'Fast Delivery' },
@@ -443,7 +458,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
                   ].map(({ icon, text }, i) => (
                     <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
                       {icon}
-                      <span className="text-[11px] font-bold text-gray-700">{text}</span>
+                      <span className="text-[11px] font-bold text-gray-700 break-words">{text}</span>
                     </div>
                   ))}
                 </div>
@@ -452,8 +467,8 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
           </div>
 
           {/* ── Tabs Section ── */}
-          <div className="mt-4 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="flex border-b border-gray-100 overflow-x-auto no-scrollbar">
+          <div className="mt-4 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden w-full">
+            <div className="flex border-b border-gray-100 overflow-x-auto no-scrollbar w-full">
               {(['details', 'benefits', 'ingredients', 'usage'] as const).map((tab) => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
                   className={`flex-shrink-0 px-5 py-4 text-xs sm:text-sm font-black border-b-2 transition-all whitespace-nowrap ${
@@ -469,10 +484,10 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
               ))}
             </div>
             <div className="p-5 sm:p-7 text-sm text-gray-600 leading-relaxed">
-              {activeTab === 'details' && <p className="font-medium">{product.description}</p>}
+              {activeTab === 'details' && <p className="font-medium">{language === 'te' && product.descriptionTe ? product.descriptionTe : product.description}</p>}
               {activeTab === 'benefits' && (
                 <ul className="space-y-2.5">
-                  {product.benefits.map((b, i) => (
+                  {(language === 'te' && product.benefitsTe && product.benefitsTe.length > 0 ? product.benefitsTe : product.benefits).map((b: string, i: number) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <span className="mt-1 w-4 h-4 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
                         <Check size={9} strokeWidth={3} className="text-emerald-600" />
@@ -484,7 +499,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
               )}
               {activeTab === 'ingredients' && (
                 <ul className="space-y-2">
-                  {product.ingredients.map((ing, i) => (
+                  {(language === 'te' && product.ingredientsTe && product.ingredientsTe.length > 0 ? product.ingredientsTe : product.ingredients).map((ing: string, i: number) => (
                     <li key={i} className="flex items-center gap-2 font-medium">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                       {ing}
@@ -494,7 +509,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
               )}
               {activeTab === 'usage' && (
                 <ol className="space-y-3">
-                  {product.usage.map((use, i) => (
+                  {(language === 'te' && product.usageTe && product.usageTe.length > 0 ? product.usageTe : product.usage).map((use: string, i: number) => (
                     <li key={i} className="flex gap-3">
                       <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 font-black text-xs flex items-center justify-center shrink-0 border border-amber-200">
                         {i + 1}
@@ -534,6 +549,15 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
       {!outOfStock && (
         <div className="md:hidden fixed bottom-16 left-0 right-0 z-[60] px-3 py-2">
           <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 flex items-center gap-2.5 px-3 py-2.5 max-w-lg mx-auto">
+            {hasVariants && (
+              <button
+                onClick={() => setModalOpen(true)}
+                className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl px-3 h-11 text-xs font-black text-amber-900 transition-colors shrink-0"
+              >
+                <span>{formatVariantLabel(product)}</span>
+                <ChevronDown size={14} className="text-amber-800" />
+              </button>
+            )}
             {inCart ? (
               <>
                 {/* Qty stepper (when in cart) */}
@@ -559,7 +583,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
                 {/* Go to Cart (since already in cart) */}
                 <button
                   onClick={() => router.push('/cart')}
-                  className="flex-1 flex items-center justify-center gap-1.5 h-11 bg-amber-800 hover:bg-amber-700 text-white rounded-xl font-black text-sm shadow-lg shadow-amber-800/20 active:scale-95 transition-all"
+                  className="flex-1 flex items-center justify-center gap-1.5 h-11 bg-amber-800 hover:bg-amber-700 text-white rounded-xl font-black text-xs sm:text-sm shadow-lg shadow-amber-800/20 active:scale-95 transition-all"
                 >
                   <ShoppingBag size={15} />
                   <span>{language === 'te' ? 'కార్ట్‌కు వెళ్ళు' : 'Go to Cart'}</span>
@@ -569,8 +593,11 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
               <>
                 {/* Add to Cart */}
                 <button
-                  onClick={() => handleAddToCart(false)}
-                  className="flex-1 flex items-center justify-center gap-1.5 h-11 border-2 border-amber-800 text-amber-800 bg-white hover:bg-amber-50 active:bg-amber-100 rounded-xl font-black text-sm transition-all"
+                  onClick={() => {
+                    if (hasVariants) setModalOpen(true);
+                    else handleAddToCart(false);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 h-11 border-2 border-amber-800 text-amber-800 bg-white hover:bg-amber-50 active:bg-amber-100 rounded-xl font-black text-xs sm:text-sm transition-all"
                 >
                   <ShoppingCart size={15} />
                   <span>{t('misc_add_to_cart')}</span>
@@ -578,8 +605,11 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
 
                 {/* Buy Now */}
                 <button
-                  onClick={() => handleAddToCart(true)}
-                  className="flex-1 flex items-center justify-center gap-1.5 h-11 bg-amber-800 hover:bg-amber-700 text-white rounded-xl font-black text-sm shadow-lg shadow-amber-800/20 active:scale-95 transition-all"
+                  onClick={() => {
+                    if (hasVariants) setModalOpen(true);
+                    else handleAddToCart(true);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 h-11 bg-amber-800 hover:bg-amber-700 text-white rounded-xl font-black text-xs sm:text-sm shadow-lg shadow-amber-800/20 active:scale-95 transition-all"
                 >
                   <ShoppingBag size={15} />
                   <span>{t('misc_buy_now')}</span>
@@ -588,6 +618,16 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
             )}
           </div>
         </div>
+      )}
+
+      {/* Variant Selector Modal */}
+      {hasVariants && (
+        <VariantSelectorModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          groupKey={extractBaseNameTe(product.nameTe || product.name)}
+          variants={allVariants as any}
+        />
       )}
     </>
   );

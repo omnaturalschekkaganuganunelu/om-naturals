@@ -6,4 +6,4 @@ Disallow: /account/
 Disallow: /cart/
 Disallow: /checkout/
 
-Sitemap: https://om-naturals.vercel.app/sitemap.xml
+Sitemap: https://www.om-naturals.com/sitemap.xml

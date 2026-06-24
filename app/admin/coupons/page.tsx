@@ -180,12 +180,12 @@ export default function AdminCouponsPage() {
     <>
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 overflow-x-hidden">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 items-start">
           
           <AdminSidebar />
 
-          <section className="flex-1 w-full space-y-6">
+          <section className="flex-1 w-full min-w-0 space-y-6">
             
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -219,8 +219,8 @@ export default function AdminCouponsPage() {
 
             {/* Table */}
             <div className="bg-white border border-amber-100 rounded-3xl overflow-hidden smooth-shadow">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs font-medium text-amber-950">
+              <div className="overflow-x-auto no-scrollbar">
+                <table className="w-full text-left text-xs font-medium text-amber-950 min-w-[700px]">
                   <thead className="bg-amber-50 text-[10px] uppercase font-bold text-amber-900 border-b border-amber-100">
                     <tr>
                       <th className="py-3 px-4">{t('admin_coupons_th_code')}</th>

@@ -4,7 +4,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import HomePageClient from '@/app/HomePageClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600; // Cache for 10 minutes to save Neon compute
 
 async function getHomeData() {
   try {

@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Plus, Minus, Check, ChevronDown } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
@@ -106,12 +107,13 @@ export default function ProductCard({ group }: ProductCardProps) {
           href={`/products/${representative.slug}`}
           className="block relative overflow-hidden bg-[#fdfaf6] aspect-square flex-shrink-0"
         >
-          <img
+          <Image
             src={imageUrl}
             alt={representative.name}
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-out"
+            fill
+            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+            className="object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-out"
             onError={() => setImgError(true)}
-            loading="lazy"
           />
 
           {/* Discount badge */}
@@ -230,15 +232,17 @@ export default function ProductCard({ group }: ProductCardProps) {
           )}
 
           {/* Price & Buy Now Button */}
-          <div className="mt-auto flex items-center justify-between gap-1.5">
-            <div className="flex items-baseline gap-1.5 flex-wrap">
+          <div className="mt-auto flex items-center justify-between gap-1 pt-1.5">
+            <div className="flex flex-col min-[380px]:flex-row min-[380px]:items-baseline gap-0.5 min-[380px]:gap-1.5">
               <span className="text-sm sm:text-[15px] font-black text-gray-900">₹{minPrice}</span>
-              {minMrp > minPrice && (
-                <span className="text-[10px] text-gray-400 line-through font-medium">₹{minMrp}</span>
-              )}
-              {!isSingleVariant && (
-                <span className="text-[9px] text-gray-400 font-medium">onwards</span>
-              )}
+              <div className="flex items-center gap-1">
+                {minMrp > minPrice && (
+                  <span className="text-[10px] text-gray-400 line-through font-medium">₹{minMrp}</span>
+                )}
+                {!isSingleVariant && (
+                  <span className="text-[9px] text-gray-400 font-medium">{language === 'te' ? 'నుండి' : 'onwards'}</span>
+                )}
+              </div>
             </div>
 
             {!outOfStock && (
@@ -265,12 +269,12 @@ export default function ProductCard({ group }: ProductCardProps) {
                     setModalOpen(true);
                   }
                 }}
-                className="relative overflow-hidden group/btn flex items-center gap-1.5 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 active:scale-95 text-white text-[10px] font-black px-3 py-1.5 rounded-xl transition-all duration-200 shrink-0 shadow-md hover:shadow-amber-500/40 hover:shadow-lg"
+                className="relative overflow-hidden group/btn flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 active:scale-95 text-white text-[10px] font-black px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl transition-all duration-200 shrink-0 shadow-md hover:shadow-amber-500/40 hover:shadow-lg"
               >
                 {/* shimmer sweep */}
                 <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
-                <span className="text-amber-200 text-[11px]">⚡</span>
-                <span className="uppercase tracking-wider relative z-10">
+                <span className="text-amber-200 text-[10px] sm:text-[11px]">⚡</span>
+                <span className="uppercase tracking-wider relative z-10 text-[9px] sm:text-[10px]">
                   {language === 'te' ? 'కొనండి' : 'Buy Now'}
                 </span>
               </button>

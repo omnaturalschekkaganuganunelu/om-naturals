@@ -81,12 +81,7 @@ export default function AdminLoginPage() {
           </p>
         </div>
 
-        {/* Demo Credentials Alert */}
-        <div className="bg-amber-100/60 p-3 rounded-2xl border border-amber-200 text-[10px] text-amber-900 font-medium">
-          💡 <span className="font-extrabold">{language === 'te' ? 'డెమో అడ్మిన్ వివరాలు:' : 'Demo Admin Credentials:'}</span> <br />
-          <span className="font-semibold">{language === 'te' ? 'ఈమెయిల్:' : 'Email:'}</span> admin@nunebazaar.com <br />
-          <span className="font-semibold">{language === 'te' ? 'పాస్‌వర్డ్:' : 'Password:'}</span> admin123
-        </div>
+
 
         <form onSubmit={handleAdminLogin} className="space-y-4">
           <div className="space-y-1">

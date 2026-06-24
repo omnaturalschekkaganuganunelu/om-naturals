@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useCallback, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { X, Minus, Plus, Check, Percent, ShoppingCart } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
@@ -33,6 +34,11 @@ export default function VariantSelectorModal({
 
   const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
   const [justAdded, setJustAdded] = useState<Record<string, boolean>>({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Lock body scroll when open
   useEffect(() => {
@@ -89,9 +95,9 @@ export default function VariantSelectorModal({
     return sum + (entry ? entry.quantity * v.price : 0);
   }, 0);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  return createPortal(
     // Backdrop — full screen centered overlay
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center p-4"
@@ -246,6 +252,7 @@ export default function VariantSelectorModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

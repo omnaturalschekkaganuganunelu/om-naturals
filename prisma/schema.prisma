@@ -1,6 +1,7 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -14,6 +15,8 @@ model User {
   password  String
   phone     String?
   role      String    @default("CUSTOMER") // "CUSTOMER" or "ADMIN"
+  otp       String?
+  otpExpiry DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   addresses Address[]
@@ -58,6 +61,7 @@ model Product {
   nameTe      String
   slug        String   @unique
   description String
+  descriptionTe String?
   images      String   // JSON string of string[]
   price       Float
   mrp         Float
@@ -68,8 +72,11 @@ model Product {
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id])
   benefits    String   // JSON string of string[]
+  benefitsTe  String?  // JSON string
   ingredients String?  // JSON string
+  ingredientsTe String? // JSON string
   usage       String?  // JSON string
+  usageTe     String?  // JSON string
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

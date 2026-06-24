@@ -50,20 +50,48 @@ const STATUS_STYLES: Record<string, { badge: string; dot: string; label: string 
   CANCELLED:        { badge: 'bg-red-50     text-red-700     border-red-200',     dot: 'bg-red-500',     label: 'Cancelled' },
 };
 
-function statusLabel(s: string) { return STATUS_STYLES[s]?.label ?? s; }
+function statusLabel(s: string, language: string) { 
+  if (language === 'te') {
+    switch (s) {
+      case 'PENDING': return 'పెండింగ్';
+      case 'CONFIRMED': return 'నిర్ధారించబడింది';
+      case 'PROCESSING': return 'ప్రాసెసింగ్';
+      case 'PACKED': return 'ప్యాక్ చేయబడింది';
+      case 'OUT_FOR_DELIVERY':
+      case 'SHIPPED': return 'డెలివరీలో ఉంది';
+      case 'DELIVERED': return 'డెలివరీ పూర్తయింది';
+      case 'CANCELLED': return 'రద్దు చేయబడింది';
+      default: return s;
+    }
+  }
+  return STATUS_STYLES[s]?.label ?? s; 
+}
 function statusBadge(s: string) { return STATUS_STYLES[s]?.badge ?? 'bg-amber-50 text-amber-800 border-amber-200'; }
 
 function fmt(dateStr: string, opts: Intl.DateTimeFormatOptions, locale = 'en-IN') {
   return new Date(dateStr).toLocaleString(locale, opts);
 }
 
-function getETA(createdAt: string) {
+function getETA(createdAt: string, language: string) {
   const d = new Date(createdAt);
   d.setDate(d.getDate() + 3);
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function statusMsg(status: string) {
+function statusMsg(status: string, language: string) {
+  if (language === 'te') {
+    switch (status) {
+      case 'PENDING': return 'ఆర్డర్ విజయవంతంగా నమోదైంది. మేము వివరాలను ధృవీకరిస్తున్నాము.';
+      case 'CONFIRMED': return 'మీ ఆర్డర్ నిర్ధారించబడింది.';
+      case 'PROCESSING': return 'నూనె ప్రాసెసింగ్ లో ఉంది మరియు ప్యాక్ చేయబడుతోంది.';
+      case 'PACKED': return 'మీ ప్యాకేజీ సిద్ధంగా ఉంది.';
+      case 'OUT_FOR_DELIVERY':
+      case 'SHIPPED': return 'డెలివరీ ఏజెంట్ మీ ఆర్డర్‌తో బయలుదేరారు.';
+      case 'DELIVERED': return 'ఆర్డర్ విజయవంతంగా చేరింది! నూనెను ఆస్వాదించండి.';
+      case 'CANCELLED': return 'ఈ ఆర్డర్ రద్దు చేయబడింది.';
+      default: return '';
+    }
+  }
   const msgs: Record<string, string> = {
     PENDING: 'Your order is placed and awaiting confirmation.',
     CONFIRMED: 'Your order has been confirmed by our warehouse.',
@@ -199,9 +227,10 @@ interface CancelModalProps {
   onClose: () => void;
   onSuccess: (id: string, reason: string) => void;
   showToast: (msg: string, t?: ToastItem['type']) => void;
+  language: string;
 }
 
-const CANCEL_REASONS = [
+const CANCEL_REASONS_EN = [
   'Ordered by mistake',
   'Changed my mind',
   'Found a better price elsewhere',
@@ -210,32 +239,29 @@ const CANCEL_REASONS = [
   'Other',
 ];
 
-function CancelModal({ order, onClose, onSuccess, showToast }: CancelModalProps) {
-  const [reason, setReason] = useState('Ordered by mistake');
+const CANCEL_REASONS_TE = [
+  'పొరపాటున ఆర్డర్ చేశాను',
+  'నా ఆలోచన మార్చుకున్నాను',
+  'మరొక చోట మంచి ధర దొరికింది',
+  'డెలివరీకి ఎక్కువ సమయం పడుతుంది',
+  'నకిలీ ఆర్డర్',
+  'ఇతర కారణాలు',
+];
+
+function CancelModal({ order, onClose, onSuccess, showToast, language }: CancelModalProps) {
+  const [reason, setReason] = useState(language === 'te' ? 'పొరపాటున ఆర్డర్ చేశాను' : 'Ordered by mistake');
   const [custom, setCustom] = useState('');
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const finalReason = reason === 'Other' ? (custom.trim() || 'No reason specified') : reason;
-    try {
-      const res = await fetch(`/api/orders/${order.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderStatus: 'CANCELLED', notes: `Cancelled by customer. Reason: ${finalReason}` }),
-      });
-      if (res.ok) {
-        onSuccess(order.id, finalReason);
-        showToast('Order cancelled successfully!', 'success');
-        onClose();
-      } else {
-        const err = await res.json();
-        showToast(err.error || 'Cancellation failed', 'error');
-      }
-    } catch {
-      showToast('Connection error. Please try again.', 'error');
-    } finally { setLoading(false); }
+    const finalReason = (reason === 'Other' || reason === 'ఇతర కారణాలు') ? (custom.trim() || 'No reason specified') : reason;
+    
+    const text = `Hello OM Naturals,\n\nI would like to request a cancellation for my order.\n\nOrder ID: ${order.id}\nReason: ${finalReason}`;
+    const waUrl = `https://wa.me/918688291288?text=${encodeURIComponent(text)}`;
+    
+    window.open(waUrl, '_blank');
+    onClose();
   };
 
   return (
@@ -247,8 +273,8 @@ function CancelModal({ order, onClose, onSuccess, showToast }: CancelModalProps)
             <AlertTriangle size={20} className="text-red-600" />
           </div>
           <div>
-            <h3 className="font-black text-red-800 text-base">Cancel Order?</h3>
-            <p className="text-xs text-red-600 mt-0.5">Order {order.orderId}</p>
+            <h3 className="font-black text-red-800 text-base">{language === 'te' ? 'ఆర్డర్ రద్దు చేయాలా?' : 'Cancel Order?'}</h3>
+            <p className="text-xs text-red-600 mt-0.5">{language === 'te' ? 'ఆర్డర్' : 'Order'} {order.orderId}</p>
           </div>
           <button onClick={onClose} className="ml-auto p-1 hover:bg-red-100 rounded-full transition-colors">
             <X size={18} className="text-red-500" />
@@ -257,14 +283,14 @@ function CancelModal({ order, onClose, onSuccess, showToast }: CancelModalProps)
 
         <form onSubmit={submit} className="p-6 space-y-4">
           <p className="text-sm text-gray-600 font-medium">
-            Are you sure you want to cancel this order? <span className="font-bold text-red-600">This action cannot be undone.</span>
+            {language === 'te' ? 'మీరు ఈ ఆర్డర్‌ని ఖచ్చితంగా రద్దు చేయాలనుకుంటున్నారా?' : 'Are you sure you want to cancel this order?'} <span className="font-bold text-red-600">{language === 'te' ? 'ఈ చర్యను వెనక్కి తీసుకోలేము.' : 'This action cannot be undone.'}</span>
           </p>
 
           {/* Reason selector */}
           <div className="space-y-1.5">
-            <label className="text-xs font-black text-amber-900 block">Reason for cancellation</label>
+            <label className="text-xs font-black text-amber-900 block">{language === 'te' ? 'రద్దుకు కారణం' : 'Reason for cancellation'}</label>
             <div className="grid grid-cols-1 gap-2">
-              {CANCEL_REASONS.map(r => (
+              {(language === 'te' ? CANCEL_REASONS_TE : CANCEL_REASONS_EN).map(r => (
                 <label key={r} className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all text-xs font-semibold ${
                   reason === r ? 'border-amber-400 bg-amber-50 text-amber-900' : 'border-gray-100 hover:border-amber-200 text-gray-600'
                 }`}>
@@ -274,11 +300,11 @@ function CancelModal({ order, onClose, onSuccess, showToast }: CancelModalProps)
                 </label>
               ))}
             </div>
-            {reason === 'Other' && (
+            {(reason === 'Other' || reason === 'ఇతర కారణాలు') && (
               <textarea
                 value={custom}
                 onChange={e => setCustom(e.target.value)}
-                placeholder="Tell us more…"
+                placeholder={language === 'te' ? "మరింత వివరంగా చెప్పండి…" : "Tell us more…"}
                 rows={2}
                 className="w-full text-xs border border-amber-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-amber-400/30 resize-none font-medium"
               />
@@ -289,11 +315,11 @@ function CancelModal({ order, onClose, onSuccess, showToast }: CancelModalProps)
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
               className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 py-3 font-bold text-xs rounded-2xl transition-colors">
-              Keep Order
+              {language === 'te' ? 'ఆర్డర్ ఉంచు' : 'Keep Order'}
             </button>
             <button type="submit" disabled={loading}
               className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 font-bold text-xs rounded-2xl transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
-              {loading ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"/> Cancelling…</> : 'Yes, Cancel Order'}
+              {loading ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"/> {language === 'te' ? 'రద్దు అవుతోంది…' : 'Cancelling…'}</> : (language === 'te' ? 'అవును, రద్దు చేయి' : 'Yes, Cancel Order')}
             </button>
           </div>
         </form>
@@ -309,14 +335,15 @@ interface TrackingDrawerProps {
   onClose: () => void;
   copiedId: string | null;
   onCopy: (id: string) => void;
+  language: string;
 }
 
-function TrackingDrawer({ order, onClose, copiedId, onCopy }: TrackingDrawerProps) {
+function TrackingDrawer({ order, onClose, copiedId, onCopy, language }: TrackingDrawerProps) {
   const trkId = getTrackingId(order.orderId);
   const isCancelled = order.orderStatus === 'CANCELLED';
   const currentIdx = getStepIndex(order.orderStatus, STEPS);
   const progressPct = getProgressPct(order.orderStatus);
-  const eta = getETA(order.createdAt);
+  const eta = getETA(order.createdAt, language);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
@@ -336,7 +363,7 @@ function TrackingDrawer({ order, onClose, copiedId, onCopy }: TrackingDrawerProp
               <Truck size={18} className="text-white" />
             </div>
             <div>
-              <h3 className="font-black text-amber-950 text-sm">Track Order</h3>
+              <h3 className="font-black text-amber-950 text-sm">{language === 'te' ? 'ఆర్డర్ ట్రాకింగ్' : 'Track Order'}</h3>
               <p className="text-[11px] text-gray-400 font-semibold">{order.orderId}</p>
             </div>
           </div>
@@ -351,27 +378,27 @@ function TrackingDrawer({ order, onClose, copiedId, onCopy }: TrackingDrawerProp
           {/* Tracking ID */}
           <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Tracking ID</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">{language === 'te' ? 'ట్రాకింగ్ ఐడీ' : 'Tracking ID'}</p>
               <p className="font-mono font-black text-amber-900 text-sm">{trkId}</p>
             </div>
             <button
               onClick={() => onCopy(trkId)}
               className="flex items-center gap-1.5 text-xs font-bold bg-white border border-amber-200 text-amber-800 hover:bg-amber-100 px-3 py-1.5 rounded-xl transition-colors"
             >
-              {copiedId === trkId ? <><Check size={12} className="text-green-600"/> Copied!</> : <><Copy size={12}/> Copy</>}
+              {copiedId === trkId ? <><Check size={12} className="text-green-600"/> {language === 'te' ? 'కాపీ అయింది' : 'Copied!'}</> : <><Copy size={12}/> {language === 'te' ? 'కాపీ' : 'Copy'}</>}
             </button>
           </div>
 
           {/* Status + ETA row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white border border-amber-100 rounded-2xl p-3.5">
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Current Status</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">{language === 'te' ? 'ప్రస్తుత స్థితి' : 'Current Status'}</p>
               <span className={`text-xs font-black px-2.5 py-1 rounded-full border ${statusBadge(order.orderStatus)}`}>
-                {statusLabel(order.orderStatus)}
+                {statusLabel(order.orderStatus, language)}
               </span>
             </div>
             <div className="bg-white border border-amber-100 rounded-2xl p-3.5">
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Expected Delivery</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">{language === 'te' ? 'అంచనా డెలివరీ' : 'Expected Delivery'}</p>
               <p className="text-xs font-black text-amber-900">{isCancelled ? 'N/A' : eta}</p>
             </div>
           </div>
@@ -381,8 +408,8 @@ function TrackingDrawer({ order, onClose, copiedId, onCopy }: TrackingDrawerProp
             <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex gap-3">
               <Info size={16} className="text-blue-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-black text-blue-800">Latest Update</p>
-                <p className="text-[11px] text-blue-600 mt-0.5 font-medium">{statusMsg(order.orderStatus)}</p>
+                <p className="text-xs font-black text-blue-800">{language === 'te' ? 'తాజా అప్‌డేట్' : 'Latest Update'}</p>
+                <p className="text-[11px] text-blue-600 mt-0.5 font-medium">{statusMsg(order.orderStatus, language)}</p>
               </div>
             </div>
           )}
@@ -391,14 +418,14 @@ function TrackingDrawer({ order, onClose, copiedId, onCopy }: TrackingDrawerProp
           {!isCancelled && (
             <div className="space-y-2">
               <div className="flex justify-between text-[10px] font-bold text-gray-400">
-                <span>Order Placed</span><span>{progressPct}% Complete</span>
+                <span>{language === 'te' ? 'ఆర్డర్ నమోదైంది' : 'Order Placed'}</span><span>{progressPct}% {language === 'te' ? 'పూర్తయింది' : 'Complete'}</span>
               </div>
               <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-amber-500 to-amber-700 rounded-full transition-all duration-700"
                   style={{ width: `${progressPct}%` }} />
               </div>
               <div className="flex justify-end text-[10px] font-bold text-gray-400">
-                <span>Delivered</span>
+                <span>{language === 'te' ? 'డెలివరీ అయింది' : 'Delivered'}</span>
               </div>
             </div>
           )}
@@ -408,10 +435,10 @@ function TrackingDrawer({ order, onClose, copiedId, onCopy }: TrackingDrawerProp
             <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex gap-3">
               <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-black text-red-800">Order Cancelled</p>
-                <p className="text-[11px] text-red-500 mt-0.5">{order.notes || 'This order was cancelled.'}</p>
+                <p className="text-xs font-black text-red-800">{language === 'te' ? 'ఆర్డర్ రద్దు చేయబడింది' : 'Order Cancelled'}</p>
+                <p className="text-[11px] text-red-500 mt-0.5">{order.notes || (language === 'te' ? 'ఈ ఆర్డర్ రద్దు చేయబడింది.' : 'This order was cancelled.')}</p>
                 <p className="text-[10px] text-gray-400 mt-1">
-                  {fmt(order.updatedAt, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true })}
+                  {fmt(order.updatedAt, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }, language === 'te' ? 'te-IN' : 'en-IN')}
                 </p>
               </div>
             </div>
@@ -467,9 +494,10 @@ interface OrderCardProps {
   onCancelSuccess: (id: string, reason: string) => void;
   showToast: (msg: string, t?: ToastItem['type']) => void;
   onReorder: (order: any) => void;
+  language: string;
 }
 
-function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onReorder }: OrderCardProps) {
+function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onReorder, language }: OrderCardProps) {
   const [showTracking, setShowTracking] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -483,13 +511,13 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
   const handleCopy = (id: string) => {
     navigator.clipboard.writeText(id);
     setCopiedId(id);
-    showToast('Tracking ID copied!', 'success');
+    showToast(language === 'te' ? 'ట్రాకింగ్ ఐడీ కాపీ అయింది!' : 'Tracking ID copied!', 'success');
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const orderDate = fmt(order.createdAt, { day: 'numeric', month: 'short', year: 'numeric' });
-  const updatedAt = fmt(order.updatedAt, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
-  const eta = getETA(order.createdAt);
+  const orderDate = fmt(order.createdAt, { day: 'numeric', month: 'short', year: 'numeric' }, language === 'te' ? 'te-IN' : 'en-IN');
+  const updatedAt = fmt(order.updatedAt, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }, language === 'te' ? 'te-IN' : 'en-IN');
+  const eta = getETA(order.createdAt, language);
 
   return (
     <>
@@ -499,6 +527,7 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
           onClose={() => setShowTracking(false)}
           copiedId={copiedId}
           onCopy={handleCopy}
+          language={language}
         />
       )}
 
@@ -508,6 +537,7 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
           onClose={() => setShowCancel(false)}
           onSuccess={onCancelSuccess}
           showToast={showToast}
+          language={language}
         />
       )}
 
@@ -525,20 +555,20 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
                 <span className="font-mono font-black text-amber-900 text-sm truncate">{order.orderId}</span>
                 <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wide ${statusInfo.badge}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot}`}/>
-                  {statusLabel(order.orderStatus)}
+                  {statusLabel(order.orderStatus, language)}
                 </span>
               </div>
               {/* Meta chips row */}
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-400 font-semibold">
                 <span>📅 {orderDate}</span>
-                <span>🕐 Updated {updatedAt}</span>
-                {!isCancelled && <span>📦 ETA: {eta}</span>}
+                <span>🕐 {language === 'te' ? 'నవీకరించబడింది' : 'Updated'} {updatedAt}</span>
+                {!isCancelled && <span>📦 {language === 'te' ? 'అంచనా' : 'ETA'}: {eta}</span>}
               </div>
             </div>
             <div className="shrink-0 flex items-center gap-2">
               <div className="text-right hidden sm:block">
                 <p className="text-lg font-black text-amber-900">₹{order.total}</p>
-                <p className="text-[10px] text-gray-400">{order.paymentMethod === 'COD' ? 'Cash on Delivery' : 'PhonePe'}</p>
+                <p className="text-[10px] text-gray-400">{order.paymentMethod === 'COD' ? (language === 'te' ? 'క్యాష్ ఆన్ డెలివరీ' : 'Cash on Delivery') : 'PhonePe'}</p>
               </div>
               <div className="p-1.5 bg-amber-50 rounded-xl text-amber-600">
                 {expanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
@@ -549,7 +579,7 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
           {/* Mobile total */}
           <div className="flex items-center justify-between mt-2 sm:hidden">
             <span className="text-sm font-black text-amber-900">₹{order.total}</span>
-            <span className="text-[10px] text-gray-400 font-medium">{order.paymentMethod === 'COD' ? 'Cash on Delivery' : 'PhonePe'}</span>
+            <span className="text-[10px] text-gray-400 font-medium">{order.paymentMethod === 'COD' ? (language === 'te' ? 'క్యాష్ ఆన్ డెలివరీ' : 'Cash on Delivery') : 'PhonePe'}</span>
           </div>
 
           {/* Progress bar (non-cancelled) */}
@@ -562,9 +592,9 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
                 />
               </div>
               <div className="flex justify-between text-[10px] font-bold text-gray-300">
-                <span>Order Placed</span>
+                <span>{language === 'te' ? 'ఆర్డర్ నమోదైంది' : 'Order Placed'}</span>
                 <span className="text-amber-600">{progressPct}%</span>
-                <span>Delivered</span>
+                <span>{language === 'te' ? 'డెలివరీ అయింది' : 'Delivered'}</span>
               </div>
             </div>
           )}
@@ -572,7 +602,7 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
           {/* Cancelled ribbon */}
           {isCancelled && (
             <div className="mt-3 inline-flex items-center gap-1.5 bg-red-50 text-red-600 border border-red-100 rounded-xl px-3 py-1.5 text-[10px] font-black">
-              <AlertTriangle size={11}/> This order was cancelled
+              <AlertTriangle size={11}/> {language === 'te' ? 'ఈ ఆర్డర్ రద్దు చేయబడింది' : 'This order was cancelled'}
             </div>
           )}
 
@@ -582,7 +612,7 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
               onClick={() => setShowTracking(true)}
               className="flex items-center gap-1.5 bg-amber-800 hover:bg-amber-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-colors shadow-sm"
             >
-              <Navigation2 size={12}/> Track Order
+              <Navigation2 size={12}/> {language === 'te' ? 'ట్రాక్ చేయి' : 'Track Order'}
             </button>
             {canCancel && (
               <>
@@ -590,20 +620,20 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
                   onClick={() => setShowCancel(true)}
                   className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 text-xs font-bold px-3.5 py-2 rounded-xl transition-colors"
                 >
-                  <X size={12}/> Cancel
+                  <X size={12}/> {language === 'te' ? 'రద్దు చేయి' : 'Cancel'}
                 </button>
               </>
             )}
             {['OUT_FOR_DELIVERY', 'SHIPPED'].includes(order.orderStatus) && (
               <span className="text-[10px] text-gray-400 font-semibold italic">
-                ⚠️ Cannot cancel — Out for Delivery
+                ⚠️ {language === 'te' ? 'రద్దు చేయలేము — డెలివరీలో ఉంది' : 'Cannot cancel — Out for Delivery'}
               </span>
             )}
             <button
               onClick={() => printInvoice(order)}
               className="flex items-center gap-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-100 text-xs font-bold px-3.5 py-2 rounded-xl transition-colors"
             >
-              <Printer size={12}/> Invoice
+              <Printer size={12}/> {language === 'te' ? 'రసీదు' : 'Invoice'}
             </button>
           </div>
         </div>
@@ -615,14 +645,14 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
             {/* Tracking ID strip */}
             <div className="px-5 py-3 bg-amber-50/60 border-b border-amber-100/50 flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-gray-400 font-bold">Tracking ID:</span>
+                <span className="text-gray-400 font-bold">{language === 'te' ? 'ట్రాకింగ్ ఐడీ:' : 'Tracking ID:'}</span>
                 <span className="font-mono font-black text-amber-900">{trkId}</span>
               </div>
               <button
                 onClick={() => handleCopy(trkId)}
                 className="flex items-center gap-1 text-[10px] font-bold bg-white border border-amber-200 text-amber-700 hover:bg-amber-50 px-2.5 py-1 rounded-lg transition-colors"
               >
-                {copiedId === trkId ? <><Check size={10} className="text-green-500"/> Copied</> : <><Copy size={10}/> Copy</>}
+                {copiedId === trkId ? <><Check size={10} className="text-green-500"/> {language === 'te' ? 'కాపీ అయింది' : 'Copied'}</> : <><Copy size={10}/> {language === 'te' ? 'కాపీ' : 'Copy'}</>}
               </button>
             </div>
 
@@ -708,7 +738,7 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
             {/* Product Items */}
             <div className="px-5 py-4 border-t border-gray-50">
               <p className="text-xs font-black text-amber-950 mb-3 flex items-center gap-1.5">
-                <ShoppingBag size={14} className="text-amber-700" /> Ordered Items
+                <ShoppingBag size={14} className="text-amber-700" /> {language === 'te' ? 'ఆర్డర్ చేసిన వస్తువులు' : 'Ordered Items'}
               </p>
               <div className="space-y-3">
                 {order.items.map((item: any, idx: number) => (
@@ -720,11 +750,11 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
                       onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=100&auto=format&fit=crop'; }}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-black text-amber-950 truncate">{item.nameTe || item.name}</p>
+                      <p className="text-xs font-black text-amber-950 truncate">{language === 'te' ? (item.nameTe || item.name) : item.name}</p>
                       {item.variantLabel && (
-                        <p className="text-[10px] text-gray-400 font-medium">Variant: {item.variantLabel}</p>
+                        <p className="text-[10px] text-gray-400 font-medium">{language === 'te' ? 'పరిమాణం' : 'Variant'}: {item.variantLabel}</p>
                       )}
-                      <p className="text-[10px] text-gray-400 font-semibold">Qty {item.quantity} × ₹{item.price}</p>
+                      <p className="text-[10px] text-gray-400 font-semibold">{language === 'te' ? 'సంఖ్య' : 'Qty'} {item.quantity} × ₹{item.price}</p>
                     </div>
                     <span className="text-xs font-black text-amber-900 shrink-0">₹{item.price * item.quantity}</span>
                   </div>
@@ -779,27 +809,27 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
                 onClick={() => setShowTracking(true)}
                 className="flex items-center gap-1.5 bg-amber-800 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-colors"
               >
-                <Navigation2 size={12}/> Track Order
+                <Navigation2 size={12}/> {language === 'te' ? 'ట్రాక్ చేయి' : 'Track Order'}
               </button>
               {canCancel && (
                 <button
                   onClick={() => setShowCancel(true)}
                   className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors"
                 >
-                  <X size={12}/> Cancel Order
+                  <X size={12}/> {language === 'te' ? 'రద్దు చేయి' : 'Cancel Order'}
                 </button>
               )}
               <button
                 onClick={() => printInvoice(order)}
                 className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-100 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors"
               >
-                <Printer size={12}/> Download Invoice
+                <Printer size={12}/> {language === 'te' ? 'ఇన్‌వాయిస్ డౌన్‌లోడ్' : 'Download Invoice'}
               </button>
               <button
                 onClick={() => onReorder(order)}
                 className="flex items-center gap-1.5 bg-white hover:bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors"
               >
-                <RotateCcw size={12}/> Reorder
+                <RotateCcw size={12}/> {language === 'te' ? 'మళ్ళీ ఆర్డర్ చేయి' : 'Reorder'}
               </button>
             </div>
           </div>
@@ -973,10 +1003,11 @@ export default function OrderHistorySection({
               key={ord.id}
               order={ord}
               expanded={expandedId === ord.id}
-              onToggle={() => setExpandedId(prev => prev === ord.id ? null : ord.id)}
+              onToggle={() => setExpandedId(p => p === ord.id ? null : ord.id)}
               onCancelSuccess={handleCancelSuccess}
               showToast={showToast}
               onReorder={handleReorder}
+              language={language}
             />
           ))}
         </div>

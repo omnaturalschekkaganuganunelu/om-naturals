@@ -83,6 +83,7 @@ export default function AdminProductsPage() {
     imageUrl: string;
     description: string;
     benefits: string;
+    isActive: boolean;
   }>({
     name: '',
     nameTe: '',
@@ -97,6 +98,7 @@ export default function AdminProductsPage() {
     imageUrl: '',
     description: '',
     benefits: '',
+    isActive: true,
   });
 
   // Multi-variant list
@@ -211,7 +213,7 @@ export default function AdminProductsPage() {
       name: '', nameTe: '', slug: '',
       categoryId: categories[0]?.id || '',
       weight: '', unit: 'Litre', price: '', mrp: '',
-      sku: '', stock: '', imageUrl: '', description: '', benefits: '',
+      sku: '', stock: '', imageUrl: '', description: '', benefits: '', isActive: true,
     });
     setVariants([EMPTY_VARIANT(), EMPTY_VARIANT()]);
     setShowModal(true);
@@ -238,6 +240,7 @@ export default function AdminProductsPage() {
       imageUrl: p.images[0] || '',
       description: p.description,
       benefits: Array.isArray(p.benefits) ? p.benefits.join(', ') : p.benefits,
+      isActive: p.isActive !== undefined ? p.isActive : true,
     });
     setShowModal(true);
   };
@@ -263,6 +266,7 @@ export default function AdminProductsPage() {
       weight: parseFloat(weight),
       categoryId,
       benefits: singleForm.benefits.split(',').map((s) => s.trim()).filter(Boolean),
+      isActive: singleForm.isActive,
     };
     const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
     const method = editingProduct ? 'PUT' : 'POST';
@@ -387,11 +391,11 @@ export default function AdminProductsPage() {
   return (
     <>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 overflow-x-hidden">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 items-start">
           <AdminSidebar />
 
-          <section className="flex-1 w-full space-y-6">
+          <section className="flex-1 w-full min-w-0 space-y-4 sm:space-y-6">
 
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -431,7 +435,7 @@ export default function AdminProductsPage() {
               <Search size={18} className="absolute right-7 text-gray-400" />
             </div>
 
-            {/* Products Table — grouped by base name */}
+            {/* Products List — mobile-first card layout */}
             <div className="bg-white border border-amber-100 rounded-3xl overflow-hidden shadow-sm">
               {productGroups.length === 0 ? (
                 <div className="text-center py-16 text-gray-400">
@@ -449,59 +453,67 @@ export default function AdminProductsPage() {
 
                     return (
                       <div key={key}>
-                        {/* Group Row */}
-                        <div
-                          className={`flex items-center gap-3 px-4 py-3 hover:bg-amber-50/30 transition-colors ${isMulti ? 'cursor-pointer' : ''}`}
-                          onClick={() => isMulti && setExpandedGroup(isExpanded ? null : key)}
-                        >
-                          {/* Image */}
-                          <img
-                            src={first.images[0] || ''}
-                            alt=""
-                            className="w-10 h-10 rounded-lg object-cover border border-amber-50 flex-shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=100&auto=format&fit=crop';
-                            }}
-                          />
-                          {/* Name */}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-extrabold text-amber-950 text-xs truncate">{key}</p>
-                            <p className="text-[10px] text-gray-400 font-medium">
-                              {isMulti
-                                ? `${groupVariants.length} ${language === 'te' ? 'పరిమాణాలు' : 'sizes'} · ₹${Math.min(...groupVariants.map((v) => v.price))} – ₹${Math.max(...groupVariants.map((v) => v.price))}`
-                                : `${first.weight} ${first.unit} · ₹${first.price}`}
-                            </p>
-                          </div>
-                          {/* Stock summary */}
-                          <div className="hidden sm:block text-center flex-shrink-0 w-16">
-                            <p className={`text-xs font-black ${Math.min(...groupVariants.map((v) => v.stock)) < 10 ? 'text-red-500' : 'text-amber-950'}`}>
-                              {groupVariants.reduce((s, v) => s + v.stock, 0)}
-                            </p>
-                            <p className="text-[9px] text-gray-400">{language === 'te' ? 'స్టాక్' : 'stock'}</p>
-                          </div>
-                          {/* Actions */}
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {!isMulti && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleOpenEdit(first); }}
-                                className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg border border-amber-100"
-                                title="Edit"
-                              >
-                                <Edit3 size={13} />
-                              </button>
-                            )}
-                            {!isMulti && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDelete(first.id); }}
-                                className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-100"
-                                title="Delete"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            )}
+                        {/* Group Row - mobile card style */}
+                        <div className="p-3 sm:p-4 hover:bg-amber-50/30 transition-colors">
+                          {/* Top row: Image + Name + Expand toggle */}
+                          <div className="flex items-start gap-3">
+                            <img
+                              src={first.images[0] || ''}
+                              alt=""
+                              className="w-12 h-12 rounded-xl object-cover border border-amber-50 flex-shrink-0"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=100&auto=format&fit=crop';
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-extrabold text-amber-950 text-xs leading-snug">{key}</p>
+                              <p className="text-[10px] text-gray-400 font-medium mt-0.5">
+                                {isMulti
+                                  ? `${groupVariants.length} ${language === 'te' ? 'పరిమాణాలు' : 'sizes'} · ₹${Math.min(...groupVariants.map((v) => v.price))} – ₹${Math.max(...groupVariants.map((v) => v.price))}`
+                                  : `${first.weight} ${first.unit} · ₹${first.price}`}
+                              </p>
+                            </div>
                             {isMulti && (
-                              <div className="text-gray-400">
-                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                              <button
+                                onClick={() => setExpandedGroup(isExpanded ? null : key)}
+                                className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl border border-amber-100 flex-shrink-0 transition-colors"
+                                aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                              >
+                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Bottom row: Stock badge + Actions (always visible on mobile) */}
+                          <div className="flex items-center justify-between mt-2.5 pl-15">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                                Math.min(...groupVariants.map((v) => v.stock)) < 10
+                                  ? 'bg-red-50 text-red-600 border-red-100'
+                                  : 'bg-green-50 text-green-700 border-green-100'
+                              }`}>
+                                {language === 'te' ? 'స్టాక్' : 'Stock'}: {groupVariants.reduce((s, v) => s + v.stock, 0)}
+                              </span>
+                              {isMulti && (
+                                <span className="text-[10px] text-gray-400 font-medium">
+                                  {language === 'te' ? 'విస్తరించరండి' : 'Tap ↑ to expand'}
+                                </span>
+                              )}
+                            </div>
+                            {!isMulti && (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleOpenEdit(first)}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg border border-amber-100 text-[10px] font-bold transition-colors"
+                                >
+                                  <Edit3 size={11} /> Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(first.id)}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-100 text-[10px] font-bold transition-colors"
+                                >
+                                  <Trash2 size={11} /> Delete
+                                </button>
                               </div>
                             )}
                           </div>
@@ -511,11 +523,11 @@ export default function AdminProductsPage() {
                         {isMulti && isExpanded && (
                           <div className="bg-amber-50/20 border-t border-amber-50 divide-y divide-amber-50/60">
                             {groupVariants.map((v) => (
-                              <div key={v.id} className="flex items-center gap-3 px-6 py-2.5">
+                              <div key={v.id} className="flex items-center gap-3 px-4 py-3">
                                 <img
                                   src={v.images[0] || ''}
                                   alt=""
-                                  className="w-8 h-8 rounded-lg object-cover border border-amber-100 flex-shrink-0"
+                                  className="w-9 h-9 rounded-lg object-cover border border-amber-100 flex-shrink-0"
                                   onError={(e) => {
                                     (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=100&auto=format&fit=crop';
                                   }}
@@ -524,18 +536,18 @@ export default function AdminProductsPage() {
                                   <p className="text-[11px] font-bold text-amber-900">{v.weight} {v.unit}</p>
                                   <p className="text-[10px] text-gray-400">SKU: {v.sku} · Stock: {v.stock} · ₹{v.price}</p>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-shrink-0">
                                   <button
                                     onClick={() => handleOpenEdit(v)}
-                                    className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg border border-amber-100"
+                                    className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg border border-amber-100 text-[10px] font-bold"
                                   >
-                                    <Edit3 size={12} />
+                                    <Edit3 size={10} /> Edit
                                   </button>
                                   <button
                                     onClick={() => handleDelete(v.id)}
-                                    className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-100"
+                                    className="flex items-center gap-1 px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-100 text-[10px] font-bold"
                                   >
-                                    <Trash2 size={12} />
+                                    <Trash2 size={10} /> Del
                                   </button>
                                 </div>
                               </div>
@@ -554,11 +566,11 @@ export default function AdminProductsPage() {
 
       {/* ─── Add / Edit Modal ─────────────────────────────────────────────── */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-amber-100 my-8">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50">
+          <div className="w-full sm:max-w-2xl bg-white shadow-2xl border border-amber-100 flex flex-col rounded-t-3xl sm:rounded-3xl" style={{maxHeight: '92dvh'}}>
 
-            {/* Modal Header */}
-            <div className="flex justify-between items-center px-6 pt-6 pb-4 border-b border-gray-100">
+            {/* Modal Header - sticky */}
+            <div className="sticky top-0 z-10 bg-white flex justify-between items-center px-6 pt-6 pb-4 border-b border-gray-100 rounded-t-3xl">
               <div>
                 <h3 className="font-extrabold text-base text-amber-950 font-heading">
                   {editingProduct
@@ -580,6 +592,8 @@ export default function AdminProductsPage() {
               </button>
             </div>
 
+            {/* Modal Body - scrollable */}
+            <div className="overflow-y-auto flex-1">
             <form onSubmit={handleFormSubmit} className="p-6 space-y-5">
 
               {/* ── SINGLE PRODUCT FORM ──────────────────────────────── */}
@@ -998,6 +1012,7 @@ export default function AdminProductsPage() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}

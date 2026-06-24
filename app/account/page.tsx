@@ -33,6 +33,8 @@ import {
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomSelect from '@/components/CustomSelect';
 import OrderHistorySection from '@/components/OrderHistorySection';
+import { useRealtime } from '@/hooks/useRealtime';
+import ConfirmModal from '@/components/ConfirmModal';
 
 // Deterministic Tracking ID Generator
 const getTrackingId = (orderId: string) => {
@@ -79,6 +81,7 @@ function AccountContent() {
   // Navigation tab from URL or default
   const defaultTab = searchParams.get('tab') || 'profile';
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
   // Profile edit states
   const [profileName, setProfileName] = useState('');
@@ -275,6 +278,24 @@ function AccountContent() {
         );
       });
   }, [authStatus]);
+
+  // Realtime updates for Customer's Orders
+  useRealtime('Order', '*', (payload) => {
+    if (payload.eventType === 'UPDATE') {
+      const updated = payload.new;
+      setOrders((prev) =>
+        prev.map((ord) => (ord.id === updated.id ? { ...ord, ...updated } : ord))
+      );
+    } else if (payload.eventType === 'INSERT') {
+      // Reload orders to get complete order details with items
+      fetch('/api/orders')
+        .then((res) => res.json())
+        .then((data) => setOrders(data))
+        .catch((err) => console.error('Error reloading orders after realtime insert:', err));
+    } else if (payload.eventType === 'DELETE') {
+      setOrders((prev) => prev.filter((ord) => ord.id !== payload.old.id));
+    }
+  });
 
   // Load Addresses
   const fetchAddresses = () => {
@@ -841,7 +862,8 @@ function AccountContent() {
   if (!session) return null;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 relative">
+    <>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 relative">
       
       {/* Account Greeting Header */}
       <div className="bg-gradient-to-r from-amber-800 to-amber-950 text-white rounded-3xl p-6 sm:p-8 smooth-shadow mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -854,7 +876,7 @@ function AccountContent() {
         </div>
         
         <button
-          onClick={() => signOut({ callbackUrl: '/' })}
+          onClick={() => setLogoutModalOpen(true)}
           className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs px-5 py-2.5 rounded-xl transition-all flex items-center space-x-1.5"
         >
           <LogOut size={14} />
@@ -1451,6 +1473,18 @@ function AccountContent() {
       )}
 
     </div>
+
+      <ConfirmModal
+        isOpen={logoutModalOpen}
+        onClose={() => setLogoutModalOpen(false)}
+        onConfirm={() => signOut({ callbackUrl: '/' })}
+        title={language === 'te' ? 'లాగ్ అవుట్ చేయాలా?' : 'Logout?'}
+        message={language === 'te' ? 'మీరు లాగ్ అవుట్ అవుతున్నారు. మీరు ఖచ్చితంగా కొనసాగించాలనుకుంటున్నారా?' : 'You are about to sign out of your account. Are you sure you want to continue?'}
+        confirmText={language === 'te' ? 'లాగ్ అవుట్' : 'Logout'}
+        cancelText={language === 'te' ? 'రద్దు చేయి' : 'Cancel'}
+        isDestructive
+      />
+    </>
   );
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { orderEmitter } from '@/lib/sse';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(req: NextRequest) {
   try {
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
 
           // Deduct stock
           for (const item of order.items) {
-            await tx.product.update({
+            const updatedProduct = await tx.product.update({
               where: { id: item.productId },
               data: {
                 stock: {
@@ -55,6 +56,20 @@ export async function POST(req: NextRequest) {
                 },
               },
             });
+
+            if (updatedProduct.stock < 5) {
+              const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });
+              if (admin) {
+                await tx.notification.create({
+                  data: {
+                    title: '⚠️ Low Stock Alert!',
+                    body: `Product "${updatedProduct.name}" has critically low stock (${updatedProduct.stock} left).`,
+                    type: 'INFO',
+                    userId: admin.id,
+                  }
+                });
+              }
+            }
           }
         }
       });
@@ -76,6 +91,9 @@ export async function POST(req: NextRequest) {
           email: 'customer@demo.com',
         },
       });
+
+      // Instantly invalidate the cache globally so the frontend shows accurate live stock!
+      revalidatePath('/', 'layout');
 
       return NextResponse.json({ success: true });
     } else {

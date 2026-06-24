@@ -10,6 +10,7 @@ import { Search, Filter, ArrowUpDown, LayoutGrid } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomSelect from '@/components/CustomSelect';
 import { useGroupedProducts } from '@/hooks/useGroupedProducts';
+import { useRealtime } from '@/hooks/useRealtime';
 
 // ─── Inner content (needs Suspense for useSearchParams) ───────────────────────
 function ProductListingContent() {
@@ -43,25 +44,62 @@ function ProductListingContent() {
       .catch(console.error);
   }, []);
 
-  // Load products whenever filters change
+  // Load products whenever filters change (debounced to prevent API spam)
   useEffect(() => {
-    setLoading(true);
-    const p = new URLSearchParams();
-    if (category) p.append('category', category);
-    if (search)   p.append('search',   search);
-    if (sort)     p.append('sort',     sort);
-    if (maxPrice) p.append('maxPrice', maxPrice.toString());
+    const delayDebounceFn = setTimeout(() => {
+      setLoading(true);
+      const p = new URLSearchParams();
+      if (category) p.append('category', category);
+      if (search)   p.append('search',   search);
+      if (sort)     p.append('sort',     sort);
+      if (maxPrice) p.append('maxPrice', maxPrice.toString());
 
-    fetch(`/api/products?${p}`)
-      .then((r) => r.json())
-      .then((data) => { setProducts(data); setLoading(false); })
-      .catch(() => setLoading(false));
+      fetch(`/api/products?${p}`)
+        .then((r) => r.json())
+        .then((data) => { setProducts(data); setLoading(false); })
+        .catch(() => setLoading(false));
+    }, 400); // 400ms debounce
+
+    return () => clearTimeout(delayDebounceFn);
   }, [category, search, sort, maxPrice]);
 
   const clearFilters = () => {
     setCategory(''); setSearch(''); setSort('newest'); setMaxPrice(2500);
     router.push('/products');
   };
+
+  useRealtime('Product', '*', (payload) => {
+    if (payload.eventType === 'UPDATE') {
+      const updated = payload.new;
+      setProducts((prev) =>
+        prev.map((p) => {
+          if (p.id === updated.id) {
+            return {
+              ...p,
+              ...updated,
+              images: typeof updated.images === 'string' ? JSON.parse(updated.images || '[]') : updated.images,
+              benefits: typeof updated.benefits === 'string' ? JSON.parse(updated.benefits || '[]') : updated.benefits,
+              ingredients: typeof updated.ingredients === 'string' ? JSON.parse(updated.ingredients || '[]') : updated.ingredients,
+              usage: typeof updated.usage === 'string' ? JSON.parse(updated.usage || '[]') : updated.usage,
+            };
+          }
+          return p;
+        })
+      );
+    } else if (payload.eventType === 'INSERT') {
+      const newProd = payload.new;
+      const formatted = {
+        ...newProd,
+        images: typeof newProd.images === 'string' ? JSON.parse(newProd.images || '[]') : newProd.images,
+        benefits: typeof newProd.benefits === 'string' ? JSON.parse(newProd.benefits || '[]') : newProd.benefits,
+        ingredients: typeof newProd.ingredients === 'string' ? JSON.parse(newProd.ingredients || '[]') : newProd.ingredients,
+        usage: typeof newProd.usage === 'string' ? JSON.parse(newProd.usage || '[]') : newProd.usage,
+      };
+      setProducts((prev) => [formatted, ...prev]);
+    } else if (payload.eventType === 'DELETE') {
+      setProducts((prev) => prev.filter((p) => p.id !== payload.old.id));
+    }
+  });
 
   // Group variants client-side
   const grouped = useGroupedProducts(products);
@@ -73,7 +111,7 @@ function ProductListingContent() {
   }, [category, categories, language, t]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
 
       {/* Page Heading */}
       <div className="mb-8">
@@ -93,7 +131,7 @@ function ProductListingContent() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-8 items-start">
 
         {/* ─── Sidebar Filters — Desktop ─────────────────────── */}
         <aside className="hidden lg:flex flex-col bg-white border border-amber-100/80 rounded-2xl p-5 shadow-sm space-y-6">

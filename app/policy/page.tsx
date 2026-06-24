@@ -6,10 +6,13 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { ShieldCheck, Truck, RotateCcw, Lock } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
+import { useLanguage } from '@/context/LanguageContext';
 
 function PolicyContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { language } = useLanguage();
+  const isTe = language === 'te';
 
   const tab = searchParams.get('tab') || 'shipping';
   const [activeTab, setActiveTab] = useState<string>(tab);
@@ -25,82 +28,123 @@ function PolicyContent() {
   };
 
   const tabClass = (tabName: string) => {
-    const base = 'pb-3.5 border-b-2 text-xs sm:text-sm font-bold transition-colors duration-250 ';
+    const base = 'pb-3.5 border-b-2 text-xs sm:text-sm font-bold transition-colors duration-250 whitespace-nowrap ';
     return activeTab === tabName
       ? base + 'border-amber-700 text-amber-950 font-extrabold'
       : base + 'border-transparent text-gray-400 hover:text-amber-800';
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1">
+    <div className="max-w-3xl mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12 flex-1 w-full">
       
       {/* Tabs Header */}
-      <div className="flex border-b border-amber-50 justify-between sm:justify-start sm:space-x-8 mb-8 overflow-x-auto no-scrollbar">
+      <div className="flex border-b border-amber-50 justify-between sm:justify-start sm:space-x-8 mb-8 overflow-x-auto no-scrollbar pb-1">
         <button onClick={() => selectTab('shipping')} className={tabClass('shipping')}>
-          షిప్పింగ్ పాలసీ (Shipping)
+          {isTe ? 'షిప్పింగ్' : 'Shipping'}
         </button>
         <button onClick={() => selectTab('returns')} className={tabClass('returns')}>
-          రిటర్న్స్ & రీఫండ్ (Returns)
+          {isTe ? 'రిటర్న్స్ & క్యాన్సిలేషన్స్' : 'Returns & Cancellations'}
         </button>
         <button onClick={() => selectTab('privacy')} className={tabClass('privacy')}>
-          ప్రైవసీ పాలసీ (Privacy)
+          {isTe ? 'ప్రైవసీ' : 'Privacy'}
+        </button>
+        <button onClick={() => selectTab('terms')} className={tabClass('terms')}>
+          {isTe ? 'నిబంధనలు' : 'Terms & Conditions'}
         </button>
       </div>
 
       {/* Tab Content Cards */}
-      <div className="bg-white border border-amber-100 rounded-3xl p-6 sm:p-8 smooth-shadow text-xs sm:text-sm leading-relaxed text-gray-650 font-medium">
+      <div className="bg-white border border-amber-100 rounded-3xl p-6 sm:p-8 smooth-shadow text-xs sm:text-sm leading-relaxed text-gray-650 font-medium overflow-hidden">
         
         {/* SHIPPING POLICY */}
         {activeTab === 'shipping' && (
           <div className="space-y-4 animate-fade-in-up">
             <div className="flex items-center space-x-2 border-b border-amber-50 pb-3">
-              <Truck size={22} className="text-amber-800" />
-              <h2 className="text-sm sm:text-base font-extrabold text-amber-950 font-heading">షిప్పింగ్ మరియు డెలివరీ పాలసీ</h2>
+              <Truck size={22} className="text-amber-800 shrink-0" />
+              <h2 className="text-sm sm:text-base font-extrabold text-amber-950 font-heading">
+                {isTe ? 'షిప్పింగ్ మరియు డెలివరీ పాలసీ' : 'Shipping & Delivery Policy'}
+              </h2>
             </div>
             
-            <p>మా వెబ్‌సైట్‌లో ఆర్డర్ చేసిన ప్రతి పార్సెల్ ను ఎంతో భద్రంగా ప్యాకింగ్ చేసి పంపుతాము. వంట నూనెలు లీకేజీ కాకుండా ప్రత్యేకమైన సీల్డ్ కంటైనర్ల ద్వారా ప్యాక్ చేయబడతాయి.</p>
+            <p>{isTe ? 'మా వెబ్‌సైట్‌లో ఆర్డర్ చేసిన ప్రతి పార్సెల్ ను ఎంతో భద్రంగా ప్యాకింగ్ చేసి పంపుతాము. వంట నూనెలు లీకేజీ కాకుండా ప్రత్యేకమైన సీల్డ్ కంటైనర్ల ద్వారా ప్యాక్ చేయబడతాయి.' : 'Every order placed on our website is packed securely. Our cooking oils are packed in special sealed containers to prevent any leakage during transit.'}</p>
             
             <div className="space-y-1 mt-4">
-              <p className="font-extrabold text-amber-950">డెలివరీ సమయం (Delivery Timeline):</p>
+              <p className="font-extrabold text-amber-950">{isTe ? 'డెలివరీ సమయం:' : 'Delivery Timeline:'}</p>
               <ul className="list-disc list-inside pl-2 space-y-1">
-                <li>హైదరాబాద్, విజయవాడ, వైజాగ్ వంటి నగరాలకు: 24-48 గంటల్లో.</li>
-                <li>ఆంధ్రప్రదేశ్ & తెలంగాణలోని ఇతర జిల్లాలకు: 2-3 రోజుల్లో.</li>
-                <li>ఇతర రాష్ట్రాలకు: 5-7 పనిదినాల్లో.</li>
+                {isTe ? (
+                  <>
+                    <li>హైదరాబాద్, విజయవాడ, వైజాగ్ వంటి నగరాలకు: 24-48 గంటల్లో.</li>
+                    <li>ఆంధ్రప్రదేశ్ & తెలంగాణలోని ఇతర జిల్లాలకు: 2-3 రోజుల్లో.</li>
+                    <li>ఇతర రాష్ట్రాలకు: 5-7 పనిదినాల్లో.</li>
+                  </>
+                ) : (
+                  <>
+                    <li>Metro cities like Hyderabad, Vijayawada, Vizag: Within 24-48 hours.</li>
+                    <li>Other districts in AP & Telangana: Within 2-3 days.</li>
+                    <li>Other states: Within 5-7 working days.</li>
+                  </>
+                )}
               </ul>
             </div>
 
             <div className="space-y-1 mt-4">
-              <p className="font-extrabold text-amber-950">డెలివరీ చార్జీలు (Shipping Charges):</p>
+              <p className="font-extrabold text-amber-950">{isTe ? 'డెలివరీ చార్జీలు:' : 'Shipping Charges:'}</p>
               <ul className="list-disc list-inside pl-2 space-y-1">
-                <li>₹500 మరియు అంతకంటే ఎక్కువ కొనుగోలుపై డెలివరీ చార్జీలు పూర్తిగా ఉచితం (FREE Shipping).</li>
-                <li>₹500 లోపు ఆర్డర్లకు ₹40 ఫ్లాట్ డెలివరీ చార్జీలు వర్తిస్తాయి.</li>
+                {isTe ? (
+                  <>
+                    <li>₹500 మరియు అంతకంటే ఎక్కువ కొనుగోలుపై డెలివరీ చార్జీలు పూర్తిగా ఉచితం (FREE Shipping).</li>
+                    <li>₹500 లోపు ఆర్డర్లకు ₹40 ఫ్లాట్ డెలివరీ చార్జీలు వర్తిస్తాయి.</li>
+                  </>
+                ) : (
+                  <>
+                    <li>FREE Shipping on all orders of ₹500 and above.</li>
+                    <li>A flat delivery charge of ₹40 applies for orders below ₹500.</li>
+                  </>
+                )}
               </ul>
             </div>
           </div>
         )}
 
-        {/* RETURNS & REFUND POLICY */}
+        {/* RETURNS & CANCELLATIONS POLICY */}
         {activeTab === 'returns' && (
           <div className="space-y-4 animate-fade-in-up">
             <div className="flex items-center space-x-2 border-b border-amber-50 pb-3">
-              <RotateCcw size={22} className="text-amber-800" />
-              <h2 className="text-sm sm:text-base font-extrabold text-amber-950 font-heading">రిటర్న్స్, క్యాన్సిలేషన్స్ మరియు రీఫండ్ పాలసీ</h2>
+              <RotateCcw size={22} className="text-amber-800 shrink-0" />
+              <h2 className="text-sm sm:text-base font-extrabold text-amber-950 font-heading">
+                {isTe ? 'రిటర్న్స్, క్యాన్సిలేషన్స్ మరియు రీఫండ్ పాలసీ' : 'Returns, Cancellations & Refund Policy'}
+              </h2>
             </div>
 
-            <p>కస్టమర్ల సంతృప్తి మాకు అత్యంత ప్రాధాన్యం. ఒకవేళ మీకు అందిన వస్తువులు దెబ్బతిన్నట్లు లేదా తప్పుగా ఉన్నట్లు గుర్తిస్తే కింద పేర్కొన్న నిబంధనల ప్రకారం మార్చుకోవచ్చు.</p>
+            <p>{isTe ? 'కస్టమర్ల సంతృప్తి మాకు అత్యంత ప్రాధాన్యం. ఒకవేళ మీకు అందిన వస్తువులు దెబ్బతిన్నట్లు లేదా తప్పుగా ఉన్నట్లు గుర్తిస్తే కింద పేర్కొన్న నిబంధనల ప్రకారం మార్చుకోవచ్చు.' : 'Customer satisfaction is our utmost priority. If you receive damaged or incorrect items, you can exchange them as per the conditions below.'}</p>
             
             <div className="space-y-1 mt-4">
-              <p className="font-extrabold text-amber-950">రిటర్న్ నిబంధనలు (Return Eligibility):</p>
+              <p className="font-extrabold text-amber-950">{isTe ? 'రిటర్న్ నిబంధనలు:' : 'Return Eligibility:'}</p>
               <ul className="list-disc list-inside pl-2 space-y-1">
-                <li>నూనె సీసాలు సీల్ ఓపెన్ చేయకుండా ఉండాలి.</li>
-                <li>డెలివరీ అయిన 3 రోజుల్లోపు మా కస్టమర్ కేర్‌ను సంప్రదించాలి.</li>
-                <li>డ్యామేజ్ అయిన పార్సెల్ యొక్క ఫోటో లేదా వీడియోను వాట్సాప్ (+91 99999 99999) కు పంపాలి.</li>
+                {isTe ? (
+                  <>
+                    <li>నూనె సీసాలు సీల్ ఓపెన్ చేయకుండా ఉండాలి.</li>
+                    <li>డెలివరీ అయిన 3 రోజుల్లోపు మా కస్టమర్ కేర్‌ను సంప్రదించాలి.</li>
+                    <li>డ్యామేజ్ అయిన పార్సెల్ యొక్క ఫోటో లేదా వీడియోను వాట్సాప్ కు పంపాలి.</li>
+                  </>
+                ) : (
+                  <>
+                    <li>The oil bottles must remain unopened with their seal intact.</li>
+                    <li>You must contact customer care within 3 days of delivery.</li>
+                    <li>Please provide a photo or video of the damaged parcel on WhatsApp.</li>
+                  </>
+                )}
               </ul>
             </div>
 
             <div className="space-y-1 mt-4">
-              <p className="font-extrabold text-amber-950">రీఫండ్ ప్రాసెస్ (Refund Timeline):</p>
-              <p>రిటర్న్ ఆమోదించబడిన తర్వాత ఆన్‌లైన్ పేమెంట్లకు 3 నుండి 5 పనిదినాల్లో మీ ఒరిజినల్ పేమెంట్ అకౌంట్ కు డబ్బులు జమ చేయబడును. క్యాష్ ఆన్ డెలివరీ (COD) ఆర్డర్లకు మీ బ్యాంక్ లేదా UPI అకౌంట్ కు ట్రాన్స్ఫర్ చేస్తాము.</p>
+              <p className="font-extrabold text-amber-950">{isTe ? 'క్యాన్సిలేషన్స్:' : 'Cancellations:'}</p>
+              <p>{isTe ? 'ఆర్డర్ షిప్పింగ్ అవ్వకముందే మీరు దాన్ని క్యాన్సిల్ చేసుకోవచ్చు. షిప్పింగ్ అయిన తర్వాత క్యాన్సిలేషన్స్ అనుమతించబడవు.' : 'You may cancel your order before it has been shipped. Once shipped, cancellations are not permitted.'}</p>
+            </div>
+
+            <div className="space-y-1 mt-4">
+              <p className="font-extrabold text-amber-950">{isTe ? 'రీఫండ్ ప్రాసెస్:' : 'Refund Timeline:'}</p>
+              <p>{isTe ? 'రిటర్న్ లేదా క్యాన్సిలేషన్ ఆమోదించబడిన తర్వాత, ఆన్‌లైన్ పేమెంట్లకు 3 నుండి 5 పనిదినాల్లో మీ ఒరిజినల్ పేమెంట్ అకౌంట్ కు డబ్బులు జమ చేయబడును. క్యాష్ ఆన్ డెలివరీ (COD) ఆర్డర్లకు మీ బ్యాంక్ లేదా UPI అకౌంట్ కు ట్రాన్స్ఫర్ చేస్తాము.' : 'Once a return or cancellation is approved, refunds for online payments will be processed to the original payment method within 3-5 working days. For COD orders, we will transfer the amount via bank transfer or UPI.'}</p>
             </div>
           </div>
         )}
@@ -109,44 +153,70 @@ function PolicyContent() {
         {activeTab === 'privacy' && (
           <div className="space-y-4 animate-fade-in-up">
             <div className="flex items-center space-x-2 border-b border-amber-50 pb-3">
-              <Lock size={22} className="text-amber-800" />
-              <h2 className="text-sm sm:text-base font-extrabold text-amber-950 font-heading">ప్రైవసీ మరియు భద్రతా పాలసీ (Privacy Policy)</h2>
+              <Lock size={22} className="text-amber-800 shrink-0" />
+              <h2 className="text-sm sm:text-base font-extrabold text-amber-950 font-heading">
+                {isTe ? 'ప్రైవసీ మరియు భద్రతా పాలసీ' : 'Privacy & Security Policy'}
+              </h2>
             </div>
 
-            <p>మా వెబ్‌సైట్‌లో మీ వ్యక్తిగత సమాచారం (పేరు, ఫోన్ నెంబర్, అడ్రస్) పూర్తిగా భద్రంగా ఉంచబడుతుంది. దీనిని కేవలం మీ ఆర్డర్లను డెలివరీ చేయడానికి మాత్రమే ఉపయోగిస్తాము.</p>
+            <p>{isTe ? 'మా వెబ్‌సైట్‌లో మీ వ్యక్తిగత సమాచారం (పేరు, ఫోన్ నెంబర్, అడ్రస్) పూర్తిగా భద్రంగా ఉంచబడుతుంది. దీనిని కేవలం మీ ఆర్డర్లను డెలివరీ చేయడానికి మాత్రమే ఉపయోగిస్తాము.' : 'Your personal information (name, phone number, address) is kept completely secure on our website. It is strictly used only to fulfill and deliver your orders.'}</p>
             
             <div className="space-y-1 mt-4">
-              <p className="font-extrabold text-amber-950">మేము సేకరించే సమాచారం (Data Collection):</p>
-              <p>మీరు ఆర్డర్ చేసినప్పుడు ఇచ్చే పేరు, ఈమెయిల్, డెలివరీ అడ్రస్ మరియు ఫోన్ నంబర్ మాత్రమే సేకరిస్తాము. మేము ఎటువంటి క్రెడిట్/డెబిట్ కార్డు పిన్ నంబర్లు లేదా పాస్‌వర్డ్స్ సేకరించము.</p>
+              <p className="font-extrabold text-amber-950">{isTe ? 'మేము సేకరించే సమాచారం:' : 'Data Collection:'}</p>
+              <p>{isTe ? 'మీరు ఆర్డర్ చేసినప్పుడు ఇచ్చే పేరు, ఈమెయిల్, డెలివరీ అడ్రస్ మరియు ఫోన్ నంబర్ మాత్రమే సేకరిస్తాము. మేము ఎటువంటి క్రెడిట్/డెబిట్ కార్డు పిన్ నంబర్లు లేదా పాస్‌వర్డ్స్ సేకరించము.' : 'We only collect your name, email, delivery address, and phone number when you place an order. We do not collect or store any credit/debit card PINs or passwords.'}</p>
             </div>
 
             <div className="space-y-1 mt-4">
-              <p className="font-extrabold text-amber-950">సురక్షిత లావాదేవీలు (Secure Payments):</p>
-              <p>ఆన్‌లైన్ చెల్లింపుల కోసం మేము PhonePe యొక్క అధికారిక మరియు భద్రమైన గేట్‌వేను ఉపయోగిస్తాము. ప్రతి ట్రాన్సాక్షన్ పూర్తి సురక్షితమైన ఎన్‌క్రిప్షన్ సర్టిఫికేషన్స్ ద్వారా రక్షించబడుతుంది.</p>
+              <p className="font-extrabold text-amber-950">{isTe ? 'మీ భద్రత:' : 'Security:'}</p>
+              <p>{isTe ? 'ఆన్‌లైన్ పేమెంట్లకు సంబంధించిన లావాదేవీలన్నీ అత్యంత భద్రమైన ఎన్‌క్రిప్టెడ్ (Encrypted) గేట్‌వేస్ ద్వారా జరుగుతాయి. మీ కార్డు వివరాలు మా సర్వర్లలో సేవ్ చేయబడవు.' : 'All online payment transactions are securely processed through encrypted payment gateways. Your card details are never saved on our servers.'}</p>
+            </div>
+          </div>
+        )}
+
+        {/* TERMS & CONDITIONS POLICY */}
+        {activeTab === 'terms' && (
+          <div className="space-y-4 animate-fade-in-up">
+            <div className="flex items-center space-x-2 border-b border-amber-50 pb-3">
+              <ShieldCheck size={22} className="text-amber-800 shrink-0" />
+              <h2 className="text-sm sm:text-base font-extrabold text-amber-950 font-heading">
+                {isTe ? 'నిబంధనలు మరియు షరతులు' : 'Terms & Conditions'}
+              </h2>
+            </div>
+
+            <p>{isTe ? 'OM NATURAL CHEKKA GANUGA NUNELU వెబ్‌సైట్‌ను ఉపయోగించడం ద్వారా మీరు ఈ క్రింది నిబంధనలు మరియు షరతులకు అంగీకరిస్తున్నట్లు భావించబడుతుంది.' : 'By using the OM NATURAL CHEKKA GANUGA NUNELU website, you agree to the following terms and conditions.'}</p>
+            
+            <div className="space-y-1 mt-4">
+              <p className="font-extrabold text-amber-950">{isTe ? 'ఉత్పత్తుల సమాచారం:' : 'Product Information:'}</p>
+              <p>{isTe ? 'మా వెబ్‌సైట్‌లో చూపబడిన ఉత్పత్తులన్నీ సహజంగా తయారు చేయబడినవి. సీజన్‌ను బట్టి నూనె రంగు లేదా వాసనలో స్వల్ప మార్పులు ఉండవచ్చు. ఇవి సహజ ఉత్పత్తుల లక్షణం.' : 'All products displayed on our website are naturally produced. There might be slight variations in color or aroma depending on the season, which is characteristic of natural products.'}</p>
+            </div>
+
+            <div className="space-y-1 mt-4">
+              <p className="font-extrabold text-amber-950">{isTe ? 'ధరలు మరియు చెల్లింపులు:' : 'Pricing & Payments:'}</p>
+              <p>{isTe ? 'అన్ని ధరలు భారతీయ రూపాయలలో (INR) ఉంటాయి. ట్యాక్స్ మరియు డెలివరీ ఛార్జీలు వర్తించిన చోట చెక్అవుట్ వద్ద చూపబడతాయి. చెల్లింపులు PhonePe, UPI, మరియు నెట్ బ్యాంకింగ్ ద్వారా అంగీకరించబడతాయి.' : 'All prices are in Indian Rupees (INR). Taxes and delivery charges are shown at checkout where applicable. We accept payments via PhonePe, UPI, and Net Banking.'}</p>
+            </div>
+            
+            <div className="space-y-1 mt-4">
+              <p className="font-extrabold text-amber-950">{isTe ? 'సంప్రదించవలసిన చిరునామా:' : 'Contact Information:'}</p>
+              <p className="font-bold text-gray-700">OM NATURAL CHEKKA GANUGA NUNELU</p>
+              <p>D.No. 126-137, Sri Lakshmi Narasimha Nagar, 5th Line, Inner Ring Road, Gorantla, Guntur, Andhra Pradesh - 522034</p>
+              <p>Email: info@om-naturals.com (24 Hrs Support)</p>
             </div>
           </div>
         )}
 
       </div>
-      
-      {/* Support seal */}
-      <div className="flex items-center justify-center space-x-1 mt-8 text-[11px] text-gray-400 font-semibold">
-        <ShieldCheck size={16} className="text-amber-700" />
-        <span>భారతీయ వినియోగదారుల రక్షణ చట్టాలకు లోబడి పనిచేస్తుంది</span>
-      </div>
-
     </div>
   );
 }
 
 export default function PolicyPage() {
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-[#fdfbf7]">
       <Navbar />
-      <Suspense fallback={<PremiumLoader fullScreen={false} />}>
+      <Suspense fallback={<div className="flex-1 flex justify-center items-center"><PremiumLoader /></div>}>
         <PolicyContent />
       </Suspense>
       <Footer />
-    </>
+    </div>
   );
 }

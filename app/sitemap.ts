@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://omnatural.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.om-naturals.com';
 
   // Fetch all active products
   let products: any[] = [];

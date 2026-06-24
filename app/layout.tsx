@@ -6,12 +6,35 @@ import MobileBottomNav from '@/components/MobileBottomNav';
 import InstallPrompt from '@/components/InstallPrompt';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.om-naturals.com'),
   title: 'OM Natural Chekka Ganuga Oils | 100% Pure Traditional Wood Pressed Cooking Oils',
   description: 'Buy 100% pure cold pressed groundnut, coconut, sesame, almond (badam), and mustard oils online. Authentic wood-pressed edible oils delivered across AP & TS.',
   keywords: 'Chekka Ganuga Oils, Wood Pressed Oils, Groundnut Oil, Sesame Oil, Coconut Oil, Almond Oil, Badam Nune, Mustard Oil, Hyderabad edible oils, pure cooking oil AP TS',
   authors: [{ name: 'OM Natural Chekka Ganuga Oils Team' }],
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/images/logo-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/images/logo-512.png', sizes: '512x512', type: 'image/png' }
+    ],
+    apple: [
+      { url: '/images/logo-192.png', sizes: '192x192', type: 'image/png' }
+    ]
+  },
+  openGraph: {
+    title: 'OM Natural Chekka Ganuga Oils | 100% Pure Wood Pressed Oils',
+    description: 'Buy 100% pure cold pressed groundnut, coconut, sesame, almond (badam), and mustard oils online.',
+    url: 'https://www.om-naturals.com',
+    siteName: 'OM Natural Chekka Ganuga Oils',
+    images: [
+      {
+        url: '/images/hero_cooking_oils.png',
+        width: 1200,
+        height: 630,
+        alt: 'OM Natural Chekka Ganuga Oils',
+      },
+    ],
+    locale: 'en_IN',
+    type: 'website',
   },
   manifest: '/manifest.json',
 };
@@ -23,15 +46,20 @@ export const viewport: Viewport = {
   themeColor: '#92400e',
 };
 
+import RouteLoader from '@/components/RouteLoader';
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased min-h-screen flex flex-col bg-[#fdfbf7] pb-16 md:pb-0">
+    <html lang="en" className="overflow-x-hidden max-w-full">
+      <body className="antialiased min-h-screen flex flex-col bg-[#fdfbf7] pb-24 md:pb-0 overflow-x-hidden">
         <Providers>
+          <Suspense fallback={null}>
+            <RouteLoader />
+          </Suspense>
           {children}
           <Suspense fallback={null}>
             <MobileBottomNav />

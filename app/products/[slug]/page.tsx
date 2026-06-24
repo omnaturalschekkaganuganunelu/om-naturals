@@ -4,10 +4,11 @@ import { prisma } from '@/lib/db';
 import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import BackButton from '@/components/BackButton';
 import ProductDetailClient from './ProductDetailClient';
 import { extractBaseName } from '@/hooks/useGroupedProducts';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600; // Cache for 10 minutes to save Neon compute
 
 async function getProductData(slug: string) {
   try {
@@ -75,11 +76,20 @@ async function getProductData(slug: string) {
       benefits: (() => {
         try { return JSON.parse(product.benefits); } catch { return []; }
       })(),
+      benefitsTe: (() => {
+        try { return product.benefitsTe ? JSON.parse(product.benefitsTe) : []; } catch { return []; }
+      })(),
       ingredients: (() => {
         try { return product.ingredients ? JSON.parse(product.ingredients) : []; } catch { return []; }
       })(),
+      ingredientsTe: (() => {
+        try { return product.ingredientsTe ? JSON.parse(product.ingredientsTe) : []; } catch { return []; }
+      })(),
       usage: (() => {
         try { return product.usage ? JSON.parse(product.usage) : []; } catch { return []; }
+      })(),
+      usageTe: (() => {
+        try { return product.usageTe ? JSON.parse(product.usageTe) : []; } catch { return []; }
       })(),
     };
 
@@ -178,11 +188,16 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar />
-      <ProductDetailClient
-        product={data.product}
-        relatedProducts={data.relatedProducts}
-        siblings={data.siblings}
-      />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full max-w-full min-w-0 overflow-x-hidden">
+        <div className="mb-4">
+          <BackButton />
+        </div>
+        <ProductDetailClient
+          product={data.product}
+          relatedProducts={data.relatedProducts}
+          siblings={data.siblings}
+        />
+      </main>
       <Footer />
     </>
   );

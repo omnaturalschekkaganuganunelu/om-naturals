@@ -6,9 +6,10 @@ import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import { Landmark, ShoppingCart, ShoppingBag, Users, AlertTriangle, RefreshCw, Bell, Sparkles } from 'lucide-react';
+import { Landmark, ShoppingCart, ShoppingBag, Users, AlertTriangle, RefreshCw, Bell, Sparkles, X } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import PremiumLoader from '@/components/PremiumLoader';
+import { useRealtime } from '@/hooks/useRealtime';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -53,114 +54,14 @@ export default function AdminDashboardPage() {
     }
   }, [authStatus]);
 
-  // SSE Live Notification Setup for Admin
-  useEffect(() => {
-    if (authStatus !== 'authenticated' || session?.user?.role !== 'ADMIN') return;
-
-    let eventSource: EventSource | null = null;
-    let pollInterval: NodeJS.Timeout | null = null;
-
-    const connectSSE = () => {
-      // Connect to global SSE stream as admin
-      eventSource = new EventSource('/api/orders/sse?role=admin');
-
-      eventSource.onopen = () => {
-        console.log('SSE Admin connection opened');
-      };
-
-      // Listen for new orders
-      eventSource.addEventListener('new-order', (event: any) => {
-        const data = JSON.parse(event.data);
-        console.log('SSE Admin Event - New Order Placed:', data);
-        
-        // 1. Highlight new order alert overlay
-        setNewOrderAlert(data);
-
-        // 2. Play a notification sound
-        try {
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav'); // Premium chime sound
-          audio.volume = 0.5;
-          audio.play();
-        } catch (err) {
-          console.error('Failed to play sound', err);
-        }
-
-        // 3. Update stats counters dynamically in state
-        setStats((prev: any) => {
-          if (!prev) return prev;
-          
-          // Append to recent orders list
-          const updatedRecent = [data, ...prev.recentOrders.slice(0, 4)];
-          
-          // Update trend if today matches
-          const updatedTrend = [...prev.revenueTrend];
-          const lastDay = updatedTrend[updatedTrend.length - 1];
-          if (lastDay) {
-            lastDay.revenue += data.total;
-            lastDay.orders += 1;
-          }
-
-          return {
-            ...prev,
-            ordersCount: prev.ordersCount + 1,
-            totalRevenue: prev.totalRevenue + data.total,
-            recentOrders: updatedRecent,
-            revenueTrend: updatedTrend,
-          };
-        });
-
-        // Clear toast alert after 5 seconds
-        setTimeout(() => {
-          setNewOrderAlert(null);
-        }, 5000);
-      });
-
-      eventSource.onerror = (err) => {
-        console.error('SSE Admin Connection Error. Falling back to active interval polling:', err);
-        if (eventSource) {
-          eventSource.close();
-        }
-        
-        // Start polling if not already active
-        if (!pollInterval) {
-          console.log('Starting dashboard polling fallback...');
-          fetchStatsSilent();
-          pollInterval = setInterval(fetchStatsSilent, 30000); // poll stats every 30s
-        }
-      };
-    };
-
-    const fetchStatsSilent = () => {
-      if (document.hidden) return;
-      fetch('/api/admin/stats')
-        .then((res) => res.json())
-        .then((data) => {
-          setStats(data);
-        })
-        .catch((err) => console.error('Silent stats poll failed:', err));
-    };
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden && pollInterval) {
-        fetchStatsSilent();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    connectSSE();
-
-    return () => {
-      console.log('Cleaning up SSE connection and polling triggers...');
-      if (eventSource) {
-        eventSource.close();
-      }
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [authStatus]);
+  // Realtime new order alerts
+  useRealtime('Order', 'INSERT', (payload) => {
+    setNewOrderAlert(payload.new);
+    // Optional: play an audio alert
+    if (audioRef.current) {
+      audioRef.current.play().catch(() => {});
+    }
+  });
 
   if (authStatus === 'loading' || loading || !stats) {
     return <PremiumLoader fullScreen={true} text={t('admin_dashboard_loading')} />;
@@ -173,41 +74,41 @@ export default function AdminDashboardPage() {
     <>
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 overflow-x-hidden">
         
         {/* Real-time Order Alert Toast overlay */}
         {newOrderAlert && (
-          <div className="fixed top-20 right-6 bg-gradient-to-r from-amber-600 to-amber-800 text-white p-4 rounded-2xl smooth-shadow z-50 flex items-center space-x-3.5 border border-amber-400 animate-bounce max-w-sm">
+          <div className="fixed top-20 left-3 right-3 sm:left-auto sm:right-6 bg-gradient-to-r from-amber-600 to-amber-800 text-white p-4 rounded-2xl smooth-shadow z-50 flex items-center space-x-3.5 border border-amber-400 animate-bounce sm:max-w-sm">
             <div className="p-2 bg-white/20 rounded-xl shrink-0">
               <Bell className="animate-swing text-amber-100" size={20} />
             </div>
-            <div className="text-xs">
+            <div className="text-xs flex-1 min-w-0">
               <div className="flex items-center space-x-1">
-                <Sparkles size={12} className="text-amber-300" />
+                <Sparkles size={12} className="text-amber-300 shrink-0" />
                 <span className="font-black">
                   {language === 'te' ? 'కొత్త ఆర్డర్ వచ్చింది!' : 'New Order Received!'}
                 </span>
               </div>
-              <p className="font-semibold text-amber-100 mt-0.5">
+              <p className="font-semibold text-amber-100 mt-0.5 truncate">
                 {language === 'te' ? 'ఆర్డర్ ID' : 'Order ID'}: {newOrderAlert.orderId}
               </p>
-              <p className="text-amber-200 text-[10px]">
-                {language === 'te' ? 'మొత్తం ధర' : 'Total Price'}: ₹{newOrderAlert.total} • {language === 'te' ? 'కస్టమర్' : 'Customer'}: {newOrderAlert.name}
+              <p className="text-amber-200 text-[10px] truncate">
+                ₹{newOrderAlert.total} • {newOrderAlert.name}
               </p>
             </div>
-            <button onClick={() => setNewOrderAlert(null)} className="text-white/80 hover:text-white font-bold text-xs pl-2">
-              ✕
+            <button onClick={() => setNewOrderAlert(null)} className="text-white/80 hover:text-white font-bold text-xs shrink-0 pl-1">
+              <X size={16} />
             </button>
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 items-start">
           
           {/* Admin Sidebar Navigation */}
           <AdminSidebar />
 
           {/* Main Dashboard Content */}
-          <section className="flex-1 w-full space-y-6">
+          <section className="flex-1 w-full min-w-0 space-y-4 sm:space-y-6">
             
             <div className="flex justify-between items-baseline">
               <div>
@@ -226,73 +127,73 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* Stats Cards grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Stats Cards grid — 2 cols on mobile, 4 on md+ */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               
-              <div className="bg-white border border-amber-100 p-4 rounded-3xl smooth-shadow flex items-center space-x-3">
-                <div className="p-3 bg-amber-50 text-amber-800 rounded-2xl border border-amber-100 shrink-0">
-                  <Landmark size={20} />
+              <div className="bg-white border border-amber-100 p-3 sm:p-4 rounded-2xl sm:rounded-3xl smooth-shadow flex items-center gap-2 sm:gap-3">
+                <div className="p-2 sm:p-3 bg-amber-50 text-amber-800 rounded-xl sm:rounded-2xl border border-amber-100 shrink-0">
+                  <Landmark size={18} />
                 </div>
-                <div className="text-xs">
-                  <span className="text-gray-400 font-bold">{t('admin_dashboard_revenue')}</span>
-                  <p className="text-sm sm:text-lg font-black text-amber-950 mt-0.5">₹{stats.totalRevenue}</p>
+                <div className="text-xs min-w-0">
+                  <span className="text-gray-400 font-bold text-[10px] sm:text-xs">{t('admin_dashboard_revenue')}</span>
+                  <p className="text-sm sm:text-lg font-black text-amber-950 mt-0.5 truncate">₹{stats.totalRevenue}</p>
                 </div>
               </div>
 
-              <div className="bg-white border border-amber-100 p-4 rounded-3xl smooth-shadow flex items-center space-x-3">
-                <div className="p-3 bg-amber-50 text-amber-800 rounded-2xl border border-amber-100 shrink-0">
-                  <ShoppingCart size={20} />
+              <div className="bg-white border border-amber-100 p-3 sm:p-4 rounded-2xl sm:rounded-3xl smooth-shadow flex items-center gap-2 sm:gap-3">
+                <div className="p-2 sm:p-3 bg-amber-50 text-amber-800 rounded-xl sm:rounded-2xl border border-amber-100 shrink-0">
+                  <ShoppingCart size={18} />
                 </div>
-                <div className="text-xs">
-                  <span className="text-gray-400 font-bold">{t('admin_dashboard_orders')}</span>
+                <div className="text-xs min-w-0">
+                  <span className="text-gray-400 font-bold text-[10px] sm:text-xs">{t('admin_dashboard_orders')}</span>
                   <p className="text-sm sm:text-lg font-black text-amber-950 mt-0.5">{stats.ordersCount}</p>
                 </div>
               </div>
 
-              <div className="bg-white border border-amber-100 p-4 rounded-3xl smooth-shadow flex items-center space-x-3">
-                <div className="p-3 bg-amber-50 text-amber-800 rounded-2xl border border-amber-100 shrink-0">
-                  <ShoppingBag size={20} />
+              <div className="bg-white border border-amber-100 p-3 sm:p-4 rounded-2xl sm:rounded-3xl smooth-shadow flex items-center gap-2 sm:gap-3">
+                <div className="p-2 sm:p-3 bg-amber-50 text-amber-800 rounded-xl sm:rounded-2xl border border-amber-100 shrink-0">
+                  <ShoppingBag size={18} />
                 </div>
-                <div className="text-xs">
-                  <span className="text-gray-400 font-bold">{t('admin_dashboard_products')}</span>
+                <div className="text-xs min-w-0">
+                  <span className="text-gray-400 font-bold text-[10px] sm:text-xs">{t('admin_dashboard_products')}</span>
                   <p className="text-sm sm:text-lg font-black text-amber-950 mt-0.5">{stats.productsCount}</p>
                 </div>
               </div>
 
-              <div className="bg-white border border-amber-100 p-4 rounded-3xl smooth-shadow flex items-center space-x-3">
-                <div className="p-3 bg-amber-50 text-amber-800 rounded-2xl border border-amber-100 shrink-0">
-                  <Users size={20} />
+              <div className="bg-white border border-amber-100 p-3 sm:p-4 rounded-2xl sm:rounded-3xl smooth-shadow flex items-center gap-2 sm:gap-3">
+                <div className="p-2 sm:p-3 bg-amber-50 text-amber-800 rounded-xl sm:rounded-2xl border border-amber-100 shrink-0">
+                  <Users size={18} />
                 </div>
-                <div className="text-xs">
-                  <span className="text-gray-400 font-bold">{t('admin_dashboard_customers')}</span>
+                <div className="text-xs min-w-0">
+                  <span className="text-gray-400 font-bold text-[10px] sm:text-xs">{t('admin_dashboard_customers')}</span>
                   <p className="text-sm sm:text-lg font-black text-amber-950 mt-0.5">{stats.customersCount}</p>
                 </div>
               </div>
 
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               
               {/* Sales trend Chart Card */}
-              <div className="lg:col-span-2 bg-white border border-amber-100 p-5 sm:p-6 rounded-3xl smooth-shadow space-y-4">
+              <div className="lg:col-span-2 bg-white border border-amber-100 p-4 sm:p-6 rounded-3xl smooth-shadow space-y-3">
                 <h3 className="text-xs sm:text-sm font-bold text-amber-950">{t('admin_dashboard_chart_title')}</h3>
-                
-                {/* SVG/Tailwind Custom Bar Chart */}
-                <div className="h-48 flex items-end justify-between space-x-3 pt-6 border-b border-amber-100 pb-2">
+                <div className="overflow-x-auto no-scrollbar pt-8 -mt-8">
+                  {/* Bar Chart */}
+                  <div className="h-44 min-w-[280px] flex items-end justify-between gap-1.5 border-b border-amber-100 pb-2 mt-8">
                   {stats.revenueTrend.map((day: any) => {
-                    const heightPercent = Math.max(10, Math.round((day.revenue / maxTrendRevenue) * 100));
+                    const heightPercent = Math.max(8, Math.round((day.revenue / maxTrendRevenue) * 100));
                     return (
-                      <div key={day.date} className="flex-1 flex flex-col items-center group relative">
-                        {/* Hover Tooltip tooltip */}
-                        <div className="absolute bottom-full mb-1 bg-amber-900 text-white text-[9px] font-bold py-1 px-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 shrink-0">
-                          ₹{day.revenue} ({day.orders} {language === 'te' ? 'ఆర్డర్లు' : 'Orders'})
+                      <div key={day.date} className="flex-1 flex flex-col items-center justify-end h-full group relative">
+                        {/* Hover Tooltip — above bar, won't clip because of pt-10 */}
+                        <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 bg-amber-900 text-white text-[9px] font-bold py-1 px-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap pointer-events-none">
+                          ₹{day.revenue}<br/>{day.orders} {language === 'te' ? 'ఆర్డర్లు' : 'orders'}
                         </div>
-                        {/* Interactive Bar */}
+                        {/* Bar */}
                         <div
                           style={{ height: `${heightPercent}%` }}
                           className="w-full bg-amber-800 hover:bg-amber-600 rounded-t-lg transition-all cursor-pointer duration-300"
                         ></div>
-                        <span className="text-[9px] text-gray-500 font-bold mt-2">
+                        <span className="text-[9px] text-gray-500 font-bold mt-1.5 leading-none">
                           {language === 'te' ? day.day : (() => {
                             const clean = day.day.trim();
                             if (clean.includes('ఆది')) return 'Sun';
@@ -305,14 +206,15 @@ export default function AdminDashboardPage() {
                             return day.day;
                           })()}
                         </span>
-                        <span className="text-[8px] text-gray-400 font-semibold">{day.date}</span>
+                        <span className="text-[8px] text-gray-400 font-semibold leading-none">{day.date}</span>
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               </div>
 
-              {/* Low Stock Alerts Card */}
+              {/* Low Stock Alerts Card - stacked below on mobile */}
               <div className="bg-white border border-amber-100 p-5 sm:p-6 rounded-3xl smooth-shadow space-y-4">
                 <h3 className="text-xs sm:text-sm font-bold text-amber-950 flex items-center space-x-1">
                   <AlertTriangle size={15} className="text-amber-700" />
@@ -342,14 +244,48 @@ export default function AdminDashboardPage() {
 
             </div>
 
-            {/* Recent Orders table card */}
+            {/* Recent Orders - Mobile cards on small screens, table on larger */}
             <div className="bg-white border border-amber-100 rounded-3xl overflow-hidden smooth-shadow">
-              <div className="p-5 border-b border-amber-50">
+              <div className="p-4 sm:p-5 border-b border-amber-50">
                 <h3 className="text-xs sm:text-sm font-bold text-amber-950">{t('admin_dashboard_recent_orders')}</h3>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs font-medium text-amber-950">
+              {/* Mobile: Card view */}
+              <div className="sm:hidden divide-y divide-amber-50">
+                {stats.recentOrders.length === 0 ? (
+                  <p className="text-center text-xs text-gray-400 py-8">No recent orders</p>
+                ) : stats.recentOrders.map((ord: any) => (
+                  <div key={ord.id} className="p-4 hover:bg-amber-50/20 cursor-pointer" onClick={() => router.push('/admin/orders')}>
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <span className="font-mono font-bold text-amber-800 text-xs">{ord.orderId}</span>
+                      <span className="font-bold text-xs text-amber-950">₹{ord.total}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-gray-700">{ord.name}</p>
+                        <p className="text-[10px] text-gray-400">{ord.user?.email || 'Guest'}</p>
+                      </div>
+                      <div className="flex gap-1.5 items-center">
+                        <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-black border uppercase ${
+                          ord.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+                        }`}>
+                          {ord.paymentStatus === 'COMPLETED' ? 'Paid' : 'Pending'}
+                        </span>
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black border uppercase ${
+                          ord.orderStatus === 'DELIVERED' ? 'bg-green-100 text-green-800 border-green-200' :
+                          ord.orderStatus === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-900 border-amber-200'
+                        }`}>
+                          {ord.orderStatus}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: Table view */}
+              <div className="hidden sm:block overflow-x-auto no-scrollbar">
+                <table className="w-full min-w-[600px] text-left text-xs font-medium text-amber-950">
                   <thead className="bg-amber-50 text-[10px] uppercase font-bold text-amber-900">
                     <tr>
                       <th className="py-3 px-4">{t('admin_order_id')}</th>
@@ -369,36 +305,17 @@ export default function AdminDashboardPage() {
                         </td>
                         <td className="py-3 px-4">
                           <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-black border uppercase ${
-                            ord.paymentStatus === 'COMPLETED'
-                              ? 'bg-green-100 text-green-800 border-green-200'
-                              : 'bg-amber-100 text-amber-800 border-amber-200'
+                            ord.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-amber-100 text-amber-800 border-amber-200'
                           }`}>
-                            {ord.paymentStatus === 'COMPLETED' 
-                              ? (language === 'te' ? 'పూర్తయింది' : 'Paid') 
-                              : ord.paymentStatus === 'FAILED'
-                              ? (language === 'te' ? 'వైఫల్యం' : 'Failed')
-                              : (language === 'te' ? 'పెండింగ్' : 'Pending')}
+                            {ord.paymentStatus === 'COMPLETED' ? (language === 'te' ? 'పూర్తయింది' : 'Paid') : (language === 'te' ? 'పెండింగ్' : 'Pending')}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black border uppercase ${
-                            ord.orderStatus === 'DELIVERED'
-                              ? 'bg-green-100 text-green-800 border-green-200'
-                              : ord.orderStatus === 'CANCELLED'
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-amber-50 text-amber-900 border-amber-200'
+                            ord.orderStatus === 'DELIVERED' ? 'bg-green-100 text-green-800 border-green-200' :
+                            ord.orderStatus === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-900 border-amber-200'
                           }`}>
-                            {ord.orderStatus === 'DELIVERED'
-                              ? (language === 'te' ? 'డెలివరీ అయింది' : 'DELIVERED')
-                              : ord.orderStatus === 'CANCELLED'
-                              ? (language === 'te' ? 'రద్దు చేయబడింది' : 'CANCELLED')
-                              : ord.orderStatus === 'PACKED'
-                              ? (language === 'te' ? 'ప్యాక్ చేయబడింది' : 'PACKED')
-                              : ord.orderStatus === 'SHIPPED'
-                              ? (language === 'te' ? 'రవాణా లో ఉంది' : 'SHIPPED')
-                              : ord.orderStatus === 'CONFIRMED'
-                              ? (language === 'te' ? 'స్థిరపరచబడింది' : 'CONFIRMED')
-                              : (language === 'te' ? 'పెండింగ్' : 'PENDING')}
+                            {ord.orderStatus}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right font-bold">₹{ord.total}</td>

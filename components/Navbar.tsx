@@ -9,8 +9,9 @@ import { ShoppingCart, User, Menu, X, Search, Globe, Loader2 } from 'lucide-reac
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
 import NotificationBell from '@/components/NotificationBell';
+import ConfirmModal from '@/components/ConfirmModal';
 
-export default function Navbar() {
+function NavbarContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const cartItemsCount = useCartStore((state) => state.getCartCount());
@@ -76,8 +78,19 @@ export default function Navbar() {
     }
   };
 
-  const isActive = (path: string) => pathname === path;
-
+  const isActive = (path: string) => {
+    if (path.includes('?')) {
+      const [p, query] = path.split('?');
+      if (pathname !== p) return false;
+      const urlParams = new URLSearchParams(query);
+      for (const [key, value] of Array.from(urlParams.entries())) {
+        if (searchParams.get(key) !== value) return false;
+      }
+      return true;
+    }
+    if (path === '/products' && searchParams.has('category')) return false;
+    return pathname === path;
+  };
   const navLinkClass = (path: string) =>
     `relative px-3 py-2 text-sm font-bold transition-all duration-300 after:absolute after:bottom-0 after:left-0 after:h-[3px] after:w-full after:rounded-full after:transition-transform after:duration-300 ${
       isActive(path)
@@ -86,21 +99,22 @@ export default function Navbar() {
     }`;
 
   return (
-    <header className="sticky top-0 z-50 w-full transition-all duration-300">
+    <>
+      <header className="sticky top-0 z-50 w-full transition-all duration-300">
       {/* Main Header */}
       <div className={`w-full bg-white/95 backdrop-blur-md border-b smooth-shadow transition-all duration-300 ${
         scrolled 
           ? 'h-14 border-amber-100/40 shadow-md' 
           : 'h-16 border-amber-100/80'
       }`}>
-        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-10 h-full flex items-center gap-3 sm:gap-4">
+        <div className="max-w-screen-2xl mx-auto px-2 sm:px-6 lg:px-10 h-full flex items-center gap-1.5 sm:gap-4">
           
           {/* Brand Logo & Name */}
           <div className="flex-shrink-0">
-            <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group py-1">
+            <Link href="/" className="flex items-center gap-1.5 sm:gap-3 group py-1">
               {/* Circular Logo with a premium gradient border and glow effect */}
               <div className={`relative rounded-full p-[2px] bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-700 shadow-md transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_0_15px_rgba(217,119,6,0.3)] ${
-                scrolled ? 'w-9 h-9' : 'w-11 h-11 sm:w-12 sm:h-12'
+                scrolled ? 'w-8 h-8 sm:w-9 sm:h-9' : 'w-10 h-10 sm:w-12 sm:h-12'
               }`}>
                 <div className="w-full h-full rounded-full overflow-hidden bg-white relative">
                   <Image
@@ -117,12 +131,12 @@ export default function Navbar() {
               {/* Brand Name styled in harmony with the logo colors */}
               <div className="flex flex-col">
                 <span className={`font-black tracking-tight text-amber-900 leading-none font-heading transition-all duration-300 group-hover:text-amber-700 ${
-                  scrolled ? 'text-xs sm:text-sm' : 'text-sm sm:text-base lg:text-lg'
+                  scrolled ? 'text-[11px] sm:text-sm' : 'text-xs sm:text-base lg:text-lg'
                 }`}>
                   {language === 'te' ? 'ఓం సహజ' : 'OM Natural'}
                 </span>
                 <span className={`font-extrabold tracking-[0.12em] text-amber-700 leading-none uppercase transition-all duration-300 group-hover:text-amber-600 ${
-                  scrolled ? 'text-[7px] sm:text-[8px] mt-0.5' : 'text-[8px] sm:text-[9px] mt-1'
+                  scrolled ? 'text-[6px] sm:text-[8px] mt-0.5' : 'text-[7px] sm:text-[9px] mt-1'
                 }`}>
                   {language === 'te' ? 'చెక్క గానుగ' : 'Chekka Ganuga'}
                 </span>
@@ -154,12 +168,23 @@ export default function Navbar() {
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-2 lg:gap-3.5 flex-shrink-0">
             <Link href="/" className={navLinkClass('/')}>{t('nav_home')}</Link>
-            <Link href="/products" className={navLinkClass('/products')}>{t('nav_oils')}</Link>
+            <Link 
+              href="/products?category=cold-pressed" 
+              className={navLinkClass('/products?category=cold-pressed')}
+            >
+              {language === 'te' ? 'గానుగ నూనెలు' : 'Cold Pressed Oils'}
+            </Link>
+            <Link 
+              href="/products?category=refined-filtered" 
+              className={navLinkClass('/products?category=refined-filtered')}
+            >
+              {language === 'te' ? 'శుద్ధి చేసిన నూనెలు' : 'Refined & Filtered Oils'}
+            </Link>
             <Link href="/account?tab=orders" className={navLinkClass('/account?tab=orders')}>{t('nav_track')}</Link>
           </nav>
 
-          {/* Actions — flex-shrink-0 so they never get squeezed */}
-          <div className="flex items-center gap-2.5 lg:gap-3.5 flex-shrink-0">
+          {/* Actions — let text wrap, and reduce gaps on tiny screens */}
+          <div className="flex items-center gap-1 sm:gap-2.5 lg:gap-3.5 flex-shrink-0">
             {/* Mobile Search Toggle */}
             <button
               type="button"
@@ -167,7 +192,7 @@ export default function Navbar() {
                 setShowMobileSearch(!showMobileSearch);
                 setMobileMenuOpen(false);
               }}
-              className="p-2 text-amber-800 hover:text-amber-600 md:hidden rounded-full hover:bg-amber-50/50 transition-colors focus:outline-none"
+              className="p-1 sm:p-2 text-amber-800 hover:text-amber-600 md:hidden rounded-full hover:bg-amber-50/50 transition-colors focus:outline-none"
               aria-label="Toggle Search"
             >
               <Search size={20} />
@@ -196,14 +221,16 @@ export default function Navbar() {
             </div>
 
             {/* Notification Bell */}
-            <Suspense fallback={null}>
-              <NotificationBell />
-            </Suspense>
+            <div className="hidden sm:block">
+              <Suspense fallback={null}>
+                <NotificationBell />
+              </Suspense>
+            </div>
 
             {/* Cart */}
             <Link
               href="/cart"
-              className="relative p-2 text-amber-800 hover:text-amber-600 transition-all rounded-full hover:bg-amber-50/50"
+              className="relative p-1 text-amber-800 hover:text-amber-600 transition-all rounded-full hover:bg-amber-50/50"
             >
               <ShoppingCart size={22} />
               {mounted && cartItemsCount > 0 && (
@@ -218,14 +245,14 @@ export default function Navbar() {
             </Link>
 
             {/* User Profile */}
-            <div className="relative" ref={dropdownRef}>
+            <div className="hidden sm:block relative" ref={dropdownRef}>
               {session ? (
                 <>
                   <button
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center space-x-1.5 text-sm font-semibold text-amber-950 hover:text-amber-800 focus:outline-none py-1 px-2 rounded-full hover:bg-amber-50/30 transition-all"
+                    className="flex items-center space-x-1.5 text-sm font-semibold text-amber-950 hover:text-amber-800 focus:outline-none py-1 px-1 sm:px-2 rounded-full hover:bg-amber-50/30 transition-all"
                   >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-white font-black uppercase text-sm shadow-sm">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-white font-black uppercase text-sm shadow-sm">
                       {(session.user?.name || 'U').charAt(0)}
                     </div>
                     <span className="hidden sm:inline text-xs font-bold text-amber-950">
@@ -272,7 +299,7 @@ export default function Navbar() {
                         <button
                           onClick={() => {
                             setUserDropdownOpen(false);
-                            signOut({ callbackUrl: '/' });
+                            setLogoutModalOpen(true);
                           }}
                           className="w-full text-left flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-red-650 hover:bg-red-50 transition-colors"
                         >
@@ -352,7 +379,8 @@ export default function Navbar() {
         <div className="flex flex-col space-y-1 pt-1">
           {[
             { href: '/', label: t('nav_home_mobile') },
-            { href: '/products', label: t('nav_oils_mobile') },
+            { href: '/products?category=cold-pressed', label: language === 'te' ? 'గానుగ నూనెలు' : 'Cold Pressed Oils' },
+            { href: '/products?category=refined-filtered', label: language === 'te' ? 'శుద్ధి చేసిన నూనెలు' : 'Refined & Filtered Oils' },
             { href: '/account?tab=orders', label: t('nav_track_mobile') },
           ].map(({ href, label }, idx) => (
             <Link
@@ -363,7 +391,7 @@ export default function Navbar() {
               className={`px-4 py-3 rounded-xl text-sm font-semibold block transform transition-all duration-300 ${
                 mobileMenuOpen ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
               } ${
-                pathname === href ? 'bg-amber-50 text-amber-900 font-bold' : 'text-amber-950/80 hover:bg-amber-50 hover:translate-x-1'
+                isActive(href) ? 'bg-amber-50 text-amber-900 font-bold' : 'text-amber-950/80 hover:bg-amber-50 hover:translate-x-1'
               }`}
             >
               {label}
@@ -392,5 +420,25 @@ export default function Navbar() {
         </div>
       </div>
     </header>
+
+      <ConfirmModal
+        isOpen={logoutModalOpen}
+        onClose={() => setLogoutModalOpen(false)}
+        onConfirm={() => signOut({ callbackUrl: '/' })}
+        title={language === 'te' ? 'లాగ్ అవుట్ చేయాలా?' : 'Logout?'}
+        message={language === 'te' ? 'మీరు లాగ్ అవుట్ అవుతున్నారు. మీరు ఖచ్చితంగా కొనసాగించాలనుకుంటున్నారా?' : 'You are about to sign out of your account. Are you sure you want to continue?'}
+        confirmText={language === 'te' ? 'లాగ్ అవుట్' : 'Logout'}
+        cancelText={language === 'te' ? 'రద్దు చేయి' : 'Cancel'}
+        isDestructive
+      />
+    </>
+  );
+}
+
+export default function Navbar() {
+  return (
+    <Suspense fallback={<div className="h-16 md:h-20 bg-white border-b border-amber-50" />}>
+      <NavbarContent />
+    </Suspense>
   );
 }

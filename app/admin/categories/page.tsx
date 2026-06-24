@@ -185,12 +185,12 @@ export default function AdminCategoriesPage() {
     <>
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 overflow-x-hidden">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 items-start">
           
           <AdminSidebar />
 
-          <section className="flex-1 w-full space-y-6">
+          <section className="flex-1 w-full min-w-0 space-y-4 sm:space-y-6">
             
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -222,9 +222,52 @@ export default function AdminCategoriesPage() {
               <Search size={18} className="absolute right-7 text-gray-400" />
             </div>
 
-            {/* Table */}
+            {/* Categories list */}
             <div className="bg-white border border-amber-100 rounded-3xl overflow-hidden smooth-shadow">
-              <div className="overflow-x-auto">
+
+              {/* Mobile: Card view */}
+              <div className="sm:hidden divide-y divide-amber-50">
+                {filteredCategories.length === 0 ? (
+                  <p className="text-center text-xs text-gray-400 py-10">{language === 'te' ? 'విభాగాలు లేవు' : 'No categories found'}</p>
+                ) : filteredCategories.map((c) => (
+                  <div key={c.id} className="p-4 flex items-center gap-3">
+                    <img
+                      src={c.slug === 'oils' ? 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=100&auto=format&fit=crop' : 'https://images.unsplash.com/photo-1609137144813-7d2d0b57e4e1?q=80&w=100&auto=format&fit=crop'}
+                      alt=""
+                      className="w-12 h-12 rounded-xl object-cover border border-amber-50 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-extrabold text-amber-950 text-xs">{language === 'te' ? c.nameTe : c.name}</p>
+                      <p className="text-[10px] text-gray-400 font-mono">{c.slug}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black border uppercase ${
+                          c.isActive ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-800 border-red-200'
+                        }`}>
+                          {c.isActive ? (language === 'te' ? 'యాక్టివ్' : 'Active') : (language === 'te' ? 'ఇన్‌యాక్టివ్' : 'Inactive')}
+                        </span>
+                        <span className="text-[10px] text-gray-400">{language === 'te' ? 'క్రమం' : 'Order'}: {c.sortOrder}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <button
+                        onClick={() => handleOpenEdit(c)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg border border-amber-100 text-[10px] font-bold"
+                      >
+                        <Edit3 size={11} /> {language === 'te' ? 'ఎడిట్' : 'Edit'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCategory(c.id)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-100 text-[10px] font-bold"
+                      >
+                        <Trash2 size={11} /> {language === 'te' ? 'డిలీట్' : 'Del'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: Table view */}
+              <div className="hidden sm:block overflow-x-auto no-scrollbar">
                 <table className="w-full text-left text-xs font-medium text-amber-950">
                   <thead className="bg-amber-50 text-[10px] uppercase font-bold text-amber-900 border-b border-amber-100">
                     <tr>
@@ -239,7 +282,7 @@ export default function AdminCategoriesPage() {
                   <tbody className="divide-y divide-amber-50">
                     {filteredCategories.map((c) => (
                       <tr key={c.id} className="hover:bg-amber-50/10">
-                        <td className="py-3 px-4 shrink-0">
+                        <td className="py-3 px-4">
                           <img
                             src={c.slug === 'oils' ? 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=100&auto=format&fit=crop' : 'https://images.unsplash.com/photo-1609137144813-7d2d0b57e4e1?q=80&w=100&auto=format&fit=crop'}
                             alt=""
@@ -247,10 +290,7 @@ export default function AdminCategoriesPage() {
                           />
                         </td>
                         <td className="py-3 px-4">
-                          <p className="font-extrabold text-amber-950">
-                            {language === 'te' ? c.nameTe : c.name}
-                          </p>
-                          <p className="text-[10px] text-gray-400 font-semibold">{c.name}</p>
+                          <p className="font-extrabold text-amber-950">{language === 'te' ? c.nameTe : c.name}</p>
                         </td>
                         <td className="py-3 px-4 font-mono font-bold text-amber-900">{c.slug}</td>
                         <td className="py-3 px-4 text-center font-bold">{c.sortOrder}</td>
@@ -263,18 +303,10 @@ export default function AdminCategoriesPage() {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-center space-x-2">
-                            <button
-                              onClick={() => handleOpenEdit(c)}
-                              className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg border border-amber-100"
-                              title={language === 'te' ? 'సవరించు' : 'Edit'}
-                            >
+                            <button onClick={() => handleOpenEdit(c)} className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg border border-amber-100">
                               <Edit3 size={14} />
                             </button>
-                            <button
-                              onClick={() => handleDeleteCategory(c.id)}
-                              className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-100"
-                              title={language === 'te' ? 'తొలగించు' : 'Delete'}
-                            >
+                            <button onClick={() => handleDeleteCategory(c.id)} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-100">
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -284,6 +316,7 @@ export default function AdminCategoriesPage() {
                   </tbody>
                 </table>
               </div>
+
             </div>
 
             {/* Modal */}

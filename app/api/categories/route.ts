@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
 
 // GET /api/categories - List all categories
 export async function GET(req: NextRequest) {
@@ -49,7 +50,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(category);
+    revalidatePath('/', 'layout');
+
+    return NextResponse.json(category, { status: 201 });
   } catch (err: any) {
     console.error('Error creating category:', err);
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });

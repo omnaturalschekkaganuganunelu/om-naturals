@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import BackButton from '@/components/BackButton';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
 import { MapPin, Plus, Check, ShieldCheck, CreditCard, RefreshCw, Truck, Tag, AlertCircle } from 'lucide-react';
@@ -13,7 +14,7 @@ import CustomSelect from '@/components/CustomSelect';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { data: session, status: authStatus } = useSession();
 
   // Zustand cart values
@@ -181,7 +182,7 @@ export default function CheckoutPage() {
 
     const { name, phone, line1, city, state, pincode } = formData;
     if (!name || !phone || !line1 || !city || !state || !pincode) {
-      setFormError('దయచేసి అన్ని వివరాలు నింపండి.');
+      setFormError(language === 'te' ? 'దయచేసి అన్ని వివరాలు నింపండి.' : 'Please fill in all details.');
       setSavingAddress(false);
       return;
     }
@@ -212,10 +213,10 @@ export default function CheckoutPage() {
           isDefault: false,
         });
       } else {
-        setFormError(newAddr.error || 'చిరునామా సేవ్ చేయడంలో విఫలమైంది.');
+        setFormError(newAddr.error || (language === 'te' ? 'చిరునామా సేవ్ చేయడంలో విఫలమైంది.' : 'Failed to save address.'));
       }
     } catch (err) {
-      setFormError('సర్వర్ కనెక్షన్ లోపం.');
+      setFormError(language === 'te' ? 'సర్వర్ కనెక్షన్ లోపం.' : 'Server connection error.');
     } finally {
       setSavingAddress(false);
     }
@@ -228,7 +229,7 @@ export default function CheckoutPage() {
 
     const selectedAddress = addresses.find((a) => a.id === selectedAddressId);
     if (!selectedAddress) {
-      setCheckoutError('దయచేసి డెలివరీ చిరునామా ఎంచుకోండి. (Please select a delivery address)');
+      setCheckoutError(language === 'te' ? 'దయచేసి డెలివరీ చిరునామా ఎంచుకోండి.' : 'Please select a delivery address.');
       setPlacingOrder(false);
       return;
     }
@@ -280,7 +281,7 @@ export default function CheckoutPage() {
             // Redirect user to PhonePe PG page
             router.push(payData.url);
           } else {
-            setCheckoutError('పేమెంట్ గేట్‌వే ప్రారంభించడంలో లోపం జరిగింది. దయచేసి మళ్ళీ ప్రయత్నించండి.');
+            setCheckoutError(language === 'te' ? 'పేమెంట్ గేట్‌వే ప్రారంభించడంలో లోపం జరిగింది. దయచేసి మళ్ళీ ప్రయత్నించండి.' : 'Error initializing payment gateway. Please try again.');
             setPlacingOrder(false);
           }
         } else {
@@ -289,18 +290,18 @@ export default function CheckoutPage() {
           router.push(`/order-confirmation?orderId=${orderId}&status=success&method=COD`);
         }
       } else {
-        setCheckoutError(result.error || 'ఆర్డర్ ఉంచడంలో లోపం జరిగింది.');
+        setCheckoutError(result.error || (language === 'te' ? 'ఆర్డర్ ఉంచడంలో లోపం జరిగింది.' : 'Error placing order.'));
         setPlacingOrder(false);
       }
     } catch (err) {
-      setCheckoutError('సర్వర్ కనెక్టివిటీ సమస్య. దయచేసి మళ్ళీ ప్రయత్నించండి.');
+      setCheckoutError(language === 'te' ? 'సర్వర్ కనెక్టివిటీ సమస్య. దయచేసి మళ్ళీ ప్రయత్నించండి.' : 'Server connectivity issue. Please try again.');
       setPlacingOrder(false);
     }
   };
 
   // Loader state during auth check
   if (authStatus === 'loading') {
-    return <PremiumLoader fullScreen={true} text="చెక్అవుట్ సిద్ధమవుతోంది (Preparing Checkout...)" />;
+    return <PremiumLoader fullScreen={true} text={language === 'te' ? "చెక్అవుట్ సిద్ధమవుతోంది..." : "Preparing Checkout..."} />;
   }
 
   // Calculate quick summary totals
@@ -316,9 +317,12 @@ export default function CheckoutPage() {
     <>
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
+        <div className="mb-6">
+          <BackButton />
+        </div>
         <h1 className="text-xl sm:text-3xl font-extrabold text-amber-950 font-heading mb-8">
-          చెక్అవుట్ (Checkout)
+          {t('checkout_title')}
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -331,14 +335,14 @@ export default function CheckoutPage() {
               <div className="flex justify-between items-center border-b border-amber-50 pb-3">
                 <h3 className="font-bold text-sm sm:text-base text-amber-950 flex items-center space-x-1.5">
                   <MapPin size={18} className="text-amber-700" />
-                  <span>డెలివరీ చిరునామా (Delivery Address)</span>
+                  <span>{t('checkout_delivery_address')}</span>
                 </h3>
                 <button
                   onClick={() => setShowAddressForm(!showAddressForm)}
                   className="text-xs font-bold text-amber-800 hover:text-amber-600 flex items-center space-x-1"
                 >
                   <Plus size={14} />
-                  <span>కొత్త చిరునామా (Add Address)</span>
+                  <span>{t('checkout_add_address')}</span>
                 </button>
               </div>
 
@@ -474,7 +478,7 @@ export default function CheckoutPage() {
                       disabled={savingAddress}
                       className="flex-1 bg-amber-800 text-white py-2 font-bold text-xs rounded-xl shadow-sm hover:shadow"
                     >
-                      {savingAddress ? 'సేవ్ అవుతోంది...' : 'చిరునామాను సేవ్ చేయి'}
+                      {savingAddress ? t('checkout_saving') : t('checkout_save')}
                     </button>
                     <button
                       type="button"
@@ -660,7 +664,7 @@ export default function CheckoutPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">📦 Packing Charges:</span>
+                  <span className="text-gray-500">📦 {language === 'te' ? 'ప్యాకింగ్ చార్జీలు' : 'Packing Charges'}:</span>
                   <span className="font-bold">₹{packingFee}</span>
                 </div>
               </div>

@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Bell, BellRing, X, Package, Tag, Info, CheckCheck, Sparkles } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { useRealtime } from '@/hooks/useRealtime';
 interface Notification {
   id: string;
   title: string;
@@ -30,6 +32,43 @@ function timeAgo(date: string) {
   return `${days}d ago`;
 }
 
+// Synthesize a pleasant chime sound (No external assets required)
+const playChime = () => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    
+    // Tone 1
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+
+    // Tone 2
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(1108.73, ctx.currentTime + 0.1); // C#6
+    gain2.gain.setValueAtTime(0, ctx.currentTime + 0.1);
+    gain2.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.15);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(ctx.currentTime + 0.1);
+    osc2.stop(ctx.currentTime + 0.6);
+  } catch (err) {
+    console.error('Audio play failed', err);
+  }
+};
+
 export default function NotificationBell() {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
@@ -50,6 +89,7 @@ export default function NotificationBell() {
         const newCount = data.unreadCount || 0;
         if (newCount > prevUnread.current) {
           setAnimateBell(true);
+          playChime();
           setTimeout(() => setAnimateBell(false), 2000);
         }
         prevUnread.current = newCount;
@@ -58,22 +98,21 @@ export default function NotificationBell() {
     } catch {}
   }, [status]);
 
-  // Initial fetch + polling every 30s (visibility-aware)
   useEffect(() => {
+    // Fetch ONLY once on mount to save Neon DB compute hours
     fetchNotifications();
-
-    const interval = setInterval(() => {
-      if (!document.hidden) fetchNotifications();
-    }, 30000);
-
-    const onVisible = () => { if (!document.hidden) fetchNotifications(); };
-    document.addEventListener('visibilitychange', onVisible);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
   }, [fetchNotifications]);
+
+
+  // Listen for realtime notifications
+  useRealtime('Notification', 'INSERT', (payload) => {
+    // When a new notification comes in, check if it belongs to the logged-in user
+    if (payload.new && session?.user?.email) {
+      // We don't have the user ID easily accessible in the session by default,
+      // so the safest way is to just refetch the notifications list to get the exact unread count.
+      fetchNotifications();
+    }
+  });
 
   // Close on outside click
   useEffect(() => {
@@ -163,10 +202,24 @@ export default function NotificationBell() {
               notifications.map((notif) => {
                 const cfg = TYPE_CONFIG[notif.type] || TYPE_CONFIG.INFO;
                 const IconComp = cfg.icon;
+                
+                let linkHref = '#';
+                if (notif.type === 'ORDER') {
+                  linkHref = session?.user?.role === 'ADMIN' ? '/admin/orders' : '/account?tab=orders';
+                } else if (notif.type === 'INFO') {
+                  linkHref = session?.user?.role === 'ADMIN' ? '/admin/products' : '/products';
+                } else if (notif.type === 'OFFER') {
+                  linkHref = '/products';
+                }
+
                 return (
-                  <div
+                  <Link
+                    href={linkHref}
                     key={notif.id}
-                    onClick={() => !notif.isRead && markRead(notif.id)}
+                    onClick={() => {
+                      if (!notif.isRead) markRead(notif.id);
+                      setOpen(false);
+                    }}
                     className={`flex gap-3 px-4 py-3.5 border-b border-gray-50 cursor-pointer transition-all duration-200 ${
                       notif.isRead
                         ? 'bg-white hover:bg-gray-50/50'
@@ -195,7 +248,7 @@ export default function NotificationBell() {
                         {timeAgo(notif.createdAt)}
                       </p>
                     </div>
-                  </div>
+                  </Link>
                 );
               })
             )}

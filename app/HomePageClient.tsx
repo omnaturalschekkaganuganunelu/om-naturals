@@ -8,6 +8,8 @@ import { Shield, Sparkles, Truck, Award, ArrowRight, MessageCircle } from 'lucid
 import { useLanguage } from '@/context/LanguageContext';
 import { useGroupedProducts } from '@/hooks/useGroupedProducts';
 
+import { useRealtime } from '@/hooks/useRealtime';
+
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=500&auto=format&fit=crop';
 
 // ─── Home page product grid with client-side variant grouping ────────────────
@@ -44,6 +46,7 @@ interface Product {
   stock: number;
   unit: string;
   weight: number;
+  isActive: boolean;
   [key: string]: any;
 }
 
@@ -56,6 +59,40 @@ export default function HomePageClient({ categories, products }: Props) {
   const { t, language } = useLanguage();
   const [heroImgError, setHeroImgError] = useState(false);
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
+  
+  // Realtime products state
+  const [liveProducts, setLiveProducts] = useState(products);
+
+  useRealtime('Product', '*', (payload) => {
+    if (payload.eventType === 'UPDATE') {
+      const updated = payload.new;
+      setLiveProducts(prev => prev.map(p => {
+        if (p.id === updated.id) {
+          return {
+            ...p,
+            ...updated,
+            images: typeof updated.images === 'string' ? JSON.parse(updated.images || '[]') : updated.images,
+            benefits: typeof updated.benefits === 'string' ? JSON.parse(updated.benefits || '[]') : updated.benefits,
+            ingredients: typeof updated.ingredients === 'string' ? JSON.parse(updated.ingredients || '[]') : updated.ingredients,
+            usage: typeof updated.usage === 'string' ? JSON.parse(updated.usage || '[]') : updated.usage,
+          };
+        }
+        return p;
+      }));
+    } else if (payload.eventType === 'INSERT') {
+      const newProd = payload.new;
+      const formatted = {
+        ...newProd,
+        images: typeof newProd.images === 'string' ? JSON.parse(newProd.images || '[]') : newProd.images,
+        benefits: typeof newProd.benefits === 'string' ? JSON.parse(newProd.benefits || '[]') : newProd.benefits,
+        ingredients: typeof newProd.ingredients === 'string' ? JSON.parse(newProd.ingredients || '[]') : newProd.ingredients,
+        usage: typeof newProd.usage === 'string' ? JSON.parse(newProd.usage || '[]') : newProd.usage,
+      };
+      setLiveProducts(prev => [formatted, ...prev]);
+    } else if (payload.eventType === 'DELETE') {
+      setLiveProducts(prev => prev.filter(p => p.id !== payload.old.id));
+    }
+  });
 
   const reviews = [
     {
@@ -111,7 +148,7 @@ export default function HomePageClient({ categories, products }: Props) {
           </Link>
         </div>
 
-        <HomePageProductGrid products={products} />
+        <HomePageProductGrid products={liveProducts} />
       </section>
 
       {/* Categories */}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
 
 // PUT /api/categories/[id] - Update category (Admin Only)
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
@@ -32,6 +33,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         isActive,
       },
     });
+
+    revalidatePath('/', 'layout');
 
     return NextResponse.json(updatedCategory);
   } catch (err: any) {
@@ -67,6 +70,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     await prisma.category.delete({ where: { id } });
+
+    revalidatePath('/', 'layout');
 
     return NextResponse.json({ success: true, message: 'Category deleted successfully' });
   } catch (err: any) {

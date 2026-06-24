@@ -17,22 +17,19 @@ export async function GET(req: NextRequest) {
     const customersCount = await prisma.user.count({ where: { role: 'CUSTOMER' } });
     const ordersCount = await prisma.order.count();
 
-    // 2. Revenue (Only completed payments or COD orders not cancelled)
+    // 2. Revenue (All non-cancelled orders)
     const paidOrders = await prisma.order.findMany({
       where: {
-        OR: [
-          { paymentStatus: 'COMPLETED' },
-          { paymentMethod: 'COD', NOT: { orderStatus: 'CANCELLED' } },
-        ],
+        NOT: { orderStatus: 'CANCELLED' },
       },
       select: { total: true },
     });
     const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
 
-    // 3. Low Stock Alerts (Stock < 10)
+    // 3. Low Stock Alerts (Stock < 5)
     const lowStockProducts = await prisma.product.findMany({
       where: {
-        stock: { lt: 10 },
+        stock: { lt: 5 },
       },
       include: { category: true },
     });
@@ -59,10 +56,7 @@ export async function GET(req: NextRequest) {
         createdAt: {
           gte: sevenDaysAgo,
         },
-        OR: [
-          { paymentStatus: 'COMPLETED' },
-          { paymentMethod: 'COD', NOT: { orderStatus: 'CANCELLED' } },
-        ],
+        NOT: { orderStatus: 'CANCELLED' },
       },
       select: { total: true, createdAt: true },
     });

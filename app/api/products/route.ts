@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
+
+export const dynamic = 'force-dynamic';
 
 // GET /api/products - List products with search, filter, and sort
 export async function GET(req: NextRequest) {
@@ -13,14 +16,20 @@ export async function GET(req: NextRequest) {
     const minPrice = parseFloat(searchParams.get('minPrice') || '0');
     const maxPrice = parseFloat(searchParams.get('maxPrice') || '999999');
 
+    const session = await getServerSession(authOptions);
+    const isAdmin = session?.user?.role === 'ADMIN';
+
     // Build Prisma query filters
     const where: any = {
-      isActive: true,
       price: {
         gte: minPrice,
         lte: maxPrice,
       },
     };
+
+    if (!isAdmin) {
+      where.isActive = true;
+    }
 
     if (category) {
       where.category = {
@@ -93,8 +102,11 @@ export async function POST(req: NextRequest) {
       weight,
       categoryId,
       benefits,
+      benefitsTe,
       ingredients,
+      ingredientsTe,
       usage,
+      usageTe,
     } = body;
 
     // Validation
@@ -125,11 +137,16 @@ export async function POST(req: NextRequest) {
         weight: parseFloat(weight?.toString() || '1'),
         categoryId,
         benefits: JSON.stringify(benefits || []),
+        benefitsTe: benefitsTe ? JSON.stringify(benefitsTe) : null,
         ingredients: JSON.stringify(ingredients || []),
+        ingredientsTe: ingredientsTe ? JSON.stringify(ingredientsTe) : null,
         usage: JSON.stringify(usage || []),
+        usageTe: usageTe ? JSON.stringify(usageTe) : null,
         isActive: true,
       },
     });
+
+    revalidatePath('/', 'layout');
 
     return NextResponse.json(product);
   } catch (err: any) {

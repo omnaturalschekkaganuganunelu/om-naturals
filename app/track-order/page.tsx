@@ -252,105 +252,9 @@ function TrackOrderContent() {
   const isFinalStatus = order?.orderStatus === 'DELIVERED' || order?.orderStatus === 'CANCELLED';
 
   useEffect(() => {
-    if (!trackingOrderId || isFinalStatus) {
-      setSseConnected(false);
-      return;
-    }
-
-    let eventSource: EventSource | null = null;
-    let pollInterval: NodeJS.Timeout | null = null;
-
-    const connectSSE = () => {
-      eventSource = new EventSource(`/api/orders/sse?orderId=${trackingOrderId}`);
-
-      eventSource.onopen = () => {
-        setSseConnected(true);
-        console.log('SSE Tracking connection opened');
-      };
-
-      eventSource.addEventListener('order-update', (event: any) => {
-        const data = JSON.parse(event.data);
-        console.log('SSE Tracking Event Received:', data);
-        
-        // Update order status in view
-        setOrder((prev: any) => {
-          if (prev && prev.id === data.orderId) {
-            showToast(
-              language === 'te'
-                ? `స్థితి అప్‌డేట్: ${getStatusLabel(data.status)}`
-                : `Order Status Updated: ${getStatusLabel(data.status)}`,
-              'info'
-            );
-            return {
-              ...prev,
-              orderStatus: data.status,
-              updatedAt: data.updatedAt || new Date().toISOString()
-            };
-          }
-          return prev;
-        });
-      });
-
-      eventSource.onerror = (err) => {
-        console.error('SSE Tracking Connection Error. Falling back to active status interval polling:', err);
-        setSseConnected(false);
-        if (eventSource) {
-          eventSource.close();
-        }
-        
-        // Start polling fallback if not active
-        if (!pollInterval) {
-          console.log('Starting order tracking polling fallback...');
-          pollInterval = setInterval(fetchOrderStatusSilent, 20000); // poll status every 20s
-        }
-      };
-    };
-
-    const fetchOrderStatusSilent = () => {
-      if (document.hidden) return;
-      fetch(`/api/orders/${trackingOrderId}`)
-        .then((res) => {
-          if (res.ok) return res.json();
-          throw new Error('Failed to fetch');
-        })
-        .then((data) => {
-          setOrder((prev: any) => {
-            if (prev && prev.orderStatus !== data.orderStatus) {
-              showToast(
-                language === 'te'
-                  ? `స్థితి అప్‌డేట్: ${getStatusLabel(data.orderStatus)}`
-                  : `Order Status Updated: ${getStatusLabel(data.orderStatus)}`,
-                'info'
-              );
-            }
-            return data;
-          });
-        })
-        .catch((err) => console.error('Silent order status poll failed:', err));
-    };
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden && pollInterval) {
-        fetchOrderStatusSilent();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    connectSSE();
-
-    return () => {
-      console.log('Cleaning up SSE tracking and polling triggers...');
-      if (eventSource) {
-        eventSource.close();
-      }
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      setSseConnected(false);
-    };
-  }, [trackingOrderId, isFinalStatus, language, getStatusLabel, showToast]);
+    // SSE and Polling removed to conserve free-tier Serverless compute and Neon DB limits.
+    // The user can manually search again to fetch new status.
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -364,7 +268,7 @@ function TrackOrderContent() {
   const progressVal = order ? getProgressPercentage(order.orderStatus) : 0;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 relative">
+    <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12 flex-1 relative">
       
       <div className="text-center space-y-3 mb-10">
         <h1 className="text-2xl sm:text-4xl font-black text-amber-950 font-heading">

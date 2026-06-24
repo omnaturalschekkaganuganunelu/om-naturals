@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import BackButton from '@/components/BackButton';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
 import { Plus, Minus, Trash2, Tag, ArrowRight, ShoppingCart, Percent, AlertCircle } from 'lucide-react';
@@ -65,7 +66,7 @@ export default function CartPage() {
         setCoupon(null);
         setDiscountAmount(0);
         setCouponSuccess('');
-        setCouponError('ఉత్పత్తుల మొత్తం ₹200 కంటే తక్కువగా ఉన్నందున కూపన్ తొలగించబడింది.');
+        setCouponError(language === 'te' ? 'ఉత్పత్తుల మొత్తం ₹200 కంటే తక్కువగా ఉన్నందున కూపన్ తొలగించబడింది.' : 'Coupon removed because cart total is less than ₹200.');
       }
     } else {
       setDiscountAmount(0);
@@ -105,13 +106,13 @@ export default function CartPage() {
           value: data.value,
           discount: data.discount,
         });
-        setCouponSuccess(`కూపన్ '${data.code}' విజయవంతంగా వర్తించబడింది! ₹${data.discount} సేవ్ చేసారు.`);
+        setCouponSuccess(language === 'te' ? `కూపన్ '${data.code}' విజయవంతంగా వర్తించబడింది! ₹${data.discount} సేవ్ చేసారు.` : `Coupon '${data.code}' applied successfully! You saved ₹${data.discount}.`);
         setCouponCode('');
       } else {
-        setCouponError(data.error || 'కూపన్ వర్తించడంలో లోపం జరిగింది.');
+        setCouponError(data.error || (language === 'te' ? 'కూపన్ వర్తించడంలో లోపం జరిగింది.' : 'Error applying coupon.'));
       }
     } catch (err) {
-      setCouponError('సర్వర్ కనెక్టివిటీ సమస్య. దయచేసి మళ్ళీ ప్రయత్నించండి.');
+      setCouponError(language === 'te' ? 'సర్వర్ కనెక్టివిటీ సమస్య. దయచేసి మళ్ళీ ప్రయత్నించండి.' : 'Server connectivity issue. Please try again.');
     } finally {
       setValidatingCoupon(false);
     }
@@ -134,8 +135,11 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <>
+      <div className="min-h-screen bg-[#fcf9f4] flex flex-col">
         <Navbar />
+        <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 mb-4 pt-4">
+          <BackButton />
+        </div>
         <div className="max-w-xl mx-auto text-center py-24 px-4 sm:px-6 flex-1 flex flex-col justify-center items-center space-y-4">
           <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center text-amber-700 shadow-sm border border-amber-100">
             <ShoppingCart size={28} />
@@ -156,15 +160,18 @@ export default function CartPage() {
           </div>
         </div>
         <Footer />
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-[#fcf9f4] flex flex-col">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 w-full">
+        <div className="mb-6">
+          <BackButton />
+        </div>
         <h1 className="text-xl sm:text-3xl font-extrabold text-amber-950 font-heading mb-8">
           {t('cart_title')}
         </h1>
@@ -173,76 +180,74 @@ export default function CartPage() {
           {/* Left Side: Cart Items Table/List */}
           <div className="lg:col-span-8 bg-white border border-amber-100 rounded-3xl p-4 sm:p-6 smooth-shadow space-y-4">
             
-            <div className="hidden sm:grid grid-cols-12 gap-4 text-xs font-bold text-amber-900 border-b border-amber-50 pb-3">
-              <span className="col-span-6">{t('cart_product_details')}</span>
-              <span className="col-span-2 text-center">{t('cart_price')}</span>
-              <span className="col-span-2 text-center">{t('cart_quantity')}</span>
-              <span className="col-span-2 text-right">{t('cart_total')}</span>
-            </div>
-
-            <div className="divide-y divide-amber-50">
+            <div className="divide-y divide-amber-50 border-t border-amber-50">
               {items.map((item) => (
-                <div key={item.productId} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center py-4 text-sm font-medium">
-                  {/* Image + Title */}
-                  <div className="col-span-1 sm:col-span-6 flex items-center space-x-3">
+                <div key={item.productId} className="flex flex-col sm:flex-row gap-4 py-5 first:pt-2">
+                  {/* Left: Image */}
+                  <div className="flex gap-4 w-full">
                     <img
                       src={item.image}
                       alt={item.name}
-                      className="w-14 h-14 rounded-xl object-cover border border-amber-50 shrink-0"
+                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shadow-sm shrink-0 border border-amber-50"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=100&auto=format&fit=crop';
                       }}
                     />
-                    <div className="space-y-0.5">
-                      <Link href={`/products/${item.productId}`} className="font-bold text-amber-950 hover:text-amber-800 line-clamp-1">
-                        {item.nameTe}
-                      </Link>
-                      <p className="text-[10px] text-gray-500 font-semibold">{item.name.split('(')[0]}</p>
-                      <p className="text-[10px] text-amber-600 font-bold">{item.weight} {item.unit}</p>
+                    
+                    {/* Right: Details */}
+                    <div className="flex flex-col flex-1 min-w-0 py-1">
+                      
+                      {/* Title & Delete Row */}
+                      <div className="flex justify-between items-start">
+                        <div className="pr-2">
+                          <Link href={`/products/${item.productId}`} className="text-sm font-bold text-amber-950 hover:text-amber-700 line-clamp-2 leading-tight">
+                            {language === 'te' ? item.nameTe : item.name.split('(')[0]}
+                          </Link>
+                          <p className="text-[11px] font-bold text-amber-600 mt-1.5 bg-amber-50 inline-block px-2 py-0.5 rounded-md border border-amber-100">{item.weight} {item.unit}</p>
+                        </div>
+                        
+                        <button
+                          onClick={() => removeItem(item.productId)}
+                          className="text-red-400 hover:text-red-600 p-2 -mr-2 -mt-2 rounded-full hover:bg-red-50 transition-colors shrink-0"
+                          title={t('cart_coupon_remove')}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+
+                      {/* Price & Quantity Row */}
+                      <div className="mt-auto pt-4 flex items-end justify-between">
+                        <div>
+                          <span className="text-[10px] text-gray-400 font-bold block mb-0.5 sm:hidden">{t('cart_price')}</span>
+                          <span className="text-lg font-black text-amber-950">₹{item.price}</span>
+                        </div>
+
+                        {/* Quantity Control */}
+                        <div className="flex items-center border border-amber-100 rounded-full bg-white shadow-sm overflow-hidden">
+                          <button
+                            onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                            className="px-3 py-1.5 text-amber-800 hover:bg-amber-50 transition-colors"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="px-1 text-xs font-bold text-amber-950 min-w-[20px] text-center">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                            className="px-3 py-1.5 text-amber-800 hover:bg-amber-50 transition-colors"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      </div>
+
                     </div>
                   </div>
-
-                  {/* Price (Mobile vs Desktop helper) */}
-                  <div className="col-span-1 sm:col-span-2 sm:text-center flex sm:block items-center justify-between">
-                    <span className="text-[10px] font-bold text-gray-400 sm:hidden">{t('cart_price')}:</span>
-                    <span className="text-amber-950 font-bold">₹{item.price}</span>
+                  
+                  {/* Total line item display for desktop */}
+                  <div className="hidden sm:flex flex-col items-end justify-center min-w-[80px] pl-4 border-l border-amber-50">
+                     <span className="text-[10px] text-gray-400 font-bold mb-1">{t('cart_total')}</span>
+                     <span className="text-lg font-black text-amber-950">₹{item.price * item.quantity}</span>
                   </div>
-
-                  {/* Quantity Actions */}
-                  <div className="col-span-1 sm:col-span-2 flex sm:justify-center items-center justify-between">
-                    <span className="text-[10px] font-bold text-gray-400 sm:hidden">{t('cart_quantity')}:</span>
-                    <div className="flex items-center border border-amber-100 rounded-full py-0.5 px-1 bg-amber-50/20">
-                      <button
-                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                        className="p-1 rounded-full text-amber-800 hover:bg-amber-100"
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <span className="px-3 text-xs font-bold text-amber-950">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                        className="p-1 rounded-full text-amber-800 hover:bg-amber-100"
-                      >
-                        <Plus size={12} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Item Total & Remove */}
-                  <div className="col-span-1 sm:col-span-2 text-right flex sm:block items-center justify-between pt-2 sm:pt-0 border-t border-amber-50/20 sm:border-0">
-                    <span className="text-[10px] font-bold text-gray-400 sm:hidden">{t('cart_total')}:</span>
-                    <div className="flex items-center justify-end space-x-3">
-                      <span className="text-amber-950 font-bold">₹{item.price * item.quantity}</span>
-                      <button
-                        onClick={() => removeItem(item.productId)}
-                        className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-full transition-colors"
-                        title={t('cart_coupon_remove')}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-
                 </div>
               ))}
             </div>
@@ -373,7 +378,7 @@ export default function CartPage() {
                 {/* Packing Fee */}
                 {subtotal > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">📦 Packing Charges</span>
+                    <span className="text-gray-500">📦 {language === 'te' ? 'ప్యాకింగ్ చార్జీలు' : 'Packing Charges'}</span>
                     <span className="font-bold">₹{PACKING_FEE}</span>
                   </div>
                 )}
@@ -415,6 +420,6 @@ export default function CartPage() {
       </main>
 
       <Footer />
-    </>
+    </div>
   );
 }

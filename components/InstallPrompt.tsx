@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Download, Smartphone, Monitor, Zap, Package, Share } from 'lucide-react';
+import { X, Download, Share, Smartphone } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -9,61 +10,68 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const STORAGE_KEY = 'om-natural-pwa-dismissed';
-const DISMISS_DAYS = 7;
 
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+  const { language } = useLanguage();
+  const isTe = language === 'te';
 
   useEffect(() => {
-    // Register service worker to satisfy PWA installation requirements
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-        .then((reg) => console.log('Service Worker registered successfully', reg.scope))
         .catch((err) => console.error('Service Worker registration failed', err));
     }
 
-    // Check if dismissed recently
-    const dismissed = localStorage.getItem(STORAGE_KEY);
-    if (dismissed) {
-      const dismissedAt = parseInt(dismissed, 10);
-      const daysSince = (Date.now() - dismissedAt) / (1000 * 60 * 60 * 24);
-      if (daysSince < DISMISS_DAYS) return;
-    }
+    // Use sessionStorage instead of localStorage so it shows again on a new session
+    const dismissed = sessionStorage.getItem(STORAGE_KEY);
+    if (dismissed) return;
 
-    // Check if already installed / running in standalone mode
     const isStandalone = 
       window.matchMedia('(display-mode: standalone)').matches || 
       (navigator as any).standalone === true;
 
     if (isStandalone) return;
 
-    // Detect if iOS device
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIOS = /iphone|ipad|ipod/.test(userAgent);
     setIsIOSDevice(isIOS);
 
     if (isIOS) {
-      // Show iOS install guidelines after 3s
       const timer = setTimeout(() => setShow(true), 3000);
       return () => clearTimeout(timer);
     } else {
+      // Show the banner anyway after 3 seconds, even if beforeinstallprompt is missed
+      const timer = setTimeout(() => setShow(true), 3000);
+      
       const handler = (e: Event) => {
         e.preventDefault();
         setDeferredPrompt(e as BeforeInstallPromptEvent);
-        // Show after 3s so it doesn't interrupt initial page load
-        setTimeout(() => setShow(true), 3000);
+        setShow(true); // Ensure it shows if event fires
       };
 
+      // In case it was caught globally earlier (if added to window)
+      if ((window as any).deferredPrompt) {
+        setDeferredPrompt((window as any).deferredPrompt);
+      }
+
       window.addEventListener('beforeinstallprompt', handler);
-      return () => window.removeEventListener('beforeinstallprompt', handler);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('beforeinstallprompt', handler);
+      };
     }
   }, []);
 
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
+  const handleInstallClick = async () => {
+    if (isIOSDevice || !deferredPrompt) {
+      setShowIOSInstructions(true);
+      return;
+    }
+
     setInstalling(true);
     try {
       await deferredPrompt.prompt();
@@ -79,90 +87,64 @@ export default function InstallPrompt() {
   };
 
   const handleDismiss = () => {
-    localStorage.setItem(STORAGE_KEY, Date.now().toString());
+    sessionStorage.setItem(STORAGE_KEY, 'true');
     setShow(false);
   };
 
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-auto md:right-6 md:w-[380px] z-[300] animate-fade-in-up">
-      <div className="bg-white rounded-3xl shadow-2xl border border-amber-100 overflow-hidden">
-        {/* Gradient Header */}
-        <div className="bg-gradient-to-r from-amber-800 to-amber-900 px-5 pt-5 pb-4 relative">
+    <div className="fixed bottom-20 md:bottom-6 right-4 left-4 md:left-auto md:w-[320px] z-[300] animate-fade-in-up">
+      <div className="bg-white rounded-2xl shadow-2xl shadow-amber-900/10 border border-amber-100 overflow-hidden flex flex-col">
+        {/* Main Banner Area */}
+        <div className="p-3.5 flex items-center gap-3">
+          <div className="w-10 h-10 shrink-0 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center overflow-hidden">
+            <img src="/images/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <h4 className="text-[13px] font-black text-amber-950 leading-none mb-1 truncate">
+              {isTe ? 'యాప్ ఇన్‌స్టాల్ చేయండి' : 'Install OM Natural'}
+            </h4>
+            <p className="text-[10px] text-gray-500 font-semibold truncate">
+              {isTe ? 'వేగవంతమైన ఆర్డర్లు & ఆఫ్‌లైన్ సేవలు' : 'Fast orders & offline access'}
+            </p>
+          </div>
+
           <button
             onClick={handleDismiss}
-            className="absolute top-3 right-3 p-1.5 hover:bg-amber-700/60 rounded-full transition-colors"
-            aria-label="Close"
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors shrink-0"
           >
-            <X size={14} className="text-amber-200" />
+            <X size={14} />
           </button>
-
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur border border-white/20 flex items-center justify-center shadow-inner overflow-hidden">
-              <img src="/images/logo.jpg" alt="OM Natural Logo" className="w-full h-full object-cover" />
-            </div>
-            <div>
-              <p className="text-white font-black text-sm leading-tight">Install OM Natural</p>
-              <p className="text-amber-300 text-[11px] font-semibold mt-0.5">Pure Oils · Fast Orders · Free</p>
-            </div>
-          </div>
         </div>
 
-        {/* Features list */}
-        <div className="px-5 py-4 space-y-3.5">
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { icon: Zap,       text: 'Faster\nOrdering',  color: 'text-amber-600',  bg: 'bg-amber-50'  },
-              { icon: Package,   text: 'Order\nTracking',   color: 'text-blue-600',   bg: 'bg-blue-50'   },
-              { icon: Smartphone, text: 'Works\nOffline',   color: 'text-green-600',  bg: 'bg-green-50'  },
-            ].map(({ icon: Icon, text, color, bg }) => (
-              <div key={text} className={`${bg} rounded-2xl p-3 flex flex-col items-center gap-1.5 text-center`}>
-                <Icon size={16} className={color} />
-                <p className={`text-[10px] font-bold leading-tight ${color}`} style={{ whiteSpace: 'pre-line' }}>{text}</p>
-              </div>
-            ))}
-          </div>
-
-          {isIOSDevice ? (
-            <div className="bg-amber-50/50 border border-amber-100/50 rounded-2xl p-3 flex items-start gap-2.5">
-              <Share className="text-amber-700 shrink-0 mt-0.5" size={15} />
-              <div className="text-[11px] text-amber-950 font-medium leading-relaxed">
-                To install on iOS:
-                <ol className="list-decimal ml-4 mt-1 space-y-1">
-                  <li>Tap the <strong className="font-bold">Share</strong> button in Safari browser.</li>
-                  <li>Scroll down and select <strong className="font-bold">Add to Home Screen</strong>.</li>
+        {/* Action Button */}
+        <div className="px-3.5 pb-3.5">
+          {showIOSInstructions ? (
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 flex items-start gap-2.5 animate-fade-in">
+              <Share className="text-amber-700 shrink-0 mt-0.5" size={14} />
+              <div className="text-[10px] text-amber-950 font-medium leading-relaxed">
+                {isTe ? (isIOSDevice ? 'iOS లో ఇన్‌స్టాల్ చేయడానికి:' : 'ఇన్‌స్టాల్ చేయడానికి:') : (isIOSDevice ? 'To install on iOS:' : 'To install:')}
+                <ol className="list-decimal ml-4 mt-0.5 space-y-0.5">
+                  <li>{isTe ? 'బ్రౌజర్ మెను లేదా' : 'Tap the browser menu or'} <strong className="font-bold">{isTe ? 'Share' : 'Share'}</strong> {isTe ? 'బటన్‌ నొక్కండి.' : 'button.'}</li>
+                  <li><strong className="font-bold">{isTe ? 'Add to Home Screen' : 'Install / Add to Home Screen'}</strong> {isTe ? 'ఎంచుకోండి.' : 'Select it.'}</li>
                 </ol>
               </div>
             </div>
           ) : (
-            <p className="text-[11px] text-gray-400 font-medium text-center leading-snug">
-              Add to your home screen for the fastest shopping experience. No app store needed!
-            </p>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-1">
             <button
-              onClick={handleDismiss}
-              className="flex-1 py-2.5 border border-gray-200 text-gray-500 text-xs font-bold rounded-2xl hover:bg-gray-50 transition-colors"
+              onClick={handleInstallClick}
+              disabled={installing || (!isIOSDevice && !deferredPrompt)}
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-amber-800 hover:bg-amber-700 text-white text-[11px] font-black tracking-wide uppercase rounded-xl shadow-sm transition-all active:scale-95 disabled:opacity-50"
             >
-              Maybe Later
+              {installing ? (
+                <><span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> {isTe ? 'ఇన్‌స్టాల్ అవుతోంది...' : 'INSTALLING…'}</>
+              ) : (
+                <><Download size={13} /> {isTe ? 'యాప్ ఇన్‌స్టాల్ చేయండి' : 'INSTALL APP NOW'}</>
+              )}
             </button>
-            {!isIOSDevice && (
-              <button
-                onClick={handleInstall}
-                disabled={installing || !deferredPrompt}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-gradient-to-r from-amber-700 to-amber-900 text-white text-xs font-black rounded-2xl shadow-md hover:shadow-amber-500/30 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
-              >
-                {installing ? (
-                  <><span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Installing…</>
-                ) : (
-                  <><Download size={13} /> Install App</>
-                )}
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>

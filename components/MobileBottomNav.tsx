@@ -2,14 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Home, Droplet, Droplets, ShoppingCart, User } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { t } = useLanguage();
   const cartItemsCount = useCartStore((state) => state.getCartCount());
   const [mounted, setMounted] = useState(false);
@@ -38,7 +37,7 @@ export default function MobileBottomNav() {
       icon: <Droplet size={20} className={isOils ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />,
     },
     {
-      label: t('cart_title').split(' ')[0],
+      label: t('nav_cart_mobile'),
       href: '/cart',
       active: isCart,
       icon: (
@@ -53,7 +52,7 @@ export default function MobileBottomNav() {
       ),
     },
     {
-      label: t('nav_my_account').split(' ').pop() || t('nav_my_account'),
+      label: t('nav_account_mobile'),
       href: '/account',
       active: isAccount,
       icon: <User size={20} className={isAccount ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />,

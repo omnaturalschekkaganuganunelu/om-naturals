@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Phone, Mail, MessageCircle, ShieldCheck } from 'lucide-react';
+import Image from 'next/image';
+import { Phone, Mail, MessageCircle, ShieldCheck, MapPin } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function Footer() {
@@ -10,72 +11,132 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative bg-gradient-to-b from-[#180e05] to-[#0c0602] text-amber-100/90 mt-auto border-t border-amber-950/90 before:absolute before:top-0 before:left-0 before:right-0 before:h-[1px] before:bg-gradient-to-r before:from-transparent before:via-amber-500/40 before:to-transparent">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 flex flex-col items-center text-center space-y-8">
-        
-        {/* Brand Header */}
-        <div className="space-y-2">
-          <h2 className="text-2xl sm:text-3xl font-black tracking-tight font-heading gold-text-gradient drop-shadow-sm">
-            {language === 'te' ? 'ఓం సహజ చెక్క గానుగ నూనెలు' : 'OM Natural Chekka Ganuga Oils'}
-          </h2>
-          <p className="text-[10px] font-black tracking-[0.25em] text-amber-500 uppercase">
-            OM NATURAL CHEKKA GANUGA OILS
-          </p>
-          <div className="h-[1px] w-12 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto mt-2" />
-          <p className="max-w-md text-xs text-amber-200/50 leading-relaxed font-semibold pt-1.5">
-            {language === 'te' 
-              ? 'సాంప్రదాయ పద్ధతిలో తయారుచేసిన స్వచ్ఛమైన మరియు రసాయన రహిత చెక్క గానుగ వంట నూనెలు.' 
-              : 'Your trusted destination for traditionally crafted pure, chemical-free cold pressed cooking oils.'}
-          </p>
-        </div>
-
-        {/* Quick Compact Contacts */}
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-          <a
-            href="tel:+918688291288"
-            className="flex items-center space-x-2 px-5 py-2.5 bg-[#25150a] border border-amber-900/30 rounded-full hover:border-amber-500/60 hover:bg-amber-950/70 hover:shadow-[0_0_12px_rgba(245,158,11,0.1)] text-amber-300 font-bold transition-all duration-300 text-xs"
-          >
-            <Phone size={13} className="text-amber-400" />
-            <span>+91 86882 91288</span>
-          </a>
-          <a
-            href="https://wa.me/918688291288"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center space-x-2 px-5 py-2.5 bg-[#092216] border border-emerald-950 rounded-full hover:border-emerald-500/60 hover:bg-emerald-950/70 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)] text-emerald-300 font-bold transition-all duration-300 text-xs"
-          >
-            <MessageCircle size={13} className="text-emerald-400" />
-            <span>WhatsApp Support</span>
-          </a>
-          <a
-            href="mailto:support@nunebazaar.com"
-            className="flex items-center space-x-2 px-5 py-2.5 bg-[#25150a] border border-amber-900/30 rounded-full hover:border-amber-500/60 hover:bg-amber-950/70 hover:shadow-[0_0_12px_rgba(245,158,11,0.1)] text-amber-300 font-bold transition-all duration-300 text-xs"
-          >
-            <Mail size={13} className="text-amber-400" />
-            <span>support@omnatural.com</span>
-          </a>
-        </div>
-
-        {/* Inline Navigation Links */}
-        <div className="flex flex-wrap justify-center items-center gap-x-8 gap-y-3 text-xs font-bold text-amber-200/60 border-y border-amber-950/40 py-5 w-full">
-          <Link href="/" className="hover:text-amber-400 transition-colors relative py-1">{t('nav_home')}</Link>
-          <Link href="/products" className="hover:text-amber-400 transition-colors relative py-1">{t('nav_oils')}</Link>
-          <Link href="/account?tab=orders" className="hover:text-amber-400 transition-colors relative py-1">{t('nav_track')}</Link>
-          <Link href="/policy?tab=shipping" className="hover:text-amber-400 transition-colors relative py-1">{language === 'te' ? 'షిప్పింగ్ పాలసీ' : 'Shipping'}</Link>
-          <Link href="/policy?tab=returns" className="hover:text-amber-400 transition-colors relative py-1">{language === 'te' ? 'రిటర్న్స్ & రీఫండ్' : 'Returns & Refund'}</Link>
-          <Link href="/policy?tab=privacy" className="hover:text-amber-400 transition-colors relative py-1">{language === 'te' ? 'గోప్యతా విధానం' : 'Privacy'}</Link>
-        </div>
-
-        {/* Secure & Copyright Bottom */}
-        <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-amber-600/80 pt-2">
-          <p className="font-semibold order-2 sm:order-1">
-            © {year} {language === 'te' ? 'ఓం సహజ చెక్క గానుగ నూనెలు' : 'OM Natural Chekka Ganuga Oils'}. {language === 'te' ? 'అన్ని హక్కులు రక్షించబడ్డాయి.' : 'All Rights Reserved.'}
-          </p>
+    <footer className="relative bg-gradient-to-b from-[#180e05] to-[#0c0602] text-amber-100/90 mt-auto border-t border-amber-955 before:absolute before:top-0 before:left-0 before:right-0 before:h-[1px] before:bg-gradient-to-r before:from-transparent before:via-amber-500/40 before:to-transparent">
+      <div className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 py-6 sm:py-8 lg:py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12 items-stretch">
           
-          <div className="flex items-center space-x-2 bg-amber-950/70 px-4 py-2 rounded-full border border-amber-900/30 order-1 sm:order-2 shadow-inner">
-            <ShieldCheck size={13} className="text-amber-400" />
-            <span className="font-bold text-amber-400/80">{t('footer_secure')}:</span>
-            <span className="font-black text-amber-300 tracking-wide">PhonePe / UPI / COD</span>
+          {/* ══ LEFT COLUMN: Brand & Navigation ══ */}
+          <div className="flex flex-col justify-between space-y-6 lg:space-y-4">
+            
+            {/* Brand Header */}
+            <div className="space-y-3">
+              <Link href="/" className="flex items-center gap-2.5 group inline-flex">
+                {/* Circular Logo with a premium gradient border and glow effect */}
+                <div className="relative rounded-full p-[1.5px] bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-700 w-10 h-10 sm:w-12 sm:h-12 shrink-0 transition-transform duration-300 group-hover:scale-105">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-white relative">
+                    <Image
+                      src="/images/logo.jpg"
+                      alt="OM Natural Logo"
+                      fill
+                      sizes="48px"
+                      className="object-cover"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex flex-col justify-center text-left">
+                  <h2 className="text-base sm:text-2xl lg:text-2xl font-black tracking-tight font-heading gold-text-gradient drop-shadow-sm leading-tight">
+                    {language === 'te' ? 'ఓం సహజ చెక్క గానుగ నూనెలు' : 'OM Natural Chekka Ganuga Oils'}
+                  </h2>
+                  <p className="text-[8px] sm:text-[10px] font-black tracking-[0.15em] text-amber-500 uppercase mt-0.5">
+                    {language === 'te' ? 'సాంప్రదాయ నూనెలు' : '100% Pure & Chemical-Free'}
+                  </p>
+                </div>
+              </Link>
+              <p className="max-w-xl text-[10px] sm:text-xs text-amber-200/40 leading-relaxed font-medium text-left">
+                {language === 'te' 
+                  ? 'సాంప్రదాయ పద్ధతిలో తయారుచేసిన స్వచ్ఛమైన మరియు రసాయన రహిత చెక్క గానుగ వంట నూనెలు.' 
+                  : 'Your trusted destination for traditionally crafted pure, cold-pressed cooking oils.'}
+              </p>
+            </div>
+
+            {/* Quick Contact Pills */}
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href="tel:+918688291288"
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#25150a]/90 border border-amber-900/30 rounded-full hover:border-amber-500/60 hover:bg-amber-950/70 text-amber-300 font-bold transition-all text-[9px] sm:text-xs shrink-0"
+              >
+                <Phone size={11} className="text-amber-400" />
+                <span>+91 86882 91288</span>
+              </a>
+              <a
+                href="https://wa.me/918688291288"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#092216]/90 border border-emerald-950 rounded-full hover:border-emerald-500/60 hover:bg-emerald-950/70 text-emerald-300 font-bold transition-all text-[9px] sm:text-xs shrink-0"
+              >
+                <MessageCircle size={11} className="text-emerald-400" />
+                <span>WhatsApp</span>
+              </a>
+              <a
+                href="mailto:info@om-naturals.com"
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#25150a]/90 border border-amber-900/30 rounded-full hover:border-amber-500/60 hover:bg-amber-950/70 text-amber-300 font-bold transition-all text-[9px] sm:text-xs shrink-0"
+              >
+                <Mail size={11} className="text-amber-400" />
+                <span>info@om-naturals.com</span>
+              </a>
+            </div>
+
+            {/* Inline Navigation Links (Wrapped for more links) */}
+            <div className="flex flex-col gap-3 w-full border-t border-amber-950/30 pt-6 pb-4 text-[10px] xs:text-xs sm:text-sm font-bold tracking-wide text-amber-200/80">
+              <nav className="flex flex-wrap justify-center sm:justify-start items-center gap-x-3 sm:gap-x-4 gap-y-3 leading-relaxed">
+                <Link href="/" className="hover:text-amber-400 transition-colors whitespace-nowrap">{t('nav_home')}</Link>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-800/60 hidden xs:block" />
+                <Link href="/products" className="hover:text-amber-400 transition-colors whitespace-nowrap">{t('nav_oils')}</Link>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-800/60 hidden xs:block" />
+                <Link href="/account?tab=orders" className="hover:text-amber-400 transition-colors whitespace-nowrap">{t('nav_track')}</Link>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-800/60 hidden sm:block" />
+                <Link href="/about" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'మా గురించి' : 'About Us'}</Link>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-800/60 hidden xs:block" />
+                <Link href="/contact" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'సంప్రదించండి' : 'Contact'}</Link>
+              </nav>
+              <nav className="flex flex-wrap justify-center sm:justify-start items-center gap-x-3 sm:gap-x-4 gap-y-3 opacity-90 leading-relaxed mt-1">
+                <Link href="/policy?tab=shipping" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'షిప్పింగ్' : 'Shipping'}</Link>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-800/60 hidden xs:block" />
+                <Link href="/policy?tab=returns" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'రీఫండ్స్ & క్యాన్సిలేషన్స్' : 'Refunds & Cancellations'}</Link>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-800/60 hidden lg:block" />
+                <Link href="/policy?tab=privacy" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'ప్రైవసీ' : 'Privacy'}</Link>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-800/60 hidden xs:block" />
+                <Link href="/policy?tab=terms" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'నిబంధనలు' : 'Terms & Conditions'}</Link>
+              </nav>
+            </div>
+
+          </div>
+
+          {/* ══ RIGHT COLUMN: Google Maps Embed (shrunken height on mobile) ══ */}
+          <div className="w-full h-32 lg:h-auto lg:min-h-[200px] rounded-2xl overflow-hidden shadow-xl relative group border border-amber-900/30 shrink-0">
+            {/* Elegant overlay gradient that fades out on hover */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10 group-hover:opacity-0 transition-opacity duration-500"></div>
+            
+            <iframe 
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3828.7357141809703!2d80.4322966!3d16.3364427!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a358bcd27793cff%3A0x3730d16c23f9b485!2sOM%20NATURAL%20CHEKKA%20GANUGA%20NUNE!5e0!3m2!1sen!2sin!4v1782209958475!5m2!1sen!2sin" 
+              className="absolute inset-0 w-full h-full grayscale-[15%] sepia-[15%] group-hover:grayscale-0 group-hover:sepia-0 transition-all duration-700"
+              style={{ border: 0 }} 
+              allowFullScreen={false} 
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade"
+            ></iframe>
+            
+            <div className="absolute bottom-2.5 left-2.5 z-20 bg-[#1c1009]/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-amber-900/50 shadow-md flex items-center gap-1.5 group-hover:translate-y-10 group-hover:opacity-0 transition-all duration-300">
+              <MapPin size={12} className="text-amber-500" />
+              <div>
+                <p className="text-[9px] font-black tracking-widest text-amber-400 uppercase leading-none mb-0.5">Visit Our Store</p>
+                <p className="text-[9px] text-amber-100/70 font-semibold leading-none font-heading">Guntur, AP</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ══ BOTTOM BAR: Copyright & Secure Payments ══ */}
+        <div className="mt-6 pt-4 border-t border-amber-955 w-full flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
+          <p className="text-[9px] sm:text-xs text-amber-600/70 font-bold order-2 md:order-1">
+            © {year} {language === 'te' ? 'ఓం సహజ చెక్క గానుగ నూనెలు' : 'OM NATURAL CHEKKA GANUGA NUNELU'}.<br className="sm:hidden" /> {language === 'te' ? 'అన్ని హక్కులు రక్షించబడ్డాయి.' : 'All Rights Reserved.'}
+          </p>
+          <div className="flex items-center space-x-1.5 bg-[#140b05] px-3 py-1 rounded-full border border-amber-955 order-1 md:order-2 shadow-inner">
+            <ShieldCheck size={12} className="text-amber-500" />
+            <span className="text-[9px] font-bold text-amber-200/50 uppercase tracking-wide">{t('footer_secure')}:</span>
+            <span className="text-[9px] font-black text-amber-400 tracking-wider">PhonePe / UPI / COD</span>
           </div>
         </div>
 
