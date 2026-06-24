@@ -99,7 +99,7 @@ export default function InstallPrompt() {
         {/* Main Banner Area */}
         <div className="p-3.5 flex items-center gap-3">
           <div className="w-10 h-10 shrink-0 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center overflow-hidden">
-            <img src="/images/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+            <img src="/images/logo.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           
           <div className="flex-1 min-w-0">

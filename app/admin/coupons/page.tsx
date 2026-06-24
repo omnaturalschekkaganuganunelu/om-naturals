@@ -44,7 +44,7 @@ export default function AdminCouponsPage() {
     } else if (authStatus === 'authenticated' && session?.user?.role !== 'ADMIN') {
       router.push('/');
     }
-  }, [authStatus, session]);
+  }, [authStatus, session, router]);
 
   // Load Coupons
   const loadCoupons = () => {
@@ -65,7 +65,7 @@ export default function AdminCouponsPage() {
     if (authStatus === 'authenticated' && session?.user?.role === 'ADMIN') {
       loadCoupons();
     }
-  }, [authStatus]);
+  }, [authStatus, session?.user?.role]);
 
   // Handle Input Changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

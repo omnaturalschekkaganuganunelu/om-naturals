@@ -594,7 +594,7 @@ function AccountContent() {
         <body>
           <div class="header" style="align-items: center;">
             <div style="display: flex; align-items: center; gap: 15px;">
-              <img src="/images/logo.jpg" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #b45309;" alt="Logo" />
+              <img src="/images/logo.png" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #b45309;" alt="Logo" />
               <div>
                 <div class="logo">Om Natural</div>
                 <div style="font-size: 12px; color: #b45309; margin-top: 4px;">Chekka Ganuga Nune</div>

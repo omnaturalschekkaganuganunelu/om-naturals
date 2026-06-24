@@ -118,7 +118,7 @@ function NavbarContent() {
               }`}>
                 <div className="w-full h-full rounded-full overflow-hidden bg-white relative">
                   <Image
-                    src="/images/logo.jpg"
+                    src="/images/logo.png"
                     alt="OM Natural Logo"
                     fill
                     sizes="(max-width: 640px) 40px, 48px"

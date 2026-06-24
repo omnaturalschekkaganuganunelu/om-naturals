@@ -25,7 +25,7 @@ export default function Footer() {
                 <div className="relative rounded-full p-[1.5px] bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-700 w-10 h-10 sm:w-12 sm:h-12 shrink-0 transition-transform duration-300 group-hover:scale-105">
                   <div className="w-full h-full rounded-full overflow-hidden bg-white relative">
                     <Image
-                      src="/images/logo.jpg"
+                      src="/images/logo.png"
                       alt="OM Natural Logo"
                       fill
                       sizes="48px"

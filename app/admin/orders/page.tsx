@@ -36,7 +36,7 @@ export default function AdminOrdersPage() {
     } else if (authStatus === 'authenticated' && session?.user?.role !== 'ADMIN') {
       router.push('/');
     }
-  }, [authStatus, session]);
+  }, [authStatus, session, router]);
 
   // Load Orders
   const loadOrders = () => {

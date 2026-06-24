@@ -149,7 +149,7 @@ function printInvoice(order: any) {
   </style></head><body>
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:12px">
-      <img src="/images/logo.jpg" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #b45309" />
+      <img src="/images/logo.png" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #b45309" />
       <div><div class="logo">Om Natural</div><div style="font-size:11px;color:#b45309">Chekka Ganuga Nune</div></div>
     </div>
     <div><div class="inv">INVOICE</div><div style="font-size:11px;color:#b45309;text-align:right">${order.orderId}</div></div>

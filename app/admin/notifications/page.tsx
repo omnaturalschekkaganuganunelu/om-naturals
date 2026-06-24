@@ -55,7 +55,7 @@ export default function AdminNotificationsPage() {
     if (status === 'authenticated' && session?.user?.role !== 'ADMIN') {
       router.push('/');
     }
-  }, [status, session]);
+  }, [status, session, router]);
 
   const fetchNotifications = async () => {
     try {

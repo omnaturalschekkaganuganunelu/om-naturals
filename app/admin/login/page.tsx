@@ -22,7 +22,7 @@ export default function AdminLoginPage() {
     if (authStatus === 'authenticated' && session?.user?.role === 'ADMIN') {
       router.push('/admin/dashboard');
     }
-  }, [authStatus, session]);
+  }, [authStatus, session, router]);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -152,7 +152,7 @@ export default function AdminProductsPage() {
   useEffect(() => {
     if (authStatus === 'unauthenticated') router.push('/admin/login');
     else if (authStatus === 'authenticated' && session?.user?.role !== 'ADMIN') router.push('/');
-  }, [authStatus, session]);
+  }, [authStatus, session, router]);
 
   // ─── Load Data ────────────────────────────────────────────────────────────
   const loadData = () => {
@@ -171,7 +171,7 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     if (authStatus === 'authenticated' && session?.user?.role === 'ADMIN') loadData();
-  }, [authStatus]);
+  }, [authStatus, session?.user?.role]);
 
   // ─── Group products by base name ──────────────────────────────────────────
   const productGroups = React.useMemo(() => {
@@ -457,6 +457,7 @@ export default function AdminProductsPage() {
                         <div className="p-3 sm:p-4 hover:bg-amber-50/30 transition-colors">
                           {/* Top row: Image + Name + Expand toggle */}
                           <div className="flex items-start gap-3">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={first.images[0] || ''}
                               alt=""
@@ -524,6 +525,7 @@ export default function AdminProductsPage() {
                           <div className="bg-amber-50/20 border-t border-amber-50 divide-y divide-amber-50/60">
                             {groupVariants.map((v) => (
                               <div key={v.id} className="flex items-center gap-3 px-4 py-3">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                   src={v.images[0] || ''}
                                   alt=""
@@ -702,6 +704,7 @@ export default function AdminProductsPage() {
                       </label>
                     </div>
                     {singleForm.imageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={singleForm.imageUrl} alt="" className="mt-2 w-20 h-20 rounded-xl object-cover border border-amber-100" />
                     )}
                   </div>

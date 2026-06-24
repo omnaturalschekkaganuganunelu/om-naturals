@@ -31,7 +31,7 @@ export default function AdminDashboardPage() {
     } else if (authStatus === 'authenticated' && session?.user?.role !== 'ADMIN') {
       router.push('/');
     }
-  }, [authStatus, session]);
+  }, [authStatus, session, router]);
 
   // Load Initial Dashboard Stats
   const loadStats = () => {
@@ -52,7 +52,7 @@ export default function AdminDashboardPage() {
     if (authStatus === 'authenticated' && session?.user?.role === 'ADMIN') {
       loadStats();
     }
-  }, [authStatus]);
+  }, [authStatus, session?.user?.role]);
 
   // Realtime new order alerts
   useRealtime('Order', 'INSERT', (payload) => {
