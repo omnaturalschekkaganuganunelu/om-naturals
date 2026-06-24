@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import crypto from 'crypto';
 import { orderEmitter } from '@/lib/sse';
+import { sendOrderConfirmationEmail } from '@/lib/orderEmail';
 
 export async function POST(req: NextRequest) {
   try {
@@ -111,6 +112,16 @@ export async function POST(req: NextRequest) {
           }
         }
       });
+
+      // Send Order Confirmation Email now that payment is confirmed
+      try {
+        const orderUser = await prisma.user.findUnique({ where: { id: order.userId } });
+        if (orderUser && orderUser.email && orderUser.name) {
+          await sendOrderConfirmationEmail(order.id, orderUser.email, orderUser.name);
+        }
+      } catch (e) {
+        console.error('Webhook: failed to send confirmation email', e);
+      }
 
       // Broadcast SSE notification
       orderEmitter.emit('order-update', {
