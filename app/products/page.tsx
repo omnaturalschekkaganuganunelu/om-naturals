@@ -111,7 +111,7 @@ function ProductListingContent() {
   }, [category, categories, language, t]);
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
+    <div className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 py-6 sm:py-8 flex-1">
 
       {/* Page Heading */}
       <div className="mb-8">

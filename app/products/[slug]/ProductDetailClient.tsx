@@ -222,7 +222,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
     <>
       {/* ── Page wrapper: pb-32 on mobile so content never hides behind sticky bar + nav ── */}
       <div className="pb-8 md:pb-10 w-full max-w-full overflow-x-hidden">
-        <div className="max-w-6xl mx-auto w-full min-w-0">
+        <div className="max-w-screen-2xl mx-auto w-full min-w-0">
 
           {/* ── Breadcrumb ── */}
           <nav className="text-[11px] text-gray-400 flex items-center gap-1 font-medium pt-4 pb-3 overflow-x-auto no-scrollbar whitespace-nowrap">

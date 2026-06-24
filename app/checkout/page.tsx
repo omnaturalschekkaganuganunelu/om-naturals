@@ -336,7 +336,7 @@ export default function CheckoutPage() {
     <>
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
+      <main className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 py-6 sm:py-8 flex-1">
         <div className="mb-6">
           <BackButton />
         </div>

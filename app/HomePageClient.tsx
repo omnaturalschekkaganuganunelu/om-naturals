@@ -133,7 +133,7 @@ export default function HomePageClient({ categories, products }: Props) {
       
 
       {/* Featured Products */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+      <section className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 pt-10">
         <div className="flex flex-col sm:flex-row justify-between items-baseline mb-8">
           <div>
             <h2 className="text-2xl sm:text-3xl font-black text-amber-950 font-heading">{t('products_heading')}</h2>
@@ -152,7 +152,7 @@ export default function HomePageClient({ categories, products }: Props) {
       </section>
 
       {/* Categories */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+      <section className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 pt-20">
         <div className="text-center max-w-xl mx-auto mb-12">
           <h2 className="text-2xl sm:text-3xl font-black text-amber-950 font-heading">{t('categories_heading')}</h2>
           <p className="text-xs sm:text-sm text-gray-500 mt-2">{t('categories_sub')}</p>
@@ -167,7 +167,7 @@ export default function HomePageClient({ categories, products }: Props) {
 
       {/* Trust Badges */}
       <section className="bg-gradient-to-r from-amber-50 to-amber-50/50 border-y border-amber-100 mt-20 py-14 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        <div className="max-w-screen-2xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {[
             { icon: <Shield size={24} className="fill-amber-700/5" />, heading: t('trust_chemical_free'), sub: t('trust_chemical_sub') },
             { icon: <Award size={24} />, heading: t('trust_woodpress'), sub: t('trust_woodpress_sub') },

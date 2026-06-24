@@ -873,10 +873,10 @@ function AccountContent() {
 
   return (
     <>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 relative">
+      <div className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 py-6 sm:py-8 flex-1 relative w-full">
       
       {/* Account Greeting Header */}
-      <div className="bg-gradient-to-r from-amber-800 to-amber-950 text-white rounded-3xl p-6 sm:p-8 smooth-shadow mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-gradient-to-r from-amber-800 to-amber-950 text-white rounded-3xl p-5 sm:p-6 lg:p-8 smooth-shadow mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="space-y-1">
           <h2 className="text-xs font-bold text-amber-300 uppercase tracking-widest">
             {t('account_greeting')}
@@ -894,7 +894,7 @@ function AccountContent() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 sm:gap-6 lg:gap-8 items-start">
         
         {/* Navigation Sidebar Tabs */}
         <aside className="bg-white border border-amber-100 rounded-3xl p-4 smooth-shadow flex flex-col space-y-1">
@@ -962,7 +962,7 @@ function AccountContent() {
 
               {/* Add address form overlay */}
               {showForm && (
-                <form onSubmit={handleSaveAddress} className="bg-white border border-amber-100 p-5 rounded-3xl smooth-shadow grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in-up">
+                <form onSubmit={handleSaveAddress} className="bg-white border border-amber-100 p-4 sm:p-5 lg:p-6 rounded-3xl smooth-shadow grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in-up">
                   <h4 className="col-span-1 sm:col-span-2 text-xs font-bold text-amber-950">{t('checkout_new_address')}</h4>
                   
                   <div className="col-span-1 sm:col-span-2 pb-2">
@@ -1160,7 +1160,7 @@ function AccountContent() {
 
           {/* TAB 3: PROFILE */}
           {activeTab === 'profile' && (
-            <div className="bg-white border border-amber-100 rounded-3xl p-6 sm:p-8 smooth-shadow space-y-6">
+            <div className="bg-white border border-amber-100 rounded-3xl p-4 sm:p-6 lg:p-8 smooth-shadow space-y-6">
               <h3 className="text-lg font-bold text-amber-950 font-heading border-b border-amber-50 pb-3 flex items-center space-x-2">
                 <div className="w-7 h-7 flex items-center justify-center rounded-full bg-amber-50 border border-amber-200 text-amber-900 shrink-0">
                   <Info size={15} />
