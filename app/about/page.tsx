@@ -84,13 +84,13 @@ export default function AboutPage() {
               {isTe ? (
                 <>
                   <p><strong>ఓం సహజ చెక్క గానుగ నూనెలు</strong> వద్ద, నిజమైన ఆరోగ్యం వంటగది నుండే మొదలవుతుందని మేము నమ్ముతాము. ఆంధ్రప్రదేశ్ లోని గుంటూరు నడిబొడ్డున ఉన్న మా ప్రయాణం, సాంప్రదాయ వంట నూనెల స్వచ్ఛతను తిరిగి ఆధునిక గృహాలకు తీసుకురావాలనే ఒకే ఒక లక్ష్యంతో ప్రారంభమైంది.</p>
-                  <p>నేటి రిఫైన్డ్ మరియు రసాయనిక నూనెల కాలంలో, మేము మన పురాతన భారతీయ వారసత్వాన్ని అనుసరిస్తున్నాము. మేము పురాతన "చెక్క గానుగ" పద్ధతిని ఉపయోగించి నూనెలను తీస్తాము. దీనివల్ల నూనె గింజలు వేడి కాకుండా ఉంటాయి, మరియు వాటిలోని సహజ పోషకాలు, సువాసన మరియు రుచి 100% అలాగే నిలిచి ఉంటాయి.</p>
+                  <p>నేటి రిఫైన్డ్ మరియు రసాయనిక నూనెల కాలంలో, మేము మన పురాతన భారతీయ వారసత్వాన్ని అనుసరిస్తున్నాము. మేము పురాతన &quot;చెక్క గానుగ&quot; పద్ధతిని ఉపయోగించి నూనెలను తీస్తాము. దీనివల్ల నూనె గింజలు వేడి కాకుండా ఉంటాయి, మరియు వాటిలోని సహజ పోషకాలు, సువాసన మరియు రుచి 100% అలాగే నిలిచి ఉంటాయి.</p>
                   <p>మేము ఉత్పత్తి చేసే ప్రతి చుక్క నూనె అన్‌రిఫైన్డ్ (unrefined) మరియు ఎలాంటి రసాయనాలు లేదా ప్రిజర్వేటివ్స్ లేనిది. వేరుశెనగ నుండి నువ్వుల వరకు, మరియు కొబ్బరి నుండి బాదం వరకు, మేము నమ్మకమైన రైతుల నుండి నేరుగా సేకరించిన అత్యుత్తమ నాణ్యత గల గింజలను మాత్రమే ఉపయోగిస్తాము.</p>
                 </>
               ) : (
                 <>
                   <p>At <strong>OM NATURAL CHEKKA GANUGA NUNELU</strong>, we believe that true health begins in the kitchen. Located in the heart of Guntur, Andhra Pradesh, our journey started with a simple vision: to bring back the forgotten purity of traditional cooking oils to modern households.</p>
-                  <p>In today's world of highly refined and chemically processed oils, we take a step back into our rich Indian heritage. We extract oils using the ancient "Chekka Ganuga" (Wooden Cold Press) method. This ensures that the oil seeds are pressed at room temperature without generating heat, preserving 100% of the natural nutrients, aroma, and flavor.</p>
+                  <p>In today&apos;s world of highly refined and chemically processed oils, we take a step back into our rich Indian heritage. We extract oils using the ancient &quot;Chekka Ganuga&quot; (Wooden Cold Press) method. This ensures that the oil seeds are pressed at room temperature without generating heat, preserving 100% of the natural nutrients, aroma, and flavor.</p>
                   <p>Every drop of oil we produce is unrefined, unbleached, and completely free from preservatives or chemical solvents. From Groundnut to Sesame, and Coconut to Almond, we source only the finest, premium quality seeds directly from trusted farmers.</p>
                 </>
               )}
