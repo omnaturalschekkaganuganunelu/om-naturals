@@ -49,8 +49,12 @@ export default function CheckoutPage() {
   const [placingOrder, setPlacingOrder] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
 
-  // Settings values
+  // Settings values — loaded dynamically from /api/settings
   const [codEnabled, setCodEnabled] = useState(true);
+  const [gstRate, setGstRateState] = useState(5);
+  const [freeShippingAbove, setFreeShippingAbove] = useState(500);
+  const [shippingFee, setShippingFeeState] = useState(30);
+  const [packingFee, setPackingFeeState] = useState(20);
 
   // Redirect if not authenticated or cart is empty
   useEffect(() => {
@@ -91,7 +95,11 @@ export default function CheckoutPage() {
     fetch('/api/settings')
       .then((res) => res.json())
       .then((data) => {
-        setCodEnabled(data.codEnabled);
+        if (data.codEnabled !== undefined) setCodEnabled(data.codEnabled);
+        if (data.gstRate !== undefined) setGstRateState(data.gstRate);
+        if (data.freeShippingAbove !== undefined) setFreeShippingAbove(data.freeShippingAbove);
+        if (data.shippingFee !== undefined) setShippingFeeState(data.shippingFee);
+        if (data.packingFee !== undefined) setPackingFeeState(data.packingFee);
       })
       .catch((err) => console.error('Error fetching settings:', err));
   }, [authStatus]);
@@ -304,13 +312,12 @@ export default function CheckoutPage() {
     return <PremiumLoader fullScreen={true} text={language === 'te' ? "చెక్అవుట్ సిద్ధమవుతోంది..." : "Preparing Checkout..."} />;
   }
 
-  // Calculate quick summary totals
+  // Calculate summary totals using dynamic site settings
   const subtotal = getCartTotal();
   const discount = coupon ? coupon.discount : 0;
   const taxable = subtotal - discount;
-  const tax = parseFloat(((taxable * 5) / 100).toFixed(2));
-  const shipping = taxable >= 500 ? 0 : 30;
-  const packingFee = 20;
+  const tax = parseFloat(((taxable * gstRate) / 100).toFixed(2));
+  const shipping = taxable >= freeShippingAbove ? 0 : shippingFee;
   const total = parseFloat((taxable + tax + shipping + packingFee).toFixed(2));
 
   return (

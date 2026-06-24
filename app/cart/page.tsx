@@ -27,46 +27,76 @@ export default function CartPage() {
 
   // Billing states
   const [subtotal, setSubtotal] = useState(0);
-  const [shipping, setShipping] = useState(40);
+  const [shipping, setShipping] = useState(0);
   const [tax, setTax] = useState(0);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [total, setTotal] = useState(0);
 
-  // Free shipping threshold & tax rate constants
-  const FREE_SHIPPING_THRESHOLD = 500;
-  const SHIPPING_FEE = 30;
-  const PACKING_FEE = 20;
-  const GST_RATE = 5;
+  // Site settings — fetched dynamically from /api/settings
+  const [FREE_SHIPPING_THRESHOLD, setFreeShippingThreshold] = useState(500);
+  const [SHIPPING_FEE, setShippingFee] = useState(30);
+  const [PACKING_FEE, setPackingFee] = useState(20);
+  const [GST_RATE, setGstRate] = useState(5);
 
-  // Compute billing summary on cart items/coupon changes
+  // Active coupons — fetched dynamically from /api/coupons/public
+  const [activeCoupons, setActiveCoupons] = useState<{
+    code: string;
+    type: string;
+    value: number;
+    minOrderValue: number;
+    maxDiscount: number | null;
+  }[]>([]);
+
+  // Fetch settings & active coupons once on mount
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((s) => {
+        if (s.freeShippingAbove !== undefined) setFreeShippingThreshold(s.freeShippingAbove);
+        if (s.shippingFee !== undefined) setShippingFee(s.shippingFee);
+        if (s.packingFee !== undefined) setPackingFee(s.packingFee);
+        if (s.gstRate !== undefined) setGstRate(s.gstRate);
+      })
+      .catch(() => {/* use defaults silently */});
+
+    fetch('/api/coupons/public')
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setActiveCoupons(data); })
+      .catch(() => {});
+  }, []);
+
+  // Recompute billing summary whenever cart items, coupon, or site-settings change
   useEffect(() => {
     const cartSubtotal = getCartTotal();
     setSubtotal(cartSubtotal);
 
     let couponDiscount = 0;
     if (coupon) {
-      // Re-verify if cart total still satisfies minimum value
-      if (cartSubtotal >= 200) { // Standard min order value for coupon
-        couponDiscount = coupon.discount;
-        // recalculate discount in case subtotal changed
+      // Re-verify if cart total still satisfies the coupon's minimum order value
+      const minRequired = coupon.minOrderValue ?? 0;
+      if (cartSubtotal >= minRequired) {
+        // Recalculate discount based on current subtotal (handles cart quantity changes)
         if (coupon.type === 'PERCENT') {
           couponDiscount = (cartSubtotal * coupon.value) / 100;
-          // Apply max cap if applicable
-          if (coupon.code === 'DEEPAM10' && couponDiscount > 100) couponDiscount = 100;
-          if (coupon.code === 'PUREGOLD' && couponDiscount > 200) couponDiscount = 200;
+          // Respect server-defined maxDiscount cap stored in the coupon state
+          if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
+            couponDiscount = coupon.maxDiscount;
+          }
         } else {
           couponDiscount = coupon.value;
         }
-        
         if (couponDiscount > cartSubtotal) couponDiscount = cartSubtotal;
-        
         setDiscountAmount(couponDiscount);
       } else {
-        // Remove coupon because cart no longer satisfies min order
+        // Coupon no longer valid for current cart total — remove it
         setCoupon(null);
         setDiscountAmount(0);
         setCouponSuccess('');
-        setCouponError(language === 'te' ? 'ఉత్పత్తుల మొత్తం ₹200 కంటే తక్కువగా ఉన్నందున కూపన్ తొలగించబడింది.' : 'Coupon removed because cart total is less than ₹200.');
+        setCouponError(
+          language === 'te'
+            ? `కూపన్ కు కనీస కొనుగోలు ₹${minRequired} అవసరం. కూపన్ తొలగించబడింది.`
+            : `Coupon requires a minimum order of ₹${minRequired}. Coupon removed.`
+        );
       }
     } else {
       setDiscountAmount(0);
@@ -80,7 +110,7 @@ export default function CartPage() {
     setTax(computedTax);
     setShipping(computedShipping);
     setTotal(computedTotal);
-  }, [items, coupon]);
+  }, [items, coupon, FREE_SHIPPING_THRESHOLD, SHIPPING_FEE, PACKING_FEE, GST_RATE]);
 
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +124,7 @@ export default function CartPage() {
       const res = await fetch('/api/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponCode, subtotal }),
+        body: JSON.stringify({ code: couponCode, subtotal, language }),
       });
 
       const data = await res.json();
@@ -105,6 +135,8 @@ export default function CartPage() {
           type: data.type,
           value: data.value,
           discount: data.discount,
+          minOrderValue: data.minOrderValue,
+          maxDiscount: data.maxDiscount,
         });
         setCouponSuccess(language === 'te' ? `కూపన్ '${data.code}' విజయవంతంగా వర్తించబడింది! ₹${data.discount} సేవ్ చేసారు.` : `Coupon '${data.code}' applied successfully! You saved ₹${data.discount}.`);
         setCouponCode('');
@@ -297,7 +329,7 @@ export default function CartPage() {
                   <div className="flex space-x-2">
                     <input
                       type="text"
-                      placeholder="e.g. DEEPAM10"
+                      placeholder="e.g. NUNE10"
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value)}
                       className="flex-1 bg-amber-50/20 text-xs text-amber-900 border border-amber-100 rounded-lg py-2 px-3 focus:outline-none focus:ring-1 focus:ring-amber-500 uppercase font-semibold"
@@ -323,14 +355,38 @@ export default function CartPage() {
                     </p>
                   )}
 
-                  {/* Suggest standard active coupons */}
-                  <div className="bg-amber-50/30 p-2.5 rounded-xl border border-amber-50">
-                    <p className="text-[10px] font-bold text-amber-900">{t('cart_recommended_coupons')}</p>
-                    <div className="space-y-1 mt-1.5 text-[10px] text-gray-500 font-medium">
-                      <p>• <span className="font-bold text-amber-950 cursor-pointer hover:underline" onClick={() => setCouponCode('DEEPAM10')}>DEEPAM10</span> - {language === 'te' ? '10% ఆఫ్ (గరిష్టంగా ₹100, కనీస కొనుగోలు ₹200)' : '10% Off (Max ₹100, Min purchase ₹200)'}</p>
-                      <p>• <span className="font-bold text-amber-950 cursor-pointer hover:underline" onClick={() => setCouponCode('FESTIVE50')}>FESTIVE50</span> - {language === 'te' ? '₹50 ఫ్లాట్ తగ్గింపు (కనీస కొనుగోలు ₹500)' : '₹50 Flat Discount (Min purchase ₹500)'}</p>
+                  {/* Dynamic active coupons from database */}
+                  {activeCoupons.length > 0 && (
+                    <div className="bg-amber-50/30 p-2.5 rounded-xl border border-amber-50">
+                      <p className="text-[10px] font-bold text-amber-900">{t('cart_recommended_coupons')}</p>
+                      <div className="space-y-1 mt-1.5 text-[10px] text-gray-500 font-medium">
+                        {activeCoupons.map((c) => {
+                          let desc = '';
+                          if (c.type === 'PERCENT') {
+                            desc = language === 'te'
+                              ? `${c.value}% ఆఫ్${c.maxDiscount ? ` (గరిష్టంగా ₹${c.maxDiscount})` : ''}${c.minOrderValue > 0 ? `, కనీస కొనుగోలు ₹${c.minOrderValue}` : ''}`
+                              : `${c.value}% Off${c.maxDiscount ? ` (Max ₹${c.maxDiscount})` : ''}${c.minOrderValue > 0 ? `, Min ₹${c.minOrderValue}` : ''}`;
+                          } else {
+                            desc = language === 'te'
+                              ? `₹${c.value} ఫ్లాట్ తగ్గింపు${c.minOrderValue > 0 ? ` (కనీస కొనుగోలు ₹${c.minOrderValue})` : ''}`
+                              : `₹${c.value} Flat Discount${c.minOrderValue > 0 ? ` (Min ₹${c.minOrderValue})` : ''}`;
+                          }
+                          return (
+                            <p key={c.code}>
+                              •{' '}
+                              <span
+                                className="font-bold text-amber-950 cursor-pointer hover:underline"
+                                onClick={() => setCouponCode(c.code)}
+                              >
+                                {c.code}
+                              </span>
+                              {' '}- {desc}
+                            </p>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </form>
               )}
             </div>

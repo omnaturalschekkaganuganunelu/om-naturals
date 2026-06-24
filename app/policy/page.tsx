@@ -38,7 +38,7 @@ function PolicyContent() {
     <div className="max-w-3xl mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12 flex-1 w-full">
       
       {/* Tabs Header */}
-      <div className="flex border-b border-amber-50 justify-between sm:justify-start sm:space-x-8 mb-8 overflow-x-auto no-scrollbar pb-1">
+      <div className="flex border-b border-amber-50 gap-5 sm:gap-8 mb-8 overflow-x-auto no-scrollbar pb-1">
         <button onClick={() => selectTab('shipping')} className={tabClass('shipping')}>
           {isTe ? 'షిప్పింగ్' : 'Shipping'}
         </button>

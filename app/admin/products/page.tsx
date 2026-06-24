@@ -391,11 +391,11 @@ export default function AdminProductsPage() {
   return (
     <>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 overflow-x-hidden">
-        <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 items-start">
+      <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1 overflow-x-hidden">
+        <div className="flex flex-col lg:flex-row gap-0 sm:gap-8 items-start">
           <AdminSidebar />
 
-          <section className="flex-1 w-full min-w-0 space-y-4 sm:space-y-6">
+          <section className="flex-1 w-full min-w-0 px-2 sm:px-0 pt-2 sm:pt-0 space-y-4 sm:space-y-6">
 
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -487,13 +487,22 @@ export default function AdminProductsPage() {
 
                           {/* Bottom row: Stock badge + Actions (always visible on mobile) */}
                           <div className="flex items-center justify-between mt-2.5 pl-15">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
                                 Math.min(...groupVariants.map((v) => v.stock)) < 10
                                   ? 'bg-red-50 text-red-600 border-red-100'
                                   : 'bg-green-50 text-green-700 border-green-100'
                               }`}>
                                 {language === 'te' ? 'స్టాక్' : 'Stock'}: {groupVariants.reduce((s, v) => s + v.stock, 0)}
+                              </span>
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                                first.isActive
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-250'
+                                  : 'bg-red-50 text-red-800 border-red-200'
+                              }`}>
+                                {first.isActive
+                                  ? (language === 'te' ? 'యాక్టివ్' : 'Active')
+                                  : (language === 'te' ? 'ఇన్‌యాక్టివ్' : 'Inactive')}
                               </span>
                               {isMulti && (
                                 <span className="text-[10px] text-gray-400 font-medium">
@@ -535,7 +544,18 @@ export default function AdminProductsPage() {
                                   }}
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-[11px] font-bold text-amber-900">{v.weight} {v.unit}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-[11px] font-bold text-amber-900">{v.weight} {v.unit}</p>
+                                    <span className={`text-[8px] font-black px-1.5 py-0.2 rounded-md border ${
+                                      v.isActive
+                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-250'
+                                        : 'bg-red-50 text-red-800 border-red-200'
+                                    }`}>
+                                      {v.isActive
+                                        ? (language === 'te' ? 'యాక్టివ్' : 'Active')
+                                        : (language === 'te' ? 'ఇన్‌యాక్టివ్' : 'Inactive')}
+                                    </span>
+                                  </div>
                                   <p className="text-[10px] text-gray-400">SKU: {v.sku} · Stock: {v.stock} · ₹{v.price}</p>
                                 </div>
                                 <div className="flex gap-2 flex-shrink-0">
@@ -759,6 +779,26 @@ export default function AdminProductsPage() {
                     <input type="text" className={inputCls} value={singleForm.benefits}
                       onChange={(e) => setSingleForm((p) => ({ ...p, benefits: e.target.value }))}
                       placeholder={language === 'te' ? 'ఉదా: 100% ప్యూర్, విటమిన్ E కలదు' : 'e.g. 100% Pure, Wood Pressed, Contains Vitamin E'} />
+                  </div>
+
+                  {/* Status Toggle (isActive) */}
+                  <div className="flex items-center gap-2.5 bg-amber-50/40 border border-amber-100/60 rounded-2xl p-4">
+                    <input
+                      type="checkbox"
+                      id="isActive"
+                      name="isActive"
+                      checked={singleForm.isActive}
+                      onChange={(e) => setSingleForm((p) => ({ ...p, isActive: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-amber-800 focus:ring-amber-700 cursor-pointer"
+                    />
+                    <div className="flex flex-col">
+                      <label htmlFor="isActive" className="text-xs font-black text-amber-900 cursor-pointer select-none">
+                        {language === 'te' ? 'ఉత్పత్తి సక్రియంగా ఉంది (Active)' : 'Product is Active / Visible to Customers'}
+                      </label>
+                      <p className="text-[10px] text-gray-500 font-medium">
+                        {language === 'te' ? 'ఇది సక్రియంగా లేకపోతే, కస్టమర్లకు హోమ్ స్క్రీన్ మరియు ఇతర పేజీలలో కనిపించదు.' : 'If inactive, this product will be hidden from customer search, home, and product listing pages.'}
+                      </p>
+                    </div>
                   </div>
                 </>
               )}

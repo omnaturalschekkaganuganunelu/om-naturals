@@ -12,12 +12,19 @@ export const revalidate = 600; // Cache for 10 minutes to save Neon compute
 
 async function getProductData(slug: string) {
   try {
-    const product = await prisma.product.findUnique({
+    let product = await prisma.product.findUnique({
       where: { slug },
       include: { category: true },
     });
 
-    if (!product) return null;
+    if (!product && slug.length === 36) { // uuid length fallback
+      product = await prisma.product.findUnique({
+        where: { id: slug },
+        include: { category: true },
+      });
+    }
+
+    if (!product || !product.isActive) return null;
 
     // Extract base name to find sibling variants (same product group, different sizes)
     const baseName = extractBaseName(product.name);
@@ -102,9 +109,15 @@ async function getProductData(slug: string) {
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   try {
-    const product = await prisma.product.findUnique({
+    let product = await prisma.product.findUnique({
       where: { slug: params.slug },
     });
+
+    if (!product && params.slug.length === 36) {
+      product = await prisma.product.findUnique({
+        where: { id: params.slug },
+      });
+    }
 
     if (!product) {
       return {
@@ -162,6 +175,12 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
 
   if (!data) {
     notFound();
+  }
+
+  // If the user arrived via ID instead of slug, gently redirect to the clean URL
+  if (params.slug !== data.product.slug) {
+    const { redirect } = await import('next/navigation');
+    redirect(`/products/${data.product.slug}`);
   }
 
   // Generate Schema.org Product Structured Data (JSON-LD)

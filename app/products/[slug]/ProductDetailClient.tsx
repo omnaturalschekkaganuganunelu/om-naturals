@@ -207,7 +207,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
-    if (shouldRedirect) router.push('/cart');
+    if (shouldRedirect) router.push('/checkout');
   }, [outOfStock, addItem, product, quantity, router]);
 
   const handleIncrement = () => {

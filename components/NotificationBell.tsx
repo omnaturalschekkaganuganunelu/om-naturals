@@ -5,15 +5,7 @@ import { Bell, BellRing, X, Package, Tag, Info, CheckCheck, Sparkles } from 'luc
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useRealtime } from '@/hooks/useRealtime';
-interface Notification {
-  id: string;
-  title: string;
-  body: string;
-  type: string;
-  isRead: boolean;
-  orderId: string | null;
-  createdAt: string;
-}
+import { useNotificationStore, Notification } from '@/store/notificationStore';
 
 const TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string; bg: string; dot: string }> = {
   ORDER: { icon: Package, color: 'text-blue-600',  bg: 'bg-blue-50',   dot: 'bg-blue-500' },
@@ -72,45 +64,41 @@ const playChime = () => {
 export default function NotificationBell() {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [animateBell, setAnimateBell] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const prevUnread = useRef(0);
 
-  const fetchNotifications = useCallback(async () => {
-    if (status !== 'authenticated') return;
-    try {
-      const res = await fetch('/api/notifications');
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-        const newCount = data.unreadCount || 0;
-        if (newCount > prevUnread.current) {
-          setAnimateBell(true);
-          playChime();
-          setTimeout(() => setAnimateBell(false), 2000);
-        }
-        prevUnread.current = newCount;
-        setUnreadCount(newCount);
-      }
-    } catch {}
-  }, [status]);
+  const {
+    notifications,
+    unreadCount,
+    fetchNotifications,
+    markAllRead,
+    markRead,
+    addRealtimeNotification,
+  } = useNotificationStore();
 
   useEffect(() => {
-    // Fetch ONLY once on mount to save Neon DB compute hours
-    fetchNotifications();
-  }, [fetchNotifications]);
+    if (status === 'authenticated') {
+      fetchNotifications(status);
+    }
+  }, [status, fetchNotifications]);
 
+  // Handle bell animation & chime when count increases
+  useEffect(() => {
+    if (unreadCount > prevUnread.current) {
+      setAnimateBell(true);
+      playChime();
+      const timer = setTimeout(() => setAnimateBell(false), 2000);
+      prevUnread.current = unreadCount;
+      return () => clearTimeout(timer);
+    }
+    prevUnread.current = unreadCount;
+  }, [unreadCount]);
 
   // Listen for realtime notifications
   useRealtime('Notification', 'INSERT', (payload) => {
-    // When a new notification comes in, check if it belongs to the logged-in user
-    if (payload.new && session?.user?.email) {
-      // We don't have the user ID easily accessible in the session by default,
-      // so the safest way is to just refetch the notifications list to get the exact unread count.
-      fetchNotifications();
+    if (payload.new) {
+      addRealtimeNotification(payload.new as any);
     }
   });
 
@@ -128,21 +116,8 @@ export default function NotificationBell() {
   const handleOpen = async () => {
     setOpen((prev) => !prev);
     if (!open && unreadCount > 0) {
-      // mark all read
-      try {
-        await fetch('/api/notifications/mark-all-read', { method: 'PUT' });
-        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-        setUnreadCount(0);
-        prevUnread.current = 0;
-      } catch {}
+      markAllRead();
     }
-  };
-
-  const markRead = async (id: string) => {
-    await fetch(`/api/notifications/${id}/read`, { method: 'PUT' });
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
   };
 
   if (status !== 'authenticated') return null;
@@ -260,9 +235,7 @@ export default function NotificationBell() {
               <p className="text-[10px] text-gray-400 font-semibold">Last 30 notifications</p>
               <button
                 onClick={async () => {
-                  await fetch('/api/notifications/mark-all-read', { method: 'PUT' });
-                  setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-                  setUnreadCount(0);
+                  await markAllRead();
                 }}
                 className="flex items-center gap-1 text-[10px] font-bold text-amber-700 hover:text-amber-900 transition-colors"
               >

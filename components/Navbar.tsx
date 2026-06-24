@@ -244,7 +244,7 @@ function NavbarContent() {
             </div>
 
             {/* Notification Bell */}
-            <div className="hidden sm:block">
+            <div>
               <Suspense fallback={null}>
                 <NotificationBell />
               </Suspense>

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import {
   LayoutDashboard, ShoppingCart, FolderHeart, ShieldAlert,
-  Award, LogOut, ArrowLeft, Bell, Menu, X,
+  Award, LogOut, ArrowLeft, Bell, Menu, X, Settings,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -18,6 +18,7 @@ const NAV_LINKS = (t: Function, language: string) => [
   { href: '/admin/orders',        icon: ShieldAlert,     label: t('admin_sidebar_orders') },
   { href: '/admin/coupons',       icon: Award,           label: t('admin_sidebar_coupons') },
   { href: '/admin/notifications', icon: Bell,            label: language === 'te' ? 'నోటిఫికేషన్లు' : 'Notifications' },
+  { href: '/admin/settings',      icon: Settings,        label: language === 'te' ? 'సెట్టింగ్‌లు' : 'Settings' },
 ];
 
 export default function AdminSidebar() {
@@ -98,8 +99,8 @@ export default function AdminSidebar() {
 
   return (
     <>
-      {/* ── MOBILE: Hamburger trigger bar (hidden on desktop) ── */}
-      <div className="lg:hidden w-full bg-white border border-amber-100 rounded-2xl px-4 py-3 flex items-center justify-between smooth-shadow relative z-20">
+      {/* ── MOBILE: Hamburger trigger bar — full-width edge-to-edge ── */}
+      <div className="lg:hidden w-full bg-white border-b border-amber-100 px-4 py-3 flex items-center justify-between relative z-20">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-amber-800 flex items-center justify-center text-white font-black text-xs shrink-0">
             AD

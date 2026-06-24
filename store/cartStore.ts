@@ -20,6 +20,8 @@ export interface CouponInfo {
   type: string;
   value: number;
   discount: number;
+  minOrderValue?: number;  // from DB — used to re-validate when cart changes
+  maxDiscount?: number | null;  // from DB — used to re-apply cap when cart changes
 }
 
 interface CartState {

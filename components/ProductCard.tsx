@@ -102,44 +102,43 @@ export default function ProductCard({ group }: ProductCardProps) {
     <>
       <div className="group bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col h-full">
 
-        {/* ── Image ── */}
-        <Link
-          href={`/products/${representative.slug}`}
-          tabIndex={-1}
-          aria-hidden="true"
-          className="block relative overflow-hidden bg-[#fdfaf6] aspect-square flex-shrink-0"
-        >
-          <Image
-            src={imageUrl}
-            alt={representative.name}
-            fill
-            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-            className="object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-out"
-            onError={() => setImgError(true)}
-          />
+        {/* ── Image Wrapper (contains overlays + button sibling to link) ── */}
+        <div className="relative aspect-square bg-[#fdfaf6] flex-shrink-0">
+          <Link
+            href={`/products/${representative.slug}`}
+            tabIndex={-1}
+            aria-hidden="true"
+            className="block relative overflow-hidden w-full h-full"
+          >
+            <Image
+              src={imageUrl}
+              alt={representative.name}
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-out"
+              onError={() => setImgError(true)}
+            />
+          </Link>
 
           {/* Discount badge */}
           {discountPercent > 0 && !outOfStock && (
-            <div className="absolute top-2 left-2 z-10 bg-emerald-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
+            <div className="absolute top-2 left-2 z-10 bg-emerald-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm pointer-events-none">
               {discountPercent}% OFF
             </div>
           )}
 
           {/* Out of stock overlay */}
           {outOfStock && (
-            <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center">
+            <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center pointer-events-none">
               <span className="text-[10px] font-black text-red-500 bg-white px-2.5 py-1 rounded-full border border-red-100 shadow-sm">
                 {language === 'te' ? 'అయిపోయింది' : 'Out of Stock'}
               </span>
             </div>
           )}
 
-          {/* ADD / QTY button — top right */}
+          {/* ADD / QTY button — top right (sits OUTSIDE the Link to prevent RouteLoader infinite load) */}
           {!outOfStock && (
-            <div
-              className="absolute top-2 right-2 z-20"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            >
+            <div className="absolute top-2 right-2 z-20">
               {isSingleVariant ? (
                 singleQty > 0 ? (
                   <div className="flex items-center bg-amber-800 rounded-xl h-8 shadow-md overflow-hidden">
@@ -209,10 +208,10 @@ export default function ProductCard({ group }: ProductCardProps) {
               )}
             </div>
           )}
-        </Link>
+        </div>
 
         {/* ── Card Body ── */}
-        <div className="px-3 pt-2.5 pb-3 flex flex-col flex-1">
+        <div className="p-3 flex flex-col flex-1 font-sans">
 
           <p className="text-[9px] sm:text-[10px] font-black text-amber-700 uppercase tracking-wider mb-1">
             ⚡ {language === 'te' ? '15 నిమిషాలు' : '15 MINS'}
@@ -240,17 +239,19 @@ export default function ProductCard({ group }: ProductCardProps) {
           )}
 
           {/* Price & Buy Now Button */}
-          <div className="mt-auto flex items-center justify-between gap-1 pt-1.5">
-            <div className="flex flex-col min-[380px]:flex-row min-[380px]:items-baseline gap-0.5 min-[380px]:gap-1.5">
-              <span className="text-sm sm:text-[15px] font-black text-gray-900">₹{minPrice}</span>
-              <div className="flex items-center gap-1">
+          <div className="mt-auto flex items-center justify-between gap-1.5 pt-1.5 min-w-0">
+            <div className="flex flex-col items-start gap-0.5 min-w-0">
+              <div className="flex items-baseline gap-1 flex-wrap">
+                <span className="text-sm sm:text-[15px] font-black text-gray-900">₹{minPrice}</span>
                 {minMrp > minPrice && (
                   <span className="text-[10px] text-gray-400 line-through font-medium">₹{minMrp}</span>
                 )}
-                {!isSingleVariant && (
-                  <span className="text-[9px] text-gray-400 font-medium">{language === 'te' ? 'నుండి' : 'onwards'}</span>
-                )}
               </div>
+              {!isSingleVariant && (
+                <span className="text-[9px] text-amber-850 font-bold leading-none uppercase tracking-tight">
+                  {language === 'te' ? 'నుండి' : 'onwards'}
+                </span>
+              )}
             </div>
 
             {!outOfStock && (
@@ -272,17 +273,17 @@ export default function ProductCard({ group }: ProductCardProps) {
                       stock: representative.stock,
                       variantLabel: formatVariantLabel(representative),
                     });
-                    router.push('/cart');
+                    router.push('/checkout');
                   } else {
                     setModalOpen(true);
                   }
                 }}
                 aria-label={language === 'te' ? `${displayName} ని ఇప్పుడే కొనండి` : `Buy ${displayName} now`}
-                className="relative overflow-hidden group/btn flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 active:scale-95 text-white text-[10px] font-black px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl transition-all duration-200 shrink-0 shadow-md hover:shadow-amber-500/40 hover:shadow-lg"
+                className="relative overflow-hidden group/btn flex items-center justify-center gap-1 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 active:scale-95 text-white text-[9px] sm:text-[10px] font-black px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-xl transition-all duration-200 shrink-0 shadow-md hover:shadow-amber-500/40 hover:shadow-lg"
               >
                 {/* shimmer sweep */}
                 <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
-                <span className="text-amber-200 text-[10px] sm:text-[11px]">⚡</span>
+                <span className="text-amber-200 text-[10px] sm:text-[11px] hidden min-[360px]:inline">⚡</span>
                 <span className="uppercase tracking-wider relative z-10 text-[9px] sm:text-[10px]">
                   {language === 'te' ? 'కొనండి' : 'Buy Now'}
                 </span>

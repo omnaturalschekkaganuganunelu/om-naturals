@@ -137,12 +137,12 @@ export default function AdminOrdersPage() {
     <>
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 overflow-x-hidden">
-        <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 items-start">
+      <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1 overflow-x-hidden">
+        <div className="flex flex-col lg:flex-row gap-0 sm:gap-8 items-start">
           
           <AdminSidebar />
 
-          <section className="flex-1 w-full min-w-0 space-y-4 sm:space-y-6">
+          <section className="flex-1 w-full min-w-0 px-2 sm:px-0 pt-2 sm:pt-0 space-y-4">
             
             {/* Header + Filters */}
             <div>
@@ -155,22 +155,22 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              {/* Filters — full-width toolbar, wraps on mobile */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-                <div className="relative w-full sm:w-auto sm:flex-none">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search size={14} className="text-amber-900/50" />
-                  </div>
+              {/* Filters — search on top row, date+status on second row for mobile */}
+              <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-3">
+                {/* Search — full width */}
+                <div className="relative sm:flex-1 sm:max-w-xs">
+                  <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-900/50 pointer-events-none" />
                   <input
                     type="text"
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
                     placeholder={language === 'te' ? 'పేరు లేదా ID తో వెతకండి...' : 'Search by Name or ID...'}
-                    className="bg-white border border-amber-100 pl-9 pr-4 py-2.5 rounded-2xl smooth-shadow text-xs font-bold text-amber-900 focus:outline-none focus:border-amber-400 w-full sm:w-52 transition-all"
+                    className="w-full bg-white border border-amber-100 pl-9 pr-4 py-2.5 rounded-2xl shadow-sm text-xs font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-all"
                   />
                 </div>
 
-                <div className="flex gap-2 w-full sm:w-auto">
+                {/* Date + Status — side by side */}
+                <div className="flex gap-2">
                   <div className="flex-1 sm:flex-none">
                     <CustomCalendar
                       value={dateFilter}
@@ -178,26 +178,22 @@ export default function AdminOrdersPage() {
                       placeholder={language === 'te' ? 'తేదీ ఎంచుకోండి' : 'Select Date'}
                     />
                   </div>
-
-                  <div className="flex items-center gap-1.5 bg-white border border-amber-100 px-3 py-2.5 rounded-2xl smooth-shadow text-xs flex-1 sm:flex-none overflow-hidden">
-                    <Filter size={14} className="text-amber-900 shrink-0 hidden sm:block" />
-                    <div className="flex-1 min-w-0 sm:w-32">
-                      <CustomSelect
-                        value={statusFilter}
-                        onChange={(val) => setStatusFilter(val)}
-                        options={[
-                          { value: '', label: t('admin_filter_all') },
-                          { value: 'PENDING', label: language === 'te' ? 'పెండింగ్' : 'Pending' },
-                          { value: 'CONFIRMED', label: language === 'te' ? 'నిర్ధారించబడింది' : 'Confirmed' },
-                          { value: 'PROCESSING', label: language === 'te' ? 'ప్రాసెసింగ్' : 'Processing' },
-                          { value: 'PACKED', label: language === 'te' ? 'ప్యాక్ చేయబడింది' : 'Packed' },
-                          { value: 'OUT_FOR_DELIVERY', label: language === 'te' ? 'డెలివరీలో ఉంది' : 'Out for Delivery' },
-                          { value: 'SHIPPED', label: language === 'te' ? 'రవాణా లో ఉంది' : 'Shipped' },
-                          { value: 'DELIVERED', label: language === 'te' ? 'డెలివరీ పూర్తయింది' : 'Delivered' },
-                          { value: 'CANCELLED', label: language === 'te' ? 'రద్దు చేయబడింది' : 'Cancelled' },
-                        ]}
-                      />
-                    </div>
+                  <div className="flex-1 sm:flex-none sm:w-40">
+                    <CustomSelect
+                      value={statusFilter}
+                      onChange={(val) => setStatusFilter(val)}
+                      options={[
+                        { value: '', label: language === 'te' ? 'అన్ని స్థితులు' : 'All Status' },
+                        { value: 'PENDING', label: language === 'te' ? 'పెండింగ్' : 'Pending' },
+                        { value: 'CONFIRMED', label: language === 'te' ? 'నిర్ధారించబడింది' : 'Confirmed' },
+                        { value: 'PROCESSING', label: language === 'te' ? 'ప్రాసెసింగ్' : 'Processing' },
+                        { value: 'PACKED', label: language === 'te' ? 'ప్యాక్ చేయబడింది' : 'Packed' },
+                        { value: 'OUT_FOR_DELIVERY', label: language === 'te' ? 'డెలివరీలో ఉంది' : 'Out for Delivery' },
+                        { value: 'SHIPPED', label: language === 'te' ? 'రవాణా లో ఉంది' : 'Shipped' },
+                        { value: 'DELIVERED', label: language === 'te' ? 'డెలివరీ పూర్తయింది' : 'Delivered' },
+                        { value: 'CANCELLED', label: language === 'te' ? 'రద్దు చేయబడింది' : 'Cancelled' },
+                      ]}
+                    />
                   </div>
                 </div>
               </div>

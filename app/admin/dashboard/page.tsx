@@ -74,7 +74,7 @@ export default function AdminDashboardPage() {
     <>
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 overflow-x-hidden">
+      <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1 overflow-x-hidden">
         
         {/* Real-time Order Alert Toast overlay */}
         {newOrderAlert && (
@@ -102,13 +102,13 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-0 sm:gap-8 items-start">
           
           {/* Admin Sidebar Navigation */}
           <AdminSidebar />
 
           {/* Main Dashboard Content */}
-          <section className="flex-1 w-full min-w-0 space-y-4 sm:space-y-6">
+          <section className="flex-1 w-full min-w-0 px-2 sm:px-0 pt-2 sm:pt-0 space-y-4 sm:space-y-6">
             
             <div className="flex justify-between items-baseline">
               <div>
