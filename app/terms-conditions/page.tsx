@@ -74,15 +74,35 @@ export default function TermsConditionsPage() {
               </p>
             </div>
 
-            <div className="space-y-2 border-t border-amber-50 pt-4">
-              <h2 className="font-extrabold text-amber-950 text-sm">
-                {isTe ? 'సంప్రదించవలసిన చిరునామా:' : 'Official Contact Information:'}
+            <div className="space-y-4 border-t border-amber-50 pt-6">
+              <h2 className="font-extrabold text-amber-950 text-sm sm:text-base">
+                {isTe ? 'సంప్రదించవలసిన చిరునామా:' : 'Official Contact Information / Store Location:'}
               </h2>
-              <p className="font-bold text-gray-700">OM NATURAL CHEKKA GANUGA NUNELU</p>
-              <p className="text-xs text-gray-500">
-                D.No. 126-137, Sri Lakshmi Narasimha Nagar, 5th Line, Inner Ring Road, Gorantla, Guntur, Andhra Pradesh - 522034<br />
-                Email: info@om-naturals.com
-              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                <div className="space-y-3 flex flex-col justify-center">
+                  <p className="font-black text-amber-950 text-sm">OM NATURAL CHEKKA GANUGA NUNELU</p>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    D.No. 126-137, Sri Lakshmi Narasimha Nagar,<br />
+                    5th Line, Inner Ring Road, Gorantla,<br />
+                    Guntur, Andhra Pradesh - 522034
+                  </p>
+                  <div className="space-y-1 pt-1 font-bold text-xs text-gray-500">
+                    <p className="flex items-center gap-1.5">
+                      <span>✉️</span> info@om-naturals.com
+                    </p>
+                  </div>
+                </div>
+                <div className="w-full h-44 rounded-2xl overflow-hidden shadow-inner border border-amber-100 relative group">
+                  <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3828.7357141809703!2d80.4322966!3d16.3364427!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a358bcd27793cff%3A0x3730d16c23f9b485!2sOM%20NATURAL%20CHEKKA%20GANUGA%20NUNE!5e0!3m2!1sen!2sin!4v1782209958475!5m2!1sen!2sin"
+                    className="absolute inset-0 w-full h-full border-0 rounded-2xl"
+                    allowFullScreen={false}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="OM Natural Store Map Location"
+                  ></iframe>
+                </div>
+              </div>
             </div>
           </div>
         </div>

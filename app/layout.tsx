@@ -69,8 +69,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`overflow-x-hidden max-w-full ${inter.variable} ${outfit.variable}`}>
-      <body className="antialiased min-h-screen flex flex-col bg-[#fdfbf7] pb-24 md:pb-0 overflow-x-hidden">
+    <html lang="en" className={`overflow-x-clip max-w-full ${inter.variable} ${outfit.variable}`}>
+      <body className="antialiased min-h-screen flex flex-col bg-[#fdfbf7] pb-24 md:pb-0 overflow-x-clip">
         <Providers>
           <Suspense fallback={null}>
             <RouteLoader />

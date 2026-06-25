@@ -134,7 +134,7 @@ function ProductListingContent() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-8 items-start">
 
         {/* ─── Sidebar Filters — Desktop ─────────────────────── */}
-        <aside className="hidden lg:flex flex-col bg-white border border-amber-100/80 rounded-2xl p-5 shadow-sm space-y-6">
+        <aside className="hidden lg:flex flex-col bg-white border border-amber-100/80 rounded-2xl p-5 shadow-sm space-y-6 sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto no-scrollbar">
           <div className="flex justify-between items-center border-b border-amber-50 pb-3">
             <h3 className="font-bold text-sm text-amber-950 flex items-center gap-1.5">
               <Filter size={15} />
