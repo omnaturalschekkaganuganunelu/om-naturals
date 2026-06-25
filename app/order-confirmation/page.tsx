@@ -2,22 +2,25 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { CheckCircle, XCircle, FileText, MapPin, Calendar, HelpCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, MapPin, Calendar, HelpCircle, ArrowRight, RefreshCw, Clock } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
 import confetti from 'canvas-confetti';
 import { useLanguage } from '@/context/LanguageContext';
 
 function OrderConfirmationContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const orderId = searchParams.get('orderId') || '';
   const status = searchParams.get('status') || 'success';
   const { language, t } = useLanguage();
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState('');
 
   // Trigger Confetti on Load for Successful Payments/Orders
   useEffect(() => {
@@ -50,6 +53,30 @@ function OrderConfirmationContent() {
       });
   }, [orderId]);
 
+  // Retry payment handler for failed online orders
+  const handleRetryPayment = async () => {
+    if (!orderId) return;
+    setRetrying(true);
+    setRetryError('');
+    try {
+      const res = await fetch('/api/payment/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        router.push(data.url);
+      } else {
+        setRetryError(data.error || (language === 'te' ? 'పేమెంట్ మళ్ళీ ప్రారంభించడంలో లోపం జరిగింది.' : 'Failed to re-initiate payment. Please try from your order history.'));
+        setRetrying(false);
+      }
+    } catch (err) {
+      setRetryError(language === 'te' ? 'నెట్‌వర్క్ లోపం. దయచేసి మళ్ళీ ప్రయత్నించండి.' : 'Network error. Please try again.');
+      setRetrying(false);
+    }
+  };
+
   if (loading) {
     return (
       <PremiumLoader
@@ -64,6 +91,9 @@ function OrderConfirmationContent() {
   }
 
   const isSuccess = status === 'success';
+  const isPending = status === 'pending';
+  const isFailed = status === 'failed' || status === 'error';
+  const isOnlineOrder = order?.paymentMethod === 'PHONEPE';
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex-1">
@@ -73,6 +103,8 @@ function OrderConfirmationContent() {
         <div className="flex justify-center">
           {isSuccess ? (
             <CheckCircle size={56} className="text-green-600 animate-bounce" />
+          ) : isPending ? (
+            <Clock size={56} className="text-amber-500 animate-pulse" />
           ) : (
             <XCircle size={56} className="text-red-600 animate-bounce" />
           )}
@@ -81,12 +113,16 @@ function OrderConfirmationContent() {
         <h1 className="text-2xl sm:text-3xl font-extrabold text-amber-950 font-heading">
           {isSuccess
             ? (language === 'te' ? 'ఆర్డర్ విజయవంతంగా సమర్పించబడింది!' : 'Order Placed Successfully!')
+            : isPending
+            ? (language === 'te' ? 'చెల్లింపు పెండింగ్లో ఉంది' : 'Payment Pending')
             : (language === 'te' ? 'చెల్లింపు విఫలమైంది' : 'Payment Failed')}
         </h1>
         <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
           {isSuccess
             ? (language === 'te' ? 'మాతో కొనుగోలు చేసినందుకు ధన్యవాదాలు. మీ ఆర్డర్ కన్ఫర్మ్ చేయబడింది.' : 'Thank you for shopping with us. Your order has been confirmed.')
-            : (language === 'te' ? 'క్షమించండి, మీ ఆన్‌లైన్ చెల్లింపు పూర్తి కాలేదు. దయచేసి ఆర్డర్ హిస్టరీకి వెళ్ళి మరలా ప్రయత్నించండి.' : 'Sorry, your online payment could not be completed. Please try again from your order history.')}
+            : isPending
+            ? (language === 'te' ? 'మీ చెల్లింపు ఇంకా ప్రాసెస్ అవుతోంది. దయచేసి కొంత సేపు వేచి ఉండండి.' : 'Your payment is still being processed. Please wait a moment or check your orders.')
+            : (language === 'te' ? 'క్షమించండి, మీ ఆన్‌లైన్ చెల్లింపు పూర్తి కాలేదు. దయచేసి మళ్ళీ ప్రయత్నించండి.' : 'Sorry, your online payment could not be completed. Please try again.')}
         </p>
       </div>
 
@@ -210,16 +246,76 @@ function OrderConfirmationContent() {
         </div>
       )}
 
-      {!isSuccess && (
-        <div className="text-center pt-6 space-y-4">
+      {/* PENDING payment state */}
+      {isPending && (
+        <div className="text-center pt-6 space-y-5 max-w-sm mx-auto">
+          <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 space-y-3">
+            <Clock size={32} className="text-amber-600 mx-auto animate-pulse" />
+            <p className="text-sm font-bold text-amber-900">
+              {language === 'te' ? 'మీ చెల్లింపు ప్రాసెస్ చేయబడుతోంది' : 'Your payment is being processed'}
+            </p>
+            <p className="text-xs text-gray-500">
+              {language === 'te'
+                ? 'PhonePe చెల్లింపు ఇంకా పూర్తికాలేదు. మీ ఆర్డర్ హిస్టరీ చెక్ చేయండి.'
+                : 'PhonePe payment not yet complete. Check your order history for the latest status.'}
+            </p>
+          </div>
           <Link
-            href="/cart"
+            href="/account?tab=orders"
             className="inline-block bg-amber-800 hover:bg-amber-700 text-white font-bold px-8 py-3 rounded-full text-xs sm:text-sm shadow-sm"
           >
-            {language === 'te' ? 'కార్ట్ కి తిరిగి వెళ్ళు' : 'Return to Cart'}
+            {language === 'te' ? 'నా ఆర్డర్లు చూడు' : 'View My Orders'}
+          </Link>
+        </div>
+      )}
+
+      {/* FAILED payment state */}
+      {isFailed && (
+        <div className="text-center pt-6 space-y-5 max-w-sm mx-auto">
+          {/* Retry Payment for online orders with known orderId */}
+          {orderId && order && isOnlineOrder && order.paymentStatus !== 'COMPLETED' && (
+            <div className="bg-red-50 border border-red-100 rounded-3xl p-6 space-y-4">
+              <p className="text-xs font-bold text-red-800">
+                {language === 'te'
+                  ? `ఆర్డర్ #${order.orderId} కు చెల్లింపు పూర్తికాలేదు.`
+                  : `Payment for Order #${order?.orderId} was not completed.`}
+              </p>
+              <p className="text-[10px] text-gray-500">
+                {language === 'te'
+                  ? 'మీ ఆర్డర్ సేవ్ అయింది. అదే ఆర్డర్ కు మళ్ళీ చెల్లింపు చేయవచ్చు.'
+                  : 'Your order was saved. You can retry payment for the same order below.'}
+              </p>
+              {retryError && (
+                <p className="text-xs text-red-600 font-semibold">{retryError}</p>
+              )}
+              <button
+                onClick={handleRetryPayment}
+                disabled={retrying}
+                className="w-full flex items-center justify-center space-x-2 bg-amber-800 hover:bg-amber-700 disabled:bg-gray-300 text-white font-bold px-8 py-3 rounded-full text-xs sm:text-sm shadow-sm transition-all"
+              >
+                {retrying ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin text-white" />
+                    <span>{language === 'te' ? 'ప్రాసెస్ చేస్తున్నాం...' : 'Processing...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={14} />
+                    <span>{language === 'te' ? 'చెల్లింపు మళ్ళీ ప్రయత్నించు' : 'Retry Payment'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+          
+          <Link
+            href="/account?tab=orders"
+            className="inline-block bg-white hover:bg-amber-50 text-amber-900 border border-amber-200 font-bold px-8 py-3 rounded-full text-xs sm:text-sm"
+          >
+            {language === 'te' ? 'నా ఆర్డర్లు చూడు' : 'View My Orders'}
           </Link>
           
-          <div className="pt-8 text-xs text-gray-500 font-semibold flex items-center justify-center space-x-1">
+          <div className="pt-4 text-xs text-gray-500 font-semibold flex items-center justify-center space-x-1">
             <HelpCircle size={14} className="text-amber-700" />
             <span>
               {language === 'te'

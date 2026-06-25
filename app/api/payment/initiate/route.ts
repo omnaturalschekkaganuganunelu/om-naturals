@@ -73,7 +73,9 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      // Call PhonePe API
+      // Call PhonePe API with 10-second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       const response = await fetch(`${hostUrl}/pg/v1/pay`, {
         method: 'POST',
         headers: {
@@ -81,7 +83,9 @@ export async function POST(req: NextRequest) {
           'X-VERIFY': checksum,
         },
         body: JSON.stringify({ request: base64Payload }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       const result = await response.json();
 

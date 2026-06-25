@@ -91,13 +91,13 @@ export default function Footer() {
                 <Link href="/contact" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'సంప్రదించండి' : 'Contact'}</Link>
               </nav>
               <nav className="flex flex-wrap justify-center sm:justify-start items-center gap-x-3 sm:gap-x-4 gap-y-3 opacity-90 leading-relaxed mt-1">
-                <Link href="/policy?tab=shipping" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'షిప్పింగ్' : 'Shipping'}</Link>
+                <Link href="/shipping-policy" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'షిప్పింగ్' : 'Shipping'}</Link>
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-800/60 hidden xs:block" />
-                <Link href="/policy?tab=returns" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'రీఫండ్స్ & క్యాన్సిలేషన్స్' : 'Refunds & Cancellations'}</Link>
+                <Link href="/refund-policy" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'రీఫండ్స్ & క్యాన్సిలేషన్స్' : 'Refunds & Cancellations'}</Link>
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-800/60 hidden lg:block" />
-                <Link href="/policy?tab=privacy" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'ప్రైవసీ' : 'Privacy'}</Link>
+                <Link href="/privacy-policy" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'ప్రైవసీ' : 'Privacy'}</Link>
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-800/60 hidden xs:block" />
-                <Link href="/policy?tab=terms" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'నిబంధనలు' : 'Terms & Conditions'}</Link>
+                <Link href="/terms-conditions" className="hover:text-amber-400 transition-colors whitespace-nowrap">{language === 'te' ? 'నిబంధనలు' : 'Terms & Conditions'}</Link>
               </nav>
             </div>
 

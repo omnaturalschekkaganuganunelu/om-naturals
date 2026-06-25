@@ -691,7 +691,7 @@ export default function CheckoutPage() {
                         }}
                       />
                       <div className="font-semibold text-amber-950 max-w-[150px] truncate">
-                        <p className="truncate font-bold">{item.nameTe}</p>
+                        <p className="truncate font-bold">{language === 'te' ? item.nameTe : item.name}</p>
                         <p className="text-[9px] text-amber-600 font-bold">{item.quantity} x ₹{item.price}</p>
                       </div>
                     </div>
@@ -713,7 +713,7 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-gray-500">{t('cart_gst')} (GST 5%):</span>
+                  <span className="text-gray-500">{t('cart_gst')} (GST {gstRate}%):</span>
                   <span className="font-bold">₹{tax}</span>
                 </div>
                 <div className="flex justify-between">
@@ -750,7 +750,7 @@ export default function CheckoutPage() {
                 >
                   {placingOrder ? (
                     <>
-                      <RefreshCw size={16} className="animate-spin text-amber-800" />
+                      <RefreshCw size={16} className="animate-spin text-white" />
                       <span>{t('checkout_placing')}</span>
                     </>
                   ) : (

@@ -57,6 +57,8 @@ export async function POST(req: NextRequest) {
         const stringToHash = `/pg/v1/status/${merchantId}/${merchantTransactionId}${saltKey}`;
         const checksum = crypto.createHash('sha256').update(stringToHash).digest('hex') + '###' + saltIndex;
 
+        const verifyController = new AbortController();
+        const verifyTimeoutId = setTimeout(() => verifyController.abort(), 10000);
         const verifyResponse = await fetch(`${hostUrl}/pg/v1/status/${merchantId}/${merchantTransactionId}`, {
           method: 'GET',
           headers: {
@@ -64,7 +66,9 @@ export async function POST(req: NextRequest) {
             'X-VERIFY': checksum,
             'X-MERCHANT-ID': merchantId,
           },
+          signal: verifyController.signal,
         });
+        clearTimeout(verifyTimeoutId);
 
         const verifyResult = await verifyResponse.json();
 

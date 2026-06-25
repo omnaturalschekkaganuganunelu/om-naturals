@@ -570,16 +570,40 @@ interface OrderCardProps {
 }
 
 function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onReorder, language }: OrderCardProps) {
+  const router = useRouter();
   const [showTracking, setShowTracking] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [retryingPayment, setRetryingPayment] = useState(false);
 
   const trkId = getTrackingId(order.orderId);
   const progressPct = getProgressPct(order.orderStatus);
   const isCancelled = order.orderStatus === 'CANCELLED';
   const isCancelRequested = order.orderStatus === 'CANCEL_REQUESTED';
   const canCancel = ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED'].includes(order.orderStatus) && !order.cancelReason;
+  const canRetryPayment = order.paymentMethod === 'PHONEPE' && order.paymentStatus === 'PENDING' && !isCancelled;
   const statusInfo = STATUS_STYLES[order.orderStatus] ?? STATUS_STYLES['PENDING'];
+
+  const handleRetryPayment = async () => {
+    setRetryingPayment(true);
+    try {
+      const res = await fetch('/api/payment/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        router.push(data.url);
+      } else {
+        showToast(data.error || (language === 'te' ? 'చెల్లింపు ప్రారంభించడంలో లోపం' : 'Failed to initiate payment'), 'error');
+        setRetryingPayment(false);
+      }
+    } catch (err) {
+      showToast(language === 'te' ? 'నెట్‌వర్క్ లోపం. మళ్ళీ ప్రయత్నించండి.' : 'Network error. Please try again.', 'error');
+      setRetryingPayment(false);
+    }
+  };
 
   const handleCopy = (id: string) => {
     navigator.clipboard.writeText(id);
@@ -743,6 +767,18 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
                   <X size={12}/> {language === 'te' ? 'రద్దు చేయి' : 'Cancel'}
                 </button>
               </>
+            )}
+            {canRetryPayment && (
+              <button
+                onClick={handleRetryPayment}
+                disabled={retryingPayment}
+                className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-colors shadow-sm"
+              >
+                {retryingPayment
+                  ? <><RotateCcw size={12} className="animate-spin"/> {language === 'te' ? 'ప్రాసెస్...' : 'Processing...'}</>
+                  : <><RotateCcw size={12}/> {language === 'te' ? 'చెల్లింపు మళ్ళీ ప్రయత్నించు' : 'Retry Payment'}</>
+                }
+              </button>
             )}
             {isCancelRequested && (
               <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black px-3 py-2 rounded-xl">

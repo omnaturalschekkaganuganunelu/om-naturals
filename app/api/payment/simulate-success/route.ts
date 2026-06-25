@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { orderEmitter } from '@/lib/sse';
 import { revalidatePath } from 'next/cache';
+import { sendOrderConfirmationEmail } from '@/lib/orderEmail';
 
 export async function POST(req: NextRequest) {
   try {
@@ -119,6 +120,16 @@ export async function POST(req: NextRequest) {
 
       // Instantly invalidate the cache globally so the frontend shows accurate live stock!
       revalidatePath('/', 'layout');
+
+      // Send Order Confirmation Email (mirrors what real webhook does)
+      try {
+        const orderUser = await prisma.user.findUnique({ where: { id: order.userId } });
+        if (orderUser && orderUser.email && orderUser.name) {
+          await sendOrderConfirmationEmail(order.id, orderUser.email, orderUser.name);
+        }
+      } catch (emailErr) {
+        console.error('Simulate: Failed to send confirmation email:', emailErr);
+      }
 
       return NextResponse.json({ success: true });
     } else {

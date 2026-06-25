@@ -3,6 +3,39 @@ import { prisma } from '@/lib/db';
 import crypto from 'crypto';
 import { orderEmitter } from '@/lib/sse';
 
+// GET handler: Handles user navigation back from PhonePe (browser GET instead of POST redirect)
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const orderId = searchParams.get('orderId');
+  const reqUrl = new URL(req.url);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL !== 'http://localhost:3000'
+                   ? process.env.NEXT_PUBLIC_APP_URL
+                   : reqUrl.origin;
+
+  if (!orderId) {
+    return NextResponse.redirect(`${appUrl}/account?tab=orders`, { status: 303 });
+  }
+
+  try {
+    // Check current order status to give proper redirect
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      return NextResponse.redirect(`${appUrl}/order-confirmation?status=error&msg=OrderNotFound`, { status: 303 });
+    }
+
+    if (order.paymentStatus === 'COMPLETED') {
+      // Payment already processed (perhaps webhook fired first)
+      return NextResponse.redirect(`${appUrl}/account?tab=orders`, { status: 303 });
+    } else {
+      // Payment still pending — redirect to order-confirmation with pending status
+      return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=pending`, { status: 303 });
+    }
+  } catch (err) {
+    console.error('GET Callback: Error checking order status:', err);
+    return NextResponse.redirect(`${appUrl}/account?tab=orders`, { status: 303 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderId = searchParams.get('orderId');
@@ -54,6 +87,8 @@ export async function POST(req: NextRequest) {
         const stringToHash = `/pg/v1/status/${merchantId}/${merchantTransactionId}${saltKey}`;
         const checksum = crypto.createHash('sha256').update(stringToHash).digest('hex') + '###' + saltIndex;
 
+        const verifyController = new AbortController();
+        const verifyTimeoutId = setTimeout(() => verifyController.abort(), 10000);
         const verifyResponse = await fetch(`${hostUrl}/pg/v1/status/${merchantId}/${merchantTransactionId}`, {
           method: 'GET',
           headers: {
@@ -61,7 +96,9 @@ export async function POST(req: NextRequest) {
             'X-VERIFY': checksum,
             'X-MERCHANT-ID': merchantId,
           },
+          signal: verifyController.signal,
         });
+        clearTimeout(verifyTimeoutId);
 
         const verifyResult = await verifyResponse.json();
 
@@ -157,17 +194,19 @@ export async function POST(req: NextRequest) {
         data: { paymentStatus: 'FAILED' },
       });
 
-      await prisma.payment.upsert({
-        where: { merchantTransactionId },
-        update: { status: 'FAILED', providerResponse: JSON.stringify(decodedJson) },
-        create: {
-          orderId,
-          merchantTransactionId,
-          amount: paymentAmount,
-          status: 'FAILED',
-          providerResponse: JSON.stringify(decodedJson),
-        },
-      });
+      if (merchantTransactionId) {
+        await prisma.payment.upsert({
+          where: { merchantTransactionId },
+          update: { status: 'FAILED', providerResponse: JSON.stringify(decodedJson) },
+          create: {
+            orderId,
+            merchantTransactionId,
+            amount: paymentAmount,
+            status: 'FAILED',
+            providerResponse: JSON.stringify(decodedJson),
+          },
+        });
+      }
 
       return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=failed`, { status: 303 });
     }
