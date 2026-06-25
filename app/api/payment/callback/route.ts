@@ -102,6 +102,31 @@ export async function POST(req: NextRequest) {
             },
           });
 
+          // Notify customer
+          await tx.notification.create({
+            data: {
+              title: '💳 Payment Successful!',
+              body: `Your payment for Order ${order.orderId} was successful and your order is confirmed.`,
+              type: 'ORDER',
+              userId: order.userId,
+              orderId: order.id,
+            },
+          });
+
+          // Notify admins
+          const admins = await tx.user.findMany({ where: { role: 'ADMIN' } });
+          for (const admin of admins) {
+            await tx.notification.create({
+              data: {
+                title: '💰 Order Paid!',
+                body: `Payment for Order ${order.orderId} (₹${order.total}) was successful.`,
+                type: 'ORDER',
+                userId: admin.id,
+                orderId: order.id,
+              },
+            });
+          }
+
           // Deduct inventory stock (online order stock reservation)
           for (const item of order.items) {
             await tx.product.update({
@@ -123,8 +148,8 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date().toISOString(),
       });
 
-      // Redirect to confirmation success page
-      return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
+      // Redirect to user's order history page
+      return NextResponse.redirect(`${appUrl}/account?tab=orders`, { status: 303 });
     } else {
       // Mark payment as FAILED
       await prisma.order.update({

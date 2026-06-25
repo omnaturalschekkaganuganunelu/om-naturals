@@ -36,7 +36,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Check if the current user owns this order or is Admin
     if (session.user.role !== 'ADMIN' && order.userId !== session.user.id) {
       return NextResponse.json({ error: 'Unauthorized to view this order' }, { status: 401 });
     }
@@ -48,7 +47,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-// PUT /api/orders/[id] - Update order/payment status (Admin or Customer cancel)
+// PUT /api/orders/[id] - Update order/payment status
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
@@ -58,7 +57,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     const { id } = params;
     const body = await req.json();
-    const { orderStatus, paymentStatus, notes } = body;
+    const { orderStatus, paymentStatus, notes, cancelReason } = body;
 
     const existingOrder = await prisma.order.findUnique({
       where: { id },
@@ -71,65 +70,64 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     const isAdmin = session.user.role === 'ADMIN';
 
-    // Authorization & Validation
+    // ── Authorization ─────────────────────────────────────────────────
     if (!isAdmin) {
-      // Customer is attempting to update the order
       if (existingOrder.userId !== session.user.id) {
         return NextResponse.json({ error: 'Unauthorized to update this order' }, { status: 401 });
       }
 
-      // Customer can ONLY transition status to CANCELLED
-      if (orderStatus !== 'CANCELLED') {
-        return NextResponse.json({ error: 'Unauthorized action. Customers can only cancel their orders.' }, { status: 400 });
+      // Customer can ONLY request cancellation
+      if (orderStatus !== 'CANCEL_REQUESTED') {
+        return NextResponse.json({ error: 'Customers can only request cancellation.' }, { status: 400 });
       }
 
-      // Customer can only cancel if status is PENDING, CONFIRMED, PROCESSING, or PACKED
-      const cancelableStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED'];
-      if (!cancelableStatuses.includes(existingOrder.orderStatus)) {
-        return NextResponse.json({ error: 'Cancellation is only allowed before the order is Out for Delivery.' }, { status: 400 });
+      // Cannot request cancellation if already cancelled or out for delivery
+      const notCancellableStatuses = ['OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'CANCEL_REQUESTED'];
+      if (notCancellableStatuses.includes(existingOrder.orderStatus)) {
+        return NextResponse.json({
+          error: 'Cancellation is not allowed at this order stage.'
+        }, { status: 400 });
       }
     }
 
-    // Process inventory release if order is cancelled and it was COD (since COD stock was deducted immediately)
-    // For online payments, if payment fails/cancels we release stock or if admin cancels confirmed order we release stock.
-    const isCancelling = orderStatus === 'CANCELLED' && existingOrder.orderStatus !== 'CANCELLED';
-    const isRestoring = orderStatus !== 'CANCELLED' && existingOrder.orderStatus === 'CANCELLED';
+    // ── Inventory Management ──────────────────────────────────────────
+    // Only restore stock when admin ACTUALLY cancels (not on CANCEL_REQUESTED)
+    const isActuallyCancelling = orderStatus === 'CANCELLED' && existingOrder.orderStatus !== 'CANCELLED';
+    const isRestoringFromCancel = orderStatus !== 'CANCELLED' && existingOrder.orderStatus === 'CANCELLED';
 
     const order = await prisma.$transaction(async (tx) => {
+      const updateData: any = {};
+
+      if (isAdmin) {
+        updateData.orderStatus = orderStatus;
+        if (paymentStatus) updateData.paymentStatus = paymentStatus;
+        if (notes !== undefined) updateData.notes = notes;
+        // Keep cancelReason intact for both approval and rejection to prevent double-cancels
+      } else {
+        // Customer requesting cancellation
+        updateData.orderStatus = 'CANCEL_REQUESTED';
+        updateData.cancelReason = cancelReason || null;
+      }
+
       const updatedOrder = await tx.order.update({
         where: { id },
-        data: {
-          orderStatus,
-          paymentStatus: isAdmin ? paymentStatus : existingOrder.paymentStatus,
-          notes,
-        },
-        include: {
-          items: true,
-        },
+        data: updateData,
+        include: { items: true },
       });
 
-      // Adjust inventory if cancelled
-      if (isCancelling) {
+      // Restore stock only on actual cancellation
+      if (isActuallyCancelling) {
         for (const item of existingOrder.items) {
           await tx.product.update({
             where: { id: item.productId },
-            data: {
-              stock: {
-                increment: item.quantity,
-              },
-            },
+            data: { stock: { increment: item.quantity } },
           });
         }
-      } else if (isRestoring) {
-        // Dedect inventory back
+      } else if (isRestoringFromCancel) {
         for (const item of existingOrder.items) {
           await tx.product.update({
             where: { id: item.productId },
-            data: {
-              stock: {
-                decrement: item.quantity,
-              },
-            },
+            data: { stock: { decrement: item.quantity } },
           });
         }
       }
@@ -137,37 +135,110 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return updatedOrder;
     });
 
-    // Broadcast update event via SSE for live customer tracking
+    // ── SSE Broadcast ─────────────────────────────────────────────────
     orderEmitter.emit('order-update', {
       orderId: order.id,
       status: order.orderStatus,
       updatedAt: new Date().toISOString(),
     });
 
-    // Auto-create a notification for the order's user
+    // ── Notifications ─────────────────────────────────────────────────
     const STATUS_NOTIF: Record<string, { title: string; body: string }> = {
       CONFIRMED:        { title: '✅ Order Confirmed!',        body: `Your order ${order.orderId} has been confirmed by our team. We're preparing it fresh for you!` },
       PROCESSING:       { title: '⚙️ Order Processing',       body: `Your order ${order.orderId} is currently being prepared. Fresh wood-pressed oils on the way!` },
       PACKED:           { title: '📦 Order Packed!',           body: `Your order ${order.orderId} is securely packed and ready to dispatch. Almost there!` },
       OUT_FOR_DELIVERY: { title: '🛵 Out for Delivery!',       body: `Your order ${order.orderId} is out for delivery! Our delivery executive is heading your way.` },
-      DELIVERED:        { title: '🎉 Order Delivered!',        body: `Your order ${order.orderId} has been delivered successfully. Enjoy your pure oils! Thank you for choosing OM Natural.` },
+      DELIVERED:        { title: '🎉 Order Delivered!',        body: `Your order ${order.orderId} has been delivered successfully. Enjoy your pure oils!` },
       CANCELLED:        { title: '❌ Order Cancelled',          body: `Your order ${order.orderId} has been cancelled. ${body.notes ? `Reason: ${body.notes}` : ''}` },
     };
 
-    const notifData = STATUS_NOTIF[order.orderStatus];
-    if (notifData) {
+    if (!isAdmin) {
+      // Customer submitted a cancellation request — notify all admins
       try {
+        const reason = (order as any).cancelReason || cancelReason || 'No reason provided';
+        const customerName = existingOrder.name || session.user.name || 'Customer';
+        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
+
+        await Promise.all(
+          admins.map((admin) =>
+            prisma.notification.create({
+              data: {
+                title: `🚨 Cancellation Requested`,
+                body: `${customerName} has requested cancellation for Order ${order.orderId}. Reason: ${reason}. Please review and approve or reject.`,
+                type: 'ORDER',
+                userId: admin.id,
+                orderId: order.id,
+              },
+            })
+          )
+        );
+
+        // Confirm to customer that request was received
         await prisma.notification.create({
           data: {
-            title: notifData.title,
-            body: notifData.body,
+            title: '⏳ Cancellation Request Received',
+            body: `We've received your cancellation request for Order ${order.orderId}. Our team will review and process it within 24 hours.`,
             type: 'ORDER',
             userId: existingOrder.userId,
             orderId: order.id,
           },
         });
-      } catch (notifErr) {
-        console.error('Failed to create notification:', notifErr);
+      } catch (err) {
+        console.error('Failed to create cancellation request notifications:', err);
+      }
+    } else {
+      // Admin changed status — notify customer if relevant
+      const notifData = STATUS_NOTIF[order.orderStatus];
+      // Suppress duplicate confirmation status notification when admin rejects a cancellation request
+      const isRejection = existingOrder.orderStatus === 'CANCEL_REQUESTED' && order.orderStatus !== 'CANCELLED' && order.orderStatus !== 'CANCEL_REQUESTED';
+      if (notifData && !isRejection) {
+        try {
+          await prisma.notification.create({
+            data: {
+              title: notifData.title,
+              body: notifData.body,
+              type: 'ORDER',
+              userId: existingOrder.userId,
+              orderId: order.id,
+            },
+          });
+        } catch (err) {
+          console.error('Failed to create status notification:', err);
+        }
+      }
+
+      // If admin APPROVED the cancel request
+      if (order.orderStatus === 'CANCELLED' && existingOrder.orderStatus === 'CANCEL_REQUESTED') {
+        try {
+          await prisma.notification.create({
+            data: {
+              title: '✅ Cancellation Approved',
+              body: `Your cancellation request for Order ${order.orderId} has been approved. Your order has been cancelled.`,
+              type: 'ORDER',
+              userId: existingOrder.userId,
+              orderId: order.id,
+            },
+          });
+        } catch (err) {
+          console.error('Failed to create approval notification:', err);
+        }
+      }
+
+      // If admin REJECTED the cancel request (moved back to active status)
+      if (existingOrder.orderStatus === 'CANCEL_REQUESTED' && order.orderStatus !== 'CANCELLED' && order.orderStatus !== 'CANCEL_REQUESTED') {
+        try {
+          await prisma.notification.create({
+            data: {
+              title: '❌ Cancellation Request Rejected',
+              body: `Your cancellation request for Order ${order.orderId} has been reviewed and rejected. Your order will continue as normal. Contact us if you have any questions.`,
+              type: 'ORDER',
+              userId: existingOrder.userId,
+              orderId: order.id,
+            },
+          });
+        } catch (err) {
+          console.error('Failed to create rejection notification:', err);
+        }
       }
     }
 

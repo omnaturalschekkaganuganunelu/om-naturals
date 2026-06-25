@@ -12,6 +12,12 @@ import {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 export function getTrackingId(orderId: string): string {
+  if (orderId && typeof orderId === 'string' && orderId.includes('-')) {
+    const parts = orderId.split('-');
+    if (parts.length >= 3) {
+      return `TRK-GNT-${parts[2]}`;
+    }
+  }
   let hash = 0;
   for (let i = 0; i < orderId.length; i++) {
     hash = orderId.charCodeAt(i) + ((hash << 5) - hash);
@@ -48,6 +54,7 @@ const STATUS_STYLES: Record<string, { badge: string; dot: string; label: string 
   SHIPPED:          { badge: 'bg-indigo-50  text-indigo-700  border-indigo-200',  dot: 'bg-indigo-500',  label: 'Out for Delivery' },
   DELIVERED:        { badge: 'bg-green-50   text-green-700   border-green-200',   dot: 'bg-green-500',   label: 'Delivered' },
   CANCELLED:        { badge: 'bg-red-50     text-red-700     border-red-200',     dot: 'bg-red-500',     label: 'Cancelled' },
+  CANCEL_REQUESTED: { badge: 'bg-amber-50   text-amber-700   border-amber-300',   dot: 'bg-amber-500',   label: 'Cancellation Pending' },
 };
 
 function statusLabel(s: string, language: string) { 
@@ -61,6 +68,7 @@ function statusLabel(s: string, language: string) {
       case 'SHIPPED': return 'డెలివరీలో ఉంది';
       case 'DELIVERED': return 'డెలివరీ పూర్తయింది';
       case 'CANCELLED': return 'రద్దు చేయబడింది';
+      case 'CANCEL_REQUESTED': return 'రద్దు అభ్యర్థన పెండింగ్';
       default: return s;
     }
   }
@@ -69,13 +77,13 @@ function statusLabel(s: string, language: string) {
 function statusBadge(s: string) { return STATUS_STYLES[s]?.badge ?? 'bg-amber-50 text-amber-800 border-amber-200'; }
 
 function fmt(dateStr: string, opts: Intl.DateTimeFormatOptions, locale = 'en-IN') {
-  return new Date(dateStr).toLocaleString(locale, opts);
+  return new Date(dateStr).toLocaleString(locale, { ...opts, timeZone: 'Asia/Kolkata' });
 }
 
 function getETA(createdAt: string, language: string) {
   const d = new Date(createdAt);
   d.setDate(d.getDate() + 3);
-  return d.toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' });
 }
 
 function statusMsg(status: string, language: string) {
@@ -162,7 +170,7 @@ function printInvoice(order: any) {
     <div class="box" style="text-align:right"><h3>Order Info</h3>
       <p><strong>Order ID:</strong> ${order.orderId}</p>
       <p><strong>Tracking:</strong> ${trkId}</p>
-      <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString('en-IN')}</p>
+      <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
       <p><strong>Payment:</strong> ${order.paymentMethod === 'COD' ? 'Cash on Delivery' : 'PhonePe Online'}</p>
     </div>
   </div>
@@ -252,20 +260,59 @@ function CancelModal({ order, onClose, onSuccess, showToast, language }: CancelM
   const [reason, setReason] = useState(language === 'te' ? 'పొరపాటున ఆర్డర్ చేశాను' : 'Ordered by mistake');
   const [custom, setCustom] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalReason = (reason === 'Other' || reason === 'ఇతర కారణాలు') ? (custom.trim() || 'No reason specified') : reason;
-    
-    const text = `Hello OM Naturals,\n\nI would like to request a cancellation for my order.\n\nOrder ID: ${order.id}\nReason: ${finalReason}`;
-    const waUrl = `https://wa.me/918688291288?text=${encodeURIComponent(text)}`;
-    
-    window.open(waUrl, '_blank');
-    onClose();
+
+    setLoading(true);
+    try {
+      // Step 1: Update order status to CANCEL_REQUESTED in DB
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderStatus: 'CANCEL_REQUESTED',
+          cancelReason: finalReason,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        showToast(err.error || 'Failed to submit cancellation request.', 'error');
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: Update local state
+      onSuccess(order.id, finalReason);
+      setSubmitted(true);
+      showToast(
+        language === 'te'
+          ? 'రద్దు అభ్యర్థన పంపబడింది! అడ్మిన్ సమీక్షిస్తారు.'
+          : 'Cancellation request sent! Admin will review shortly.',
+        'success'
+      );
+
+      // Step 3: Open WhatsApp with full real order details
+      const itemsText = (order.items || [])
+        .map((it: any) => `• ${it.name} × ${it.quantity} — ₹${it.price * it.quantity}`)
+        .join('\n');
+      const text = `Hello OM Naturals,\n\nI would like to request a cancellation for my order.\n\n*Order Details:*\n- *Order ID:* ${order.orderId}\n- *Customer Name:* ${order.name}\n- *Phone:* ${order.phone}\n- *Total Amount:* ₹${order.total}\n- *Payment Method:* ${order.paymentMethod}\n- *Reason for Cancellation:* ${finalReason}\n\n*Items:*\n${itemsText}\n\nPlease review and cancel the order.`;
+      const waUrl = `https://wa.me/918688291288?text=${encodeURIComponent(text)}`;
+      window.open(waUrl, '_blank');
+
+      setTimeout(() => onClose(), 1200);
+    } catch (err) {
+      console.error('Cancel request error:', err);
+      showToast('Connection error. Please try again.', 'error');
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center p-4" onClick={submitted ? undefined : onClose}>
       <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="bg-red-50 px-6 pt-6 pb-4 flex items-start gap-3">
@@ -283,8 +330,12 @@ function CancelModal({ order, onClose, onSuccess, showToast, language }: CancelM
 
         <form onSubmit={submit} className="p-6 space-y-4">
           <p className="text-sm text-gray-600 font-medium">
-            {language === 'te' ? 'మీరు ఈ ఆర్డర్‌ని ఖచ్చితంగా రద్దు చేయాలనుకుంటున్నారా?' : 'Are you sure you want to cancel this order?'} <span className="font-bold text-red-600">{language === 'te' ? 'ఈ చర్యను వెనక్కి తీసుకోలేము.' : 'This action cannot be undone.'}</span>
+            {language === 'te' ? 'మీరు ఈ ఆర్డర్‌ని ఖచ్చితంగా రద్దు చేయాలనుకుంటున్నారా?' : 'Are you sure you want to request cancellation for this order?'} <span className="font-bold text-red-600">{language === 'te' ? 'అడ్మిన్ అనుమతి తర్వాత రద్దు పూర్తవుతుంది.' : 'Admin approval required to complete cancellation.'}</span>
           </p>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[11px] text-amber-800 font-semibold flex items-start gap-2">
+            <span className="shrink-0 mt-0.5">⏳</span>
+            <span>{language === 'te' ? 'మీ అభ్యర్థన అడ్మిన్‌కు పంపబడుతుంది. WhatsApp ద్వారా కూడా నోటిఫై చేయబడతారు.' : 'Your request will be sent to our team. WhatsApp will also open to notify admin.'}</span>
+          </div>
 
           {/* Reason selector */}
           <div className="space-y-1.5">
@@ -319,7 +370,9 @@ function CancelModal({ order, onClose, onSuccess, showToast, language }: CancelM
             </button>
             <button type="submit" disabled={loading}
               className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 font-bold text-xs rounded-2xl transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
-              {loading ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"/> {language === 'te' ? 'రద్దు అవుతోంది…' : 'Cancelling…'}</> : (language === 'te' ? 'అవును, రద్దు చేయి' : 'Yes, Cancel Order')}
+              {loading
+                ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"/> {language === 'te' ? 'పంపుతున్నాం…' : 'Sending…'}</>
+                : (language === 'te' ? 'అవును, రద్దు అభ్యర్థన పంపు' : 'Send Cancellation Request')}
             </button>
           </div>
         </form>
@@ -341,6 +394,7 @@ interface TrackingDrawerProps {
 function TrackingDrawer({ order, onClose, copiedId, onCopy, language }: TrackingDrawerProps) {
   const trkId = getTrackingId(order.orderId);
   const isCancelled = order.orderStatus === 'CANCELLED';
+  const isCancelRequested = order.orderStatus === 'CANCEL_REQUESTED';
   const currentIdx = getStepIndex(order.orderStatus, STEPS);
   const progressPct = getProgressPct(order.orderStatus);
   const eta = getETA(order.createdAt, language);
@@ -390,15 +444,18 @@ function TrackingDrawer({ order, onClose, copiedId, onCopy, language }: Tracking
           </div>
 
           {/* Status + ETA row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white border border-amber-100 rounded-2xl p-3.5">
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">{language === 'te' ? 'ప్రస్తుత స్థితి' : 'Current Status'}</p>
-              <span className={`text-xs font-black px-2.5 py-1 rounded-full border ${statusBadge(order.orderStatus)}`}>
-                {statusLabel(order.orderStatus, language)}
-              </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="bg-white border border-amber-100 rounded-2xl p-3.5 flex flex-col justify-between">
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">{language === 'te' ? 'ప్రస్తుత స్థితి' : 'Current Status'}</p>
+              <div className="flex">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border whitespace-nowrap ${statusBadge(order.orderStatus)}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${STATUS_STYLES[order.orderStatus]?.dot || 'bg-amber-500 animate-pulse'}`}/>
+                  {statusLabel(order.orderStatus, language)}
+                </span>
+              </div>
             </div>
-            <div className="bg-white border border-amber-100 rounded-2xl p-3.5">
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">{language === 'te' ? 'అంచనా డెలివరీ' : 'Expected Delivery'}</p>
+            <div className="bg-white border border-amber-100 rounded-2xl p-3.5 flex flex-col justify-between">
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">{language === 'te' ? 'అంచనా డెలివరీ' : 'Expected Delivery'}</p>
               <p className="text-xs font-black text-amber-900">{isCancelled ? 'N/A' : eta}</p>
             </div>
           </div>
@@ -418,14 +475,13 @@ function TrackingDrawer({ order, onClose, copiedId, onCopy, language }: Tracking
           {!isCancelled && (
             <div className="space-y-2">
               <div className="flex justify-between text-[10px] font-bold text-gray-400">
-                <span>{language === 'te' ? 'ఆర్డర్ నమోదైంది' : 'Order Placed'}</span><span>{progressPct}% {language === 'te' ? 'పూర్తయింది' : 'Complete'}</span>
+                <span>{language === 'te' ? 'ఆర్డర్ నమోదైంది' : 'Order Placed'}</span>
+                <span className="text-amber-700 font-extrabold">{statusLabel(order.orderStatus, language)}</span>
+                <span>{language === 'te' ? 'డెలివరీ అయింది' : 'Delivered'}</span>
               </div>
               <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-amber-500 to-amber-700 rounded-full transition-all duration-700"
                   style={{ width: `${progressPct}%` }} />
-              </div>
-              <div className="flex justify-end text-[10px] font-bold text-gray-400">
-                <span>{language === 'te' ? 'డెలివరీ అయింది' : 'Delivered'}</span>
               </div>
             </div>
           )}
@@ -444,8 +500,24 @@ function TrackingDrawer({ order, onClose, copiedId, onCopy, language }: Tracking
             </div>
           )}
 
+          {/* Cancellation Requested Banner */}
+          {isCancelRequested && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3">
+              <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-black text-amber-900">{language === 'te' ? '⏳ రద్దు అభ్యర్థన సమీక్షలో ఉంది' : '⏳ Cancellation Under Review'}</p>
+                {order.cancelReason && (
+                  <p className="text-[11px] text-amber-700 mt-0.5">
+                    {language === 'te' ? 'కారణం' : 'Reason'}: {order.cancelReason}
+                  </p>
+                )}
+                <p className="text-[10px] text-gray-400 mt-1">{language === 'te' ? 'మా జట్టు 24 గంటల్లో పరిష్కరిస్తుంది.' : 'Our team will process within 24 hours.'}</p>
+              </div>
+            </div>
+          )}
+
           {/* Vertical Timeline */}
-          {!isCancelled && (
+          {!isCancelled && !isCancelRequested && (
             <div className="space-y-0">
               {STEPS.map((step, idx) => {
                 const isCompleted = idx <= currentIdx;
@@ -505,7 +577,8 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
   const trkId = getTrackingId(order.orderId);
   const progressPct = getProgressPct(order.orderStatus);
   const isCancelled = order.orderStatus === 'CANCELLED';
-  const canCancel = ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED'].includes(order.orderStatus);
+  const isCancelRequested = order.orderStatus === 'CANCEL_REQUESTED';
+  const canCancel = ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED'].includes(order.orderStatus) && !order.cancelReason;
   const statusInfo = STATUS_STYLES[order.orderStatus] ?? STATUS_STYLES['PENDING'];
 
   const handleCopy = (id: string) => {
@@ -582,29 +655,76 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
             <span className="text-[10px] text-gray-400 font-medium">{order.paymentMethod === 'COD' ? (language === 'te' ? 'క్యాష్ ఆన్ డెలివరీ' : 'Cash on Delivery') : 'PhonePe'}</span>
           </div>
 
-          {/* Progress bar (non-cancelled) */}
-          {!isCancelled && (
-            <div className="mt-3.5 space-y-1.5">
-              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-500 to-amber-800 rounded-full transition-all duration-700"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-[10px] font-bold text-gray-300">
-                <span>{language === 'te' ? 'ఆర్డర్ నమోదైంది' : 'Order Placed'}</span>
-                <span className="text-amber-600">{progressPct}%</span>
-                <span>{language === 'te' ? 'డెలివరీ అయింది' : 'Delivered'}</span>
-              </div>
-            </div>
-          )}
+          {/* Stage Tracker */}
+          {(() => {
+            const stages = [
+              { key: 'PENDING',          shortEn: 'Placed',    shortTe: 'నమోదు' },
+              { key: 'CONFIRMED',        shortEn: 'Confirmed', shortTe: 'నిర్ధారణ' },
+              { key: 'PROCESSING',       shortEn: 'Packing',   shortTe: 'ప్యాకింగ్' },
+              { key: 'PACKED',           shortEn: 'Packed',    shortTe: 'ప్యాక్' },
+              { key: 'OUT_FOR_DELIVERY', shortEn: 'On Way',    shortTe: 'డెలివరీ' },
+              { key: 'DELIVERED',        shortEn: 'Delivered', shortTe: 'చేరింది' },
+            ];
 
-          {/* Cancelled ribbon */}
-          {isCancelled && (
-            <div className="mt-3 inline-flex items-center gap-1.5 bg-red-50 text-red-600 border border-red-100 rounded-xl px-3 py-1.5 text-[10px] font-black">
-              <AlertTriangle size={11}/> {language === 'te' ? 'ఈ ఆర్డర్ రద్దు చేయబడింది' : 'This order was cancelled'}
-            </div>
-          )}
+            if (isCancelled) {
+              return (
+                <div className="mt-3 inline-flex items-center gap-1.5 bg-red-50 text-red-600 border border-red-100 rounded-xl px-3 py-1.5 text-[10px] font-black">
+                  <AlertTriangle size={11}/> {language === 'te' ? 'ఈ ఆర్డర్ రద్దు చేయబడింది' : 'This order was cancelled'}
+                </div>
+              );
+            }
+
+            if (isCancelRequested) {
+              return (
+                <div className="mt-3 inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl px-3 py-1.5 text-[10px] font-black">
+                  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                  {language === 'te' ? '⏳ రద్దు అభ్యర్థన సమీక్షలో ఉంది' : '⏳ Cancellation Under Review — Pending Admin Approval'}
+                </div>
+              );
+            }
+
+            const currentStatus = order.orderStatus === 'SHIPPED' ? 'OUT_FOR_DELIVERY' : order.orderStatus;
+            const currentIdx = stages.findIndex(s => s.key === currentStatus);
+
+            return (
+              <div className="mt-3">
+                <div className="flex items-center w-full">
+                  {stages.map((stage, idx) => {
+                    const isCompleted = idx < currentIdx;
+                    const isCurrent = idx === currentIdx;
+                    const isLast = idx === stages.length - 1;
+                    return (
+                      <React.Fragment key={stage.key}>
+                        {/* Step node */}
+                        <div className="flex flex-col items-center shrink-0" style={{ minWidth: 0 }}>
+                          <div className={`w-2 h-2 rounded-full border transition-all duration-300 ${
+                            isCurrent
+                              ? 'bg-amber-600 border-amber-600 ring-2 ring-amber-200 scale-125'
+                              : isCompleted
+                              ? 'bg-amber-700 border-amber-700'
+                              : 'bg-gray-200 border-gray-200'
+                          }`} />
+                          <span className={`mt-1 text-[9px] font-bold leading-tight text-center whitespace-nowrap ${
+                            isCurrent ? 'text-amber-700' : isCompleted ? 'text-amber-500' : 'text-gray-300'
+                          }`}>
+                            {language === 'te' ? stage.shortTe : stage.shortEn}
+                          </span>
+                        </div>
+                        {/* Connector line */}
+                        {!isLast && (
+                          <div className={`flex-1 h-0.5 mx-0.5 rounded-full transition-all duration-500 ${
+                            isCompleted ? 'bg-amber-600' : 'bg-gray-100'
+                          }`} />
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+
 
           {/* Quick action row */}
           <div className="mt-4 flex items-center gap-2 flex-wrap" onClick={e => e.stopPropagation()}>
@@ -624,9 +744,17 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
                 </button>
               </>
             )}
-            {['OUT_FOR_DELIVERY', 'SHIPPED'].includes(order.orderStatus) && (
+            {isCancelRequested && (
+              <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black px-3 py-2 rounded-xl">
+                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                {language === 'te' ? 'రద్దు అభ్యర్థన సమీక్షలో ఉంది' : 'Cancellation Under Review'}
+              </div>
+            )}
+            {['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.orderStatus) && (
               <span className="text-[10px] text-gray-400 font-semibold italic">
-                ⚠️ {language === 'te' ? 'రద్దు చేయలేము — డెలివరీలో ఉంది' : 'Cannot cancel — Out for Delivery'}
+                ⚠️ {order.orderStatus === 'DELIVERED'
+                  ? (language === 'te' ? 'రద్దు చేయలేము — డెలివరీ పూర్తయింది' : 'Cannot cancel — Already Delivered')
+                  : (language === 'te' ? 'రద్దు చేయలేము — డెలివరీలో ఉంది' : 'Cannot cancel — Out for Delivery')}
               </span>
             )}
             <button
@@ -873,8 +1001,9 @@ export default function OrderHistorySection({
 
   const handleCancelSuccess = (id: string, reason: string) => {
     onOrdersChange(prev => prev.map(o => o.id === id ? {
-      ...o, orderStatus: 'CANCELLED',
-      notes: `Cancelled by customer. Reason: ${reason}`,
+      ...o,
+      orderStatus: 'CANCEL_REQUESTED',
+      cancelReason: reason,
       updatedAt: new Date().toISOString(),
     } : o));
   };

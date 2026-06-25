@@ -116,22 +116,21 @@ function PolicyContent() {
               </h2>
             </div>
 
-            <p>{isTe ? 'కస్టమర్ల సంతృప్తి మాకు అత్యంత ప్రాధాన్యం. ఒకవేళ మీకు అందిన వస్తువులు దెబ్బతిన్నట్లు లేదా తప్పుగా ఉన్నట్లు గుర్తిస్తే కింద పేర్కొన్న నిబంధనల ప్రకారం మార్చుకోవచ్చు.' : 'Customer satisfaction is our utmost priority. If you receive damaged or incorrect items, you can exchange them as per the conditions below.'}</p>
+            <p>{isTe ? 'నూనెలు మరియు ఆహార పదార్థాల నాణ్యత, పరిశుభ్రత మరియు భద్రత కారణాల దృష్ట్యా, డెలివరీ అయిన తర్వాత ఉత్పత్తులపై ఎటువంటి రిటర్న్స్ లేదా ఎక్స్ఛేంజ్లను మేము అంగీకరించము. అన్ని అమ్మకాలు తుది నిర్ణయం.' : 'Due to hygiene, safety, and the perishable food nature of our wood-pressed cooking oils, we do not accept returns or exchanges once the products are delivered. All sales are final.'}</p>
             
             <div className="space-y-1 mt-4">
-              <p className="font-extrabold text-amber-950">{isTe ? 'రిటర్న్ నిబంధనలు:' : 'Return Eligibility:'}</p>
-              <ul className="list-disc list-inside pl-2 space-y-1">
+              <p className="font-extrabold text-amber-950">{isTe ? 'డ్యామేజ్ లేదా తప్పు వస్తువుల పాలసీ:' : 'Damaged or Incorrect Items:'}</p>
+              <p>{isTe ? 'ఒకవేళ మీకు అందిన బాటిల్ డ్యామేజ్ అయినా, లీకేజీ ఉన్నా లేదా తప్పు ఉత్పత్తి వచ్చినా, డెలివరీ అయిన 24 గంటల్లోపు మా కస్టమర్ కేర్‌ను సంప్రదించాలి.' : 'If you receive a product that is leaking, physically damaged, or incorrect, please reach out to our customer care team within 24 hours of delivery.'}</p>
+              <ul className="list-disc list-inside pl-2 space-y-1 mt-2">
                 {isTe ? (
                   <>
-                    <li>నూనె సీసాలు సీల్ ఓపెన్ చేయకుండా ఉండాలి.</li>
-                    <li>డెలివరీ అయిన 3 రోజుల్లోపు మా కస్టమర్ కేర్‌ను సంప్రదించాలి.</li>
-                    <li>డ్యామేజ్ అయిన పార్సెల్ యొక్క ఫోటో లేదా వీడియోను వాట్సాప్ కు పంపాలి.</li>
+                    <li>డ్యామేజ్ అయిన పార్సెల్ యొక్క స్పష్టమైన ఫోటో లేదా అన్‌బాక్సింగ్ వీడియోను మా వాట్సాప్ (+91 86882 91288) నెంబర్ కు పంపాలి.</li>
+                    <li>సమస్య నిర్ధారణ అయిన తర్వాత, మేము ఉచితంగా మరొక ఉత్పత్తిని పంపుతాము లేదా రీఫండ్ అందిస్తాము.</li>
                   </>
                 ) : (
                   <>
-                    <li>The oil bottles must remain unopened with their seal intact.</li>
-                    <li>You must contact customer care within 3 days of delivery.</li>
-                    <li>Please provide a photo or video of the damaged parcel on WhatsApp.</li>
+                    <li>Please provide clear photo or unboxing video proof of the damage on WhatsApp (+91 86882 91288).</li>
+                    <li>Upon validation, we will gladly arrange a free replacement delivery or initiate a full refund.</li>
                   </>
                 )}
               </ul>
@@ -139,12 +138,12 @@ function PolicyContent() {
 
             <div className="space-y-1 mt-4">
               <p className="font-extrabold text-amber-950">{isTe ? 'క్యాన్సిలేషన్స్:' : 'Cancellations:'}</p>
-              <p>{isTe ? 'ఆర్డర్ షిప్పింగ్ అవ్వకముందే మీరు దాన్ని క్యాన్సిల్ చేసుకోవచ్చు. షిప్పింగ్ అయిన తర్వాత క్యాన్సిలేషన్స్ అనుమతించబడవు.' : 'You may cancel your order before it has been shipped. Once shipped, cancellations are not permitted.'}</p>
+              <p>{isTe ? 'డెలివరీ ఏజెంట్ డెలివరీ కోసం బయలుదేరే వరకు (Out for Delivery అవ్వకముందు) మాత్రమే మీ ఆర్డర్‌ని మీరు రద్దు చేసుకోవచ్చు. ఆర్డర్ డెలివరీకి బయలుదేరిన తర్వాత ఎట్టి పరిస్థితుల్లోనూ రద్దులు అంగీకరించబడవు.' : 'You can cancel your order at any time before it goes Out for Delivery. Once the order status is Out for Delivery or beyond, cancellations are strictly not permitted.'}</p>
             </div>
 
             <div className="space-y-1 mt-4">
               <p className="font-extrabold text-amber-950">{isTe ? 'రీఫండ్ ప్రాసెస్:' : 'Refund Timeline:'}</p>
-              <p>{isTe ? 'రిటర్న్ లేదా క్యాన్సిలేషన్ ఆమోదించబడిన తర్వాత, ఆన్‌లైన్ పేమెంట్లకు 3 నుండి 5 పనిదినాల్లో మీ ఒరిజినల్ పేమెంట్ అకౌంట్ కు డబ్బులు జమ చేయబడును. క్యాష్ ఆన్ డెలివరీ (COD) ఆర్డర్లకు మీ బ్యాంక్ లేదా UPI అకౌంట్ కు ట్రాన్స్ఫర్ చేస్తాము.' : 'Once a return or cancellation is approved, refunds for online payments will be processed to the original payment method within 3-5 working days. For COD orders, we will transfer the amount via bank transfer or UPI.'}</p>
+              <p>{isTe ? 'ఆమోదించబడిన రద్దులు లేదా రీఫండ్లకు, ఆన్‌లైన్ పేమెంట్లకు 3 నుండి 5 పనిదినాల్లో మీ ఒరిజినల్ పేమెంట్ అకౌంట్ కు డబ్బులు జమ చేయబడును. క్యాష్ ఆన్ డెలివరీ (COD) ఆర్డర్ల రీఫండ్లను మీ బ్యాంక్ లేదా UPI అకౌంట్ కు ట్రాన్స్ఫర్ ద్వారా పంపుతాము.' : 'Once a cancellation or refund request is approved, online payments will be refunded to the original payment method within 3-5 working days. For Cash on Delivery (COD) orders, refunds will be sent via bank transfer or UPI.'}</p>
             </div>
           </div>
         )}

@@ -79,7 +79,7 @@ export default function AdminCouponsPage() {
       value: c.value.toString(),
       minOrderValue: c.minOrderValue.toString(),
       maxDiscount: c.maxDiscount ? c.maxDiscount.toString() : '',
-      expiresAt: c.expiresAt ? new Date(c.expiresAt).toISOString().split('T')[0] : '',
+      expiresAt: c.expiresAt ? new Date(c.expiresAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }) : '',
       isActive: c.isActive,
     });
     setFormError('');
@@ -259,7 +259,7 @@ export default function AdminCouponsPage() {
                           <td className="py-4 px-4 text-center">
                             {c.expiresAt ? (
                               <span className={`text-[10px] font-bold ${expired ? 'text-red-500' : 'text-gray-500'}`}>
-                                {new Date(c.expiresAt).toLocaleDateString('en-IN')}
+                                {new Date(c.expiresAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                                 {expired && <span className="ml-1 text-[9px] bg-red-100 text-red-600 px-1 rounded">Expired</span>}
                               </span>
                             ) : (
@@ -362,7 +362,7 @@ export default function AdminCouponsPage() {
                             <Calendar size={9} /> Expires
                           </p>
                           <p className={`font-bold mt-0.5 ${expired ? 'text-red-500' : 'text-gray-700'}`}>
-                            {new Date(c.expiresAt).toLocaleDateString('en-IN')}
+                            {new Date(c.expiresAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                             {expired && <span className="ml-1.5 text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Expired</span>}
                           </p>
                         </div>

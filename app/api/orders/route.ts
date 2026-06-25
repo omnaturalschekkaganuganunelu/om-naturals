@@ -191,79 +191,103 @@ export async function POST(req: NextRequest) {
     const shipping = taxableAmount >= freeShippingAbove ? 0 : shippingFee;
     const total = parseFloat((taxableAmount + tax + shipping + packingFee).toFixed(2));
 
-    // Custom Order ID
-    const today = new Date();
-    const dateStr = today.getFullYear().toString() +
-      (today.getMonth() + 1).toString().padStart(2, '0') +
-      today.getDate().toString().padStart(2, '0');
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const customOrderId = `NUNE-${dateStr}-${randomSuffix}`;
+    // Execute order creation in transaction with collision retry protection
+    let retries = 3;
+    let order: any = null;
+    while (retries > 0) {
+      try {
+        order = await prisma.$transaction(async (tx) => {
+          // Get the next sequential number across all orders
+          const orderCount = await tx.order.count();
+          const nextNum = orderCount + 1;
+          const serialStr = nextNum.toString().padStart(5, '0');
 
-    // Execute order creation in transaction
-    const order = await prisma.$transaction(async (tx) => {
-      // 1. Create the order
-      const newOrder = await tx.order.create({
-        data: {
-          orderId: customOrderId,
-          userId: session.user.id,
-          name: address.name,
-          phone: address.phone,
-          line1: address.line1,
-          line2: address.line2,
-          city: address.city,
-          state: address.state,
-          pincode: address.pincode,
-          latitude: address.latitude ? parseFloat(address.latitude) : null,
-          longitude: address.longitude ? parseFloat(address.longitude) : null,
-          subtotal,
-          shipping,
-          tax,
-          discount,
-          total,
-          couponCode: validCouponCode,
-          paymentMethod,
-          paymentStatus: 'PENDING',
-          orderStatus: 'PENDING',
-          notes: notes || `Packing: ₹${packingFee} + Shipping: ₹${shipping}`,
-          items: {
-            create: itemsToCreate,
-          },
-        },
-        include: {
-          items: true,
-        },
-      });
+          const today = new Date();
+          const y = today.toLocaleDateString('en-US', { year: 'numeric', timeZone: 'Asia/Kolkata' });
+          const m = today.toLocaleDateString('en-US', { month: '2-digit', timeZone: 'Asia/Kolkata' });
+          const day = today.toLocaleDateString('en-US', { day: '2-digit', timeZone: 'Asia/Kolkata' });
+          const dateStr = `${y}${m}${day}`;
+          const customOrderId = `Om-${dateStr}-${serialStr}`;
 
-      // 2. If COD, we can immediately deduct inventory stock
-      if (paymentMethod === 'COD') {
-        for (const item of itemsToCreate) {
-          const updatedProduct = await tx.product.update({
-            where: { id: item.productId },
+          // 1. Create the order
+          const newOrder = await tx.order.create({
             data: {
-              stock: {
-                decrement: item.quantity,
+              orderId: customOrderId,
+              userId: session.user.id,
+              name: address.name,
+              phone: address.phone,
+              line1: address.line1,
+              line2: address.line2,
+              city: address.city,
+              state: address.state,
+              pincode: address.pincode,
+              latitude: address.latitude ? parseFloat(address.latitude) : null,
+              longitude: address.longitude ? parseFloat(address.longitude) : null,
+              subtotal,
+              shipping,
+              tax,
+              discount,
+              total,
+              couponCode: validCouponCode,
+              paymentMethod,
+              paymentStatus: 'PENDING',
+              orderStatus: 'PENDING',
+              notes: notes || `Packing: ₹${packingFee} + Shipping: ₹${shipping}`,
+              items: {
+                create: itemsToCreate,
               },
+            },
+            include: {
+              items: true,
             },
           });
 
-          if (updatedProduct.stock < 5) {
-            const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });
-            if (admin) {
-              await tx.notification.create({
+          // 2. If COD, we can immediately deduct inventory stock
+          if (paymentMethod === 'COD') {
+            for (const item of itemsToCreate) {
+              const updatedProduct = await tx.product.update({
+                where: { id: item.productId },
                 data: {
-                  title: '⚠️ Low Stock Alert!',
-                  body: `Product "${updatedProduct.name}" has critically low stock (${updatedProduct.stock} left).`,
-                  type: 'INFO',
-                  userId: admin.id,
-                }
+                  stock: {
+                    decrement: item.quantity,
+                  },
+                },
               });
+
+              if (updatedProduct.stock < 5) {
+                const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });
+                if (admin) {
+                  await tx.notification.create({
+                    data: {
+                      title: '⚠️ Low Stock Alert!',
+                      body: `Product "${updatedProduct.name}" has critically low stock (${updatedProduct.stock} left).`,
+                      type: 'INFO',
+                      userId: admin.id,
+                    }
+                  });
+                }
+              }
             }
           }
+
+          return newOrder;
+        });
+        break; // Successfully created, break retry loop
+      } catch (err: any) {
+        if (err.code === 'P2002' && (err.meta?.target?.includes('orderId') || err.message?.includes('orderId'))) {
+          retries--;
+          if (retries === 0) throw err;
+          // Wait a tiny bit (50ms) and retry with the updated order count
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        } else {
+          throw err;
         }
       }
+    }
 
-      return newOrder;
-    });
+    if (!order) {
+      return NextResponse.json({ error: 'Order creation failed' }, { status: 500 });
+    }
 
     // Broadcast SSE alert for ADMIN
     orderEmitter.emit('new-order', {
@@ -287,6 +311,24 @@ export async function POST(req: NextRequest) {
       });
     } catch (notifErr) {
       console.error('Order-placed notification failed:', notifErr);
+    }
+
+    // Notify ADMIN that a new order was placed
+    try {
+      const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
+      for (const admin of admins) {
+        await prisma.notification.create({
+          data: {
+            title: `🛒 New Order Placed!`,
+            body: `Order ${order.orderId} for ₹${order.total} has been placed by ${session.user.name || 'Customer'}.`,
+            type: 'ORDER',
+            userId: admin.id,
+            orderId: order.id,
+          },
+        });
+      }
+    } catch (adminNotifErr) {
+      console.error('Admin order-placed notification failed:', adminNotifErr);
     }
 
     // Instantly invalidate the cache globally so the frontend shows accurate live stock!

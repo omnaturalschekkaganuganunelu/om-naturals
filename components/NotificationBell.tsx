@@ -13,8 +13,20 @@ const TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string; bg: 
   INFO:  { icon: Info,    color: 'text-gray-500',  bg: 'bg-gray-50',   dot: 'bg-gray-400' },
 };
 
+function parseUTCDate(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  if (dateStr.endsWith('Z') || dateStr.includes('+') || /-\d{2}:\d{2}$/.test(dateStr)) {
+    return new Date(dateStr);
+  }
+  const normalized = dateStr.trim().replace(' ', 'T');
+  if (!normalized.includes('T')) {
+    return new Date(dateStr);
+  }
+  return new Date(normalized + 'Z');
+}
+
 function timeAgo(date: string) {
-  const diff = Date.now() - new Date(date).getTime();
+  const diff = Date.now() - parseUTCDate(date).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;
@@ -24,12 +36,42 @@ function timeAgo(date: string) {
   return `${days}d ago`;
 }
 
+// Shared audio context logic to satisfy browser autoplay security policies
+let sharedAudioContext: AudioContext | null = null;
+
+const initAudio = () => {
+  if (typeof window === 'undefined') return;
+  if (!sharedAudioContext) {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      sharedAudioContext = new AudioCtx();
+    }
+  }
+  if (sharedAudioContext && sharedAudioContext.state === 'suspended') {
+    sharedAudioContext.resume().catch(() => {});
+  }
+};
+
+// Resume context on first user click or tap on the page
+if (typeof window !== 'undefined') {
+  const resumeAudio = () => {
+    initAudio();
+    document.removeEventListener('click', resumeAudio);
+    document.removeEventListener('touchstart', resumeAudio);
+  };
+  document.addEventListener('click', resumeAudio);
+  document.addEventListener('touchstart', resumeAudio);
+}
+
 // Synthesize a pleasant chime sound (No external assets required)
 const playChime = () => {
   try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
+    initAudio();
+    if (!sharedAudioContext) return;
+    const ctx = sharedAudioContext;
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
     
     // Tone 1
     const osc = ctx.createOscillator();
@@ -98,7 +140,26 @@ export default function NotificationBell() {
   // Listen for realtime notifications
   useRealtime('Notification', 'INSERT', (payload) => {
     if (payload.new) {
-      addRealtimeNotification(payload.new as any);
+      const notif = payload.new as any;
+      const targetUserId = notif.userId !== undefined ? notif.userId : notif.userid;
+      if (targetUserId === session?.user?.id || targetUserId === null || targetUserId === undefined) {
+        // Normalize the payload keys to match camelCase properties
+        const normalizedNotif: Notification = {
+          id: notif.id,
+          title: notif.title,
+          body: notif.body,
+          type: notif.type || 'INFO',
+          isRead: notif.isRead !== undefined ? notif.isRead : (notif.isread ?? false),
+          orderId: notif.orderId !== undefined ? notif.orderId : (notif.orderid ?? null),
+          createdAt: notif.createdAt !== undefined ? notif.createdAt : (notif.createdat ?? new Date().toISOString()),
+        };
+        addRealtimeNotification(normalizedNotif);
+        
+        // Show a global toast popup to the user
+        const { showToast } = require('@/store/toastStore').useToastStore.getState();
+        const typeMap: any = { INFO: 'info', OFFER: 'success', ORDER: 'success' };
+        showToast(normalizedNotif.body, typeMap[normalizedNotif.type] || 'info', normalizedNotif.title);
+      }
     }
   });
 
@@ -179,12 +240,10 @@ export default function NotificationBell() {
                 const IconComp = cfg.icon;
                 
                 let linkHref = '#';
-                if (notif.type === 'ORDER') {
-                  linkHref = session?.user?.role === 'ADMIN' ? '/admin/orders' : '/account?tab=orders';
-                } else if (notif.type === 'INFO') {
-                  linkHref = session?.user?.role === 'ADMIN' ? '/admin/products' : '/products';
-                } else if (notif.type === 'OFFER') {
-                  linkHref = '/products';
+                if (session?.user?.role === 'ADMIN') {
+                  linkHref = '/admin/notifications';
+                } else {
+                  linkHref = '/account?tab=notifications';
                 }
 
                 return (

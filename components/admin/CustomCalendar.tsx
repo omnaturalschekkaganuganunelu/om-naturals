@@ -135,7 +135,7 @@ export default function CustomCalendar({ value, onChange, placeholder = 'Select 
           const d = day.toString().padStart(2, '0');
           const dateStr = `${currentMonth.getFullYear()}-${m}-${d}`;
           const isSelected = value === dateStr;
-          const isToday = new Date().toISOString().split('T')[0] === dateStr;
+          const isToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }) === dateStr;
           return (
             <button
               key={idx}

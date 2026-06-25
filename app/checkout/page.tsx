@@ -268,6 +268,8 @@ export default function CheckoutPage() {
         city: selectedAddress.city,
         state: selectedAddress.state,
         pincode: selectedAddress.pincode,
+        latitude: selectedAddress.latitude,
+        longitude: selectedAddress.longitude,
       },
       couponCode: coupon?.code || null,
       paymentMethod,
@@ -307,7 +309,7 @@ export default function CheckoutPage() {
         } else {
           // COD ORDER SUCCESS
           clearCart();
-          router.push(`/order-confirmation?orderId=${orderId}&status=success&method=COD`);
+          router.push(`/account?tab=orders`);
         }
       } else {
         setCheckoutError(result.error || (language === 'te' ? 'ఆర్డర్ ఉంచడంలో లోపం జరిగింది.' : 'Error placing order.'));
@@ -383,6 +385,20 @@ export default function CheckoutPage() {
                       <p className="text-[10px] font-bold text-center mt-1.5 text-amber-900">
                         {locationStatus}
                       </p>
+                    )}
+                    {formData.latitude && formData.longitude && (
+                      <div className="mt-3 w-full h-40 rounded-xl overflow-hidden border border-amber-200">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          frameBorder="0"
+                          scrolling="no"
+                          marginHeight={0}
+                          marginWidth={0}
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${formData.longitude - 0.005},${formData.latitude - 0.005},${formData.longitude + 0.005},${formData.latitude + 0.005}&layer=mapnik&marker=${formData.latitude},${formData.longitude}`}
+                          style={{ border: 0 }}
+                        ></iframe>
+                      </div>
                     )}
                   </div>
                   

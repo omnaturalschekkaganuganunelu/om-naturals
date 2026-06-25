@@ -24,8 +24,20 @@ const TYPE_OPTS = [
   { value: 'ORDER', label: '📦 Order Update',         color: 'text-blue-600',  bg: 'bg-blue-50' },
 ];
 
+function parseUTCDate(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  if (dateStr.endsWith('Z') || dateStr.includes('+') || /-\d{2}:\d{2}$/.test(dateStr)) {
+    return new Date(dateStr);
+  }
+  const normalized = dateStr.trim().replace(' ', 'T');
+  if (!normalized.includes('T')) {
+    return new Date(dateStr);
+  }
+  return new Date(normalized + 'Z');
+}
+
 function timeAgo(date: string) {
-  const diff = Date.now() - new Date(date).getTime();
+  const diff = Date.now() - parseUTCDate(date).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;

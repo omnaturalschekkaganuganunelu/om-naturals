@@ -15,6 +15,7 @@ interface CustomSelectProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  openUpward?: boolean;
 }
 
 export default function CustomSelect({
@@ -24,6 +25,7 @@ export default function CustomSelect({
   placeholder = 'Select...',
   className = '',
   disabled = false,
+  openUpward = false,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,7 +63,9 @@ export default function CustomSelect({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 right-0 mt-1.5 bg-white border border-amber-100 rounded-2xl smooth-shadow-lg py-1.5 z-[999] max-h-60 overflow-y-auto no-scrollbar animate-fade-in-up">
+        <div className={`absolute left-0 right-0 bg-white border border-amber-100 rounded-2xl smooth-shadow-lg py-1.5 z-[999] max-h-60 overflow-y-auto no-scrollbar animate-fade-in-up ${
+          openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+        }`}>
           {options.map((opt) => (
             <button
               key={opt.value}

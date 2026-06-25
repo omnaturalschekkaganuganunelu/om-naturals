@@ -391,7 +391,7 @@ export default function AdminProductsPage() {
   return (
     <>
       <Navbar />
-      <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1 overflow-x-hidden">
+      <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1">
         <div className="flex flex-col lg:flex-row gap-0 sm:gap-8 items-start">
           <AdminSidebar />
 

@@ -28,16 +28,38 @@ import {
   X, 
   AlertTriangle,
   Clock,
-  Truck
+  Truck,
+  Bell,
+  CheckCheck,
+  Tag
 } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomSelect from '@/components/CustomSelect';
 import OrderHistorySection from '@/components/OrderHistorySection';
 import { useRealtime } from '@/hooks/useRealtime';
 import ConfirmModal from '@/components/ConfirmModal';
+import { useNotificationStore } from '@/store/notificationStore';
+
+function parseUTCDate(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  if (dateStr.endsWith('Z') || dateStr.includes('+') || /-\d{2}:\d{2}$/.test(dateStr)) {
+    return new Date(dateStr);
+  }
+  const normalized = dateStr.trim().replace(' ', 'T');
+  if (!normalized.includes('T')) {
+    return new Date(dateStr);
+  }
+  return new Date(normalized + 'Z');
+}
 
 // Deterministic Tracking ID Generator
 const getTrackingId = (orderId: string) => {
+  if (orderId && typeof orderId === 'string' && orderId.includes('-')) {
+    const parts = orderId.split('-');
+    if (parts.length >= 3) {
+      return `TRK-GNT-${parts[2]}`;
+    }
+  }
   let hash = 0;
   for (let i = 0; i < orderId.length; i++) {
     hash = orderId.charCodeAt(i) + ((hash << 5) - hash);
@@ -200,6 +222,19 @@ function AccountContent() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Notification store
+  const {
+    notifications: userNotifications,
+    unreadCount: notifUnreadCount,
+    fetchNotifications,
+    markAllRead: markAllNotifRead,
+    markRead: markNotifRead,
+    addRealtimeNotification,
+  } = useNotificationStore();
+
+  // Selected notification for detail popup
+  const [selectedNotif, setSelectedNotif] = useState<any>(null);
+
   // Modal / Drawer state
   const [trackingOrder, setTrackingOrder] = useState<any>(null);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
@@ -289,6 +324,13 @@ function AccountContent() {
       });
   }, [authStatus]);
 
+  // Fetch user notifications
+  useEffect(() => {
+    if (authStatus === 'authenticated') {
+      fetchNotifications(authStatus, true);
+    }
+  }, [authStatus, fetchNotifications]);
+
   // Realtime updates for Customer's Orders
   useRealtime('Order', '*', (payload) => {
     if (payload.eventType === 'UPDATE') {
@@ -304,6 +346,26 @@ function AccountContent() {
         .catch((err) => console.error('Error reloading orders after realtime insert:', err));
     } else if (payload.eventType === 'DELETE') {
       setOrders((prev) => prev.filter((ord) => ord.id !== payload.old.id));
+    }
+  });
+
+  // Realtime listener for user notifications
+  useRealtime('Notification', 'INSERT', (payload) => {
+    if (payload.new) {
+      const notif = payload.new as any;
+      const targetUserId = notif.userId !== undefined ? notif.userId : notif.userid;
+      if (targetUserId === session?.user?.id || targetUserId === null || targetUserId === undefined) {
+        const normalizedNotif: any = {
+          id: notif.id,
+          title: notif.title,
+          body: notif.body,
+          type: notif.type || 'INFO',
+          isRead: notif.isRead !== undefined ? notif.isRead : (notif.isread ?? false),
+          orderId: notif.orderId !== undefined ? notif.orderId : (notif.orderid ?? null),
+          createdAt: notif.createdAt !== undefined ? notif.createdAt : (notif.createdat ?? new Date().toISOString()),
+        };
+        addRealtimeNotification(normalizedNotif);
+      }
     }
   });
 
@@ -629,7 +691,7 @@ function AccountContent() {
               <h3>Order Info:</h3>
               <p><strong>Order ID:</strong> ${order.orderId}</p>
               <p><strong>Tracking ID:</strong> ${trkId}</p>
-              <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
+              <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
               <p><strong>Payment Status:</strong> ${order.paymentStatus}</p>
               <p><strong>Payment Method:</strong> ${order.paymentMethod === 'COD' ? 'Cash on Delivery (COD)' : 'PhonePe Online'}</p>
             </div>
@@ -763,32 +825,39 @@ function AccountContent() {
   };
 
   // Date formatter helpers
-  const getFormattedDate = (dateStr: string) => {
+  const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-US', {
       day: 'numeric',
-      month: 'long',
-      year: 'numeric'
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata'
     });
   };
 
-  const getFormattedDateTime = (dateStr: string) => {
+  const formatDateTime = (dateStr: string) => {
     return new Date(dateStr).toLocaleString(language === 'te' ? 'te-IN' : 'en-US', {
       day: 'numeric',
       month: 'short',
+      year: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
+      timeZone: 'Asia/Kolkata'
     });
+  };
+
+  const getFormattedDate = (dateStr: string) => {
+    return formatDate(dateStr);
+  };
+
+  const getFormattedDateTime = (dateStr: string) => {
+    return formatDateTime(dateStr);
   };
 
   const getEstimatedArrival = (createdAtStr: string) => {
     const d = new Date(createdAtStr);
     d.setDate(d.getDate() + 3); // 3 days expected delivery
-    return d.toLocaleDateString(language === 'te' ? 'te-IN' : 'en-US', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
+    return formatDate(d.toISOString());
   };
 
   const getStatusLabel = (status: string) => {
@@ -919,6 +988,23 @@ function AccountContent() {
           </button>
 
           <button
+            onClick={() => setActiveTab('notifications')}
+            className={`w-full text-left text-xs font-bold py-3 px-4 rounded-2xl flex items-center justify-between transition-colors ${
+              activeTab === 'notifications' ? 'bg-amber-100 text-amber-900 font-extrabold' : 'text-amber-900 hover:bg-amber-50'
+            }`}
+          >
+            <div className="flex items-center space-x-2.5">
+              <Bell size={16} />
+              <span>{language === 'te' ? 'నోటిఫికేషన్లు' : 'Notifications'}</span>
+            </div>
+            {notifUnreadCount > 0 && (
+              <span className="bg-red-500 text-white text-[9px] font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 animate-pulse">
+                {notifUnreadCount > 9 ? '9+' : notifUnreadCount}
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveTab('profile')}
             className={`w-full text-left text-xs font-bold py-3 px-4 rounded-2xl flex items-center space-x-2.5 transition-colors ${
               activeTab === 'profile' ? 'bg-amber-100 text-amber-900 font-extrabold' : 'text-amber-900 hover:bg-amber-50'
@@ -978,6 +1064,20 @@ function AccountContent() {
                       <p className="text-[10px] font-bold text-center mt-1.5 text-amber-900">
                         {locationStatus}
                       </p>
+                    )}
+                    {formData.latitude && formData.longitude && (
+                      <div className="mt-3 w-full h-40 rounded-xl overflow-hidden border border-amber-200">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          frameBorder="0"
+                          scrolling="no"
+                          marginHeight={0}
+                          marginWidth={0}
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${formData.longitude - 0.005},${formData.latitude - 0.005},${formData.longitude + 0.005},${formData.latitude + 0.005}&layer=mapnik&marker=${formData.latitude},${formData.longitude}`}
+                          style={{ border: 0 }}
+                        ></iframe>
+                      </div>
                     )}
                   </div>
                   
@@ -1158,7 +1258,109 @@ function AccountContent() {
             </div>
           )}
 
-          {/* TAB 3: PROFILE */}
+          {/* TAB 3: NOTIFICATIONS */}
+          {activeTab === 'notifications' && (
+            <div className="space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-amber-950 font-heading flex items-center space-x-2">
+                  <Bell size={18} className="text-amber-700" />
+                  <span>{language === 'te' ? 'నోటిఫికేషన్లు' : 'Notifications'}</span>
+                  {notifUnreadCount > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                      {notifUnreadCount} {language === 'te' ? 'కొత్తవి' : 'new'}
+                    </span>
+                  )}
+                </h3>
+                {userNotifications.length > 0 && (
+                  <button
+                    onClick={() => markAllNotifRead()}
+                    className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-xl border border-amber-200 transition-all"
+                  >
+                    <CheckCheck size={13} />
+                    {language === 'te' ? 'అన్నీ చదివినట్లు గుర్తించు' : 'Mark all as read'}
+                  </button>
+                )}
+              </div>
+
+              {/* Notification List */}
+              {userNotifications.length === 0 ? (
+                <div className="bg-white border-2 border-dashed border-amber-100 rounded-3xl p-14 flex flex-col items-center justify-center text-center space-y-3 smooth-shadow">
+                  <div className="w-16 h-16 bg-amber-50 border border-amber-100 rounded-full flex items-center justify-center">
+                    <Bell size={28} className="text-amber-200" />
+                  </div>
+                  <p className="text-sm font-bold text-gray-400">{language === 'te' ? 'ఇంకా నోటిఫికేషన్లు లేవు' : 'No notifications yet'}</p>
+                  <p className="text-[11px] text-gray-300">{language === 'te' ? 'ఆర్డర్ అప్‌డేట్‌లు ఇక్కడ కనిపిస్తాయి' : 'Order updates and offers will appear here'}</p>
+                </div>
+              ) : (
+                <div className="bg-white border border-amber-100 rounded-3xl smooth-shadow overflow-hidden">
+                  {userNotifications.map((notif, idx) => {
+                    const isOrder = notif.type === 'ORDER';
+                    const isOffer = notif.type === 'OFFER';
+                    const IconComp = isOrder ? Package : isOffer ? Tag : Info;
+                    const iconBg = isOrder ? 'bg-blue-50' : isOffer ? 'bg-amber-50' : 'bg-gray-50';
+                    const iconColor = isOrder ? 'text-blue-600' : isOffer ? 'text-amber-600' : 'text-gray-500';
+                    const dotColor = isOrder ? 'bg-blue-500' : isOffer ? 'bg-amber-500' : 'bg-gray-400';
+
+                    return (
+                      <div
+                        key={notif.id}
+                        onClick={() => {
+                          setSelectedNotif(notif);
+                          if (!notif.isRead) markNotifRead(notif.id);
+                        }}
+                        className={`flex gap-3.5 px-5 py-4 cursor-pointer transition-all duration-200 ${
+                          idx < userNotifications.length - 1 ? 'border-b border-amber-50' : ''
+                        } ${
+                          notif.isRead
+                            ? 'bg-white hover:bg-gray-50/50'
+                            : 'bg-amber-50/40 hover:bg-amber-50/70'
+                        }`}
+                      >
+                        {/* Icon */}
+                        <div className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center mt-0.5 ${iconBg}`}>
+                          <IconComp size={15} className={iconColor} />
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className={`text-xs font-black leading-tight ${
+                              notif.isRead ? 'text-gray-700' : 'text-amber-950'
+                            }`}>
+                              {notif.title}
+                            </p>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {!notif.isRead && (
+                                <span className={`w-2 h-2 rounded-full ${dotColor} animate-pulse`} />
+                              )}
+                              <span className="text-[10px] text-gray-300 font-semibold whitespace-nowrap">
+                                {(() => {
+                                  const parsed = parseUTCDate(notif.createdAt);
+                                  const diff = Date.now() - parsed.getTime();
+                                  const mins = Math.floor(diff / 60000);
+                                  if (mins < 1) return 'just now';
+                                  if (mins < 60) return `${mins}m ago`;
+                                  const hrs = Math.floor(mins / 60);
+                                  if (hrs < 24) return `${hrs}h ago`;
+                                  return `${Math.floor(hrs / 24)}d ago`;
+                                })()}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-gray-500 font-medium mt-0.5 leading-snug line-clamp-2">
+                            {notif.body}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: PROFILE */}
           {activeTab === 'profile' && (
             <div className="bg-white border border-amber-100 rounded-3xl p-4 sm:p-6 lg:p-8 smooth-shadow space-y-6">
               <h3 className="text-lg font-bold text-amber-950 font-heading border-b border-amber-50 pb-3 flex items-center space-x-2">
@@ -1483,6 +1685,98 @@ function AccountContent() {
       )}
 
     </div>
+
+      {/* ─── NOTIFICATION DETAIL POPUP MODAL ─── */}
+      {selectedNotif && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-amber-950/50 backdrop-blur-sm" onClick={() => setSelectedNotif(null)}>
+          <div
+            className="relative bg-white rounded-3xl smooth-shadow-lg max-w-md w-full overflow-hidden animate-fade-in-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Gradient Header */}
+            <div className={`px-6 py-5 ${
+              selectedNotif.type === 'ORDER'
+                ? 'bg-gradient-to-br from-blue-600 to-blue-800'
+                : selectedNotif.type === 'OFFER'
+                ? 'bg-gradient-to-br from-amber-600 to-amber-800'
+                : 'bg-gradient-to-br from-gray-600 to-gray-800'
+            } flex items-start justify-between`}>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center shrink-0">
+                  {selectedNotif.type === 'ORDER' ? <Package size={18} className="text-white" /> :
+                   selectedNotif.type === 'OFFER' ? <Tag size={18} className="text-white" /> :
+                   <Info size={18} className="text-white" />}
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-white/60 uppercase tracking-widest">
+                    {selectedNotif.type === 'ORDER' ? 'Order Update' : selectedNotif.type === 'OFFER' ? 'Special Offer' : 'Information'}
+                  </p>
+                  <p className="text-base font-black text-white leading-tight mt-0.5">{selectedNotif.title}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedNotif(null)}
+                className="p-1.5 bg-white/10 hover:bg-white/25 rounded-full transition-colors shrink-0 mt-0.5"
+              >
+                <X size={14} className="text-white" />
+              </button>
+            </div>
+
+            {/* Body Content */}
+            <div className="px-6 py-5 space-y-4">
+              {/* Message */}
+              <div className="bg-gray-50 rounded-2xl p-4">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Message</p>
+                <p className="text-sm text-gray-700 font-medium leading-relaxed">{selectedNotif.body}</p>
+              </div>
+
+              {/* Order ID (if linked) */}
+              {selectedNotif.orderId && (
+                <div className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
+                  <div>
+                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Linked Order</p>
+                    <p className="text-sm font-black text-amber-950 font-mono mt-0.5">
+                      {orders.find(o => o.id === selectedNotif.orderId)?.orderId || selectedNotif.orderId.substring(0, 8) + '...'}
+                    </p>
+                  </div>
+                  <Package size={20} className="text-amber-400" />
+                </div>
+              )}
+
+              {/* Timestamp */}
+              <div className="flex items-center gap-2 text-xs text-gray-400 font-semibold">
+                <Clock size={12} />
+                <span>{new Date(selectedNotif.createdAt).toLocaleString(language === 'te' ? 'te-IN' : 'en-US', {
+                  weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+                  hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata'
+                })}</span>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
+                {selectedNotif.type === 'ORDER' && selectedNotif.orderId && (
+                  <button
+                    onClick={() => {
+                      setSelectedNotif(null);
+                      setActiveTab('orders');
+                    }}
+                    className="flex-1 bg-amber-800 hover:bg-amber-700 text-white font-bold text-xs py-3 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2"
+                  >
+                    <Package size={13} />
+                    {language === 'te' ? 'ఆర్డర్ చూడు' : 'View My Orders'}
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedNotif(null)}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs py-3 rounded-2xl transition-all"
+                >
+                  {language === 'te' ? 'మూసివేయి' : 'Close'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={logoutModalOpen}

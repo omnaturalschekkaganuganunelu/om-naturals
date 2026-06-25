@@ -74,7 +74,7 @@ export default function AdminDashboardPage() {
     <>
       <Navbar />
 
-      <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1 overflow-x-hidden">
+      <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1">
         
         {/* Real-time Order Alert Toast overlay */}
         {newOrderAlert && (

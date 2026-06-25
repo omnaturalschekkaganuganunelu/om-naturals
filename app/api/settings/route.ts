@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
           contactPhone: '+91 99999 99999',
           whatsappNumber: '+91 99999 99999',
           businessName: 'ఓమ్ నాచురల్ చెక్క గానుగ నూనెలు / OM Natural Chekka Ganuga Oils',
-          businessEmail: 'support@omnatural.com',
+          businessEmail: 'info@om-naturals.com',
         },
       });
     }

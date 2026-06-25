@@ -24,6 +24,12 @@ import PremiumLoader from '@/components/PremiumLoader';
 
 // Deterministic Tracking ID Generator
 const getTrackingId = (orderId: string) => {
+  if (orderId && typeof orderId === 'string' && orderId.includes('-')) {
+    const parts = orderId.split('-');
+    if (parts.length >= 3) {
+      return `TRK-GNT-${parts[2]}`;
+    }
+  }
   let hash = 0;
   for (let i = 0; i < orderId.length; i++) {
     hash = orderId.charCodeAt(i) + ((hash << 5) - hash);
@@ -166,7 +172,8 @@ function TrackOrderContent() {
     return new Date(dateStr).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-US', {
       day: 'numeric',
       month: 'long',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata'
     });
   };
 
@@ -176,7 +183,8 @@ function TrackOrderContent() {
     return d.toLocaleDateString(language === 'te' ? 'te-IN' : 'en-US', {
       day: 'numeric',
       month: 'long',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata'
     });
   };
 
@@ -409,7 +417,7 @@ function TrackOrderContent() {
                   ></div>
                 </div>
                 <span className="text-[10px] font-black text-amber-900 shrink-0">
-                  {progressVal}% {language === 'te' ? 'పూర్తయింది' : 'Completed'}
+                  {getStatusLabel(order.orderStatus)}
                 </span>
               </div>
 

@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import { ChevronDown, ChevronUp, RefreshCw, Filter, Eye, AlertCircle, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, RefreshCw, Filter, Eye, AlertCircle, Search, Check, X } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomSelect from '@/components/CustomSelect';
@@ -17,6 +17,24 @@ export default function AdminOrdersPage() {
   const router = useRouter();
   const { data: session, status: authStatus } = useSession();
   const { t, language } = useLanguage();
+  const hasFetchedRef = useRef(false);
+
+  // Helper to extract coordinates from order or address lines
+  const getCoordinates = (ord: any) => {
+    if (ord.latitude && ord.longitude) {
+      return { latitude: ord.latitude, longitude: ord.longitude };
+    }
+    // Try to parse from line1 or line2
+    for (const line of [ord.line1, ord.line2]) {
+      if (line) {
+        const match = line.match(/Coords:\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)/i);
+        if (match) {
+          return { latitude: parseFloat(match[1]), longitude: parseFloat(match[2]) };
+        }
+      }
+    }
+    return null;
+  };
 
   // Data states
   const [orders, setOrders] = useState<any[]>([]);
@@ -39,25 +57,41 @@ export default function AdminOrdersPage() {
   }, [authStatus, session, router]);
 
   // Load Orders
-  const loadOrders = () => {
-    setLoading(true);
+  const loadOrders = (showLoader = false) => {
+    if (showLoader) setLoading(true);
     fetch('/api/orders')
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
-        setOrders(data);
+        if (Array.isArray(data)) {
+          setOrders(data);
+        } else {
+          console.error('Expected array of orders, got:', data);
+          setOrders([]);
+        }
         setLoading(false);
       })
       .catch((err) => {
         console.error('Error fetching admin orders:', err);
+        setOrders([]);
         setLoading(false);
       });
   };
 
   useEffect(() => {
     if (authStatus === 'authenticated' && session?.user?.role === 'ADMIN') {
-      loadOrders();
+      if (!hasFetchedRef.current) {
+        hasFetchedRef.current = true;
+        loadOrders(true);
+      } else {
+        loadOrders(false);
+      }
     }
-  }, [authStatus, session]);
+  }, [authStatus, session?.user?.role]);
 
   // Realtime updates for Orders
   useRealtime('Order', '*', (payload) => {
@@ -84,7 +118,7 @@ export default function AdminOrdersPage() {
       
       // 2. Date Filter
       if (dateFilter) {
-        const ordDate = new Date(ord.createdAt).toISOString().split('T')[0];
+        const ordDate = new Date(ord.createdAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
         if (ordDate !== dateFilter) return false;
       }
 
@@ -137,7 +171,7 @@ export default function AdminOrdersPage() {
     <>
       <Navbar />
 
-      <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1 overflow-x-hidden">
+      <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1">
         <div className="flex flex-col lg:flex-row gap-0 sm:gap-8 items-start">
           
           <AdminSidebar />
@@ -184,6 +218,7 @@ export default function AdminOrdersPage() {
                       onChange={(val) => setStatusFilter(val)}
                       options={[
                         { value: '', label: language === 'te' ? 'అన్ని స్థితులు' : 'All Status' },
+                        { value: 'CANCEL_REQUESTED', label: language === 'te' ? 'రద్దు అభ్యర్థన' : '🚨 Cancellation Requests' },
                         { value: 'PENDING', label: language === 'te' ? 'పెండింగ్' : 'Pending' },
                         { value: 'CONFIRMED', label: language === 'te' ? 'నిర్ధారించబడింది' : 'Confirmed' },
                         { value: 'PROCESSING', label: language === 'te' ? 'ప్రాసెసింగ్' : 'Processing' },
@@ -215,7 +250,7 @@ export default function AdminOrdersPage() {
             )}
 
             {/* Orders list */}
-            <div className="bg-white border border-amber-100 rounded-3xl overflow-hidden smooth-shadow">
+            <div className="bg-white border border-amber-100 rounded-3xl overflow-visible smooth-shadow">
 
               {/* Mobile: Card view */}
               <div className="sm:hidden divide-y divide-amber-50">
@@ -223,7 +258,7 @@ export default function AdminOrdersPage() {
                   <p className="text-center text-xs text-gray-400 py-12">{language === 'te' ? 'ఆర్డర్లు లేవు' : 'No orders found'}</p>
                 ) : filteredOrders.map((ord) => {
                   const isExpanded = expandedOrderId === ord.id;
-                  const date = new Date(ord.createdAt).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { day:'numeric', month:'short', year:'numeric'});
+                  const date = new Date(ord.createdAt).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { day:'numeric', month:'short', year:'numeric', timeZone: 'Asia/Kolkata'});
                   return (
                     <div key={ord.id}>
                       <div
@@ -251,12 +286,13 @@ export default function AdminOrdersPage() {
                             <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black border uppercase ${
                               ord.orderStatus === 'DELIVERED' ? 'bg-green-100 text-green-800 border-green-200' :
                               ord.orderStatus === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' :
+                              ord.orderStatus === 'CANCEL_REQUESTED' ? 'bg-orange-100 text-orange-800 border-orange-300 animate-pulse' :
                               ord.orderStatus === 'CONFIRMED' ? 'bg-blue-100 text-blue-800 border-blue-200' :
                               ord.orderStatus === 'PACKED' ? 'bg-purple-100 text-purple-800 border-purple-200' :
                               ord.orderStatus === 'PROCESSING' ? 'bg-orange-100 text-orange-800 border-orange-200' :
                               'bg-yellow-100 text-yellow-800 border-yellow-200'
                             }`}>
-                              {ord.orderStatus}
+                              {ord.orderStatus === 'CANCEL_REQUESTED' ? '🚨 Cancel Req.' : ord.orderStatus}
                             </span>
                           </div>
                           <button className="p-1.5 bg-amber-50 text-amber-800 rounded-lg border border-amber-100">
@@ -288,17 +324,60 @@ export default function AdminOrdersPage() {
                             <p className="text-xs text-gray-500">{ord.line1}{ord.line2 ? `, ${ord.line2}` : ''}</p>
                             <p className="text-xs text-gray-500">{ord.city}, {ord.state} – {ord.pincode}</p>
                             <p className="text-xs text-gray-500">{language === 'te' ? 'ఫోన్' : 'Phone'}: {ord.phone}</p>
+                            {(() => {
+                              const coords = getCoordinates(ord);
+                              return coords ? (
+                                <a
+                                  href={`https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center space-x-1 mt-2 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1 rounded-xl shadow-xs transition-all"
+                                >
+                                  <span>{t('admin_view_map') || 'View on Map'}</span>
+                                </a>
+                              ) : null;
+                            })()}
                           </div>
 
                           {/* Update Controls */}
                           <div className="space-y-2">
                             <p className="text-[10px] font-black text-amber-950 uppercase tracking-wide">{t('admin_update_controls')}</p>
+
+                            {/* Approve/Reject buttons for CANCEL_REQUESTED */}
+                            {ord.orderStatus === 'CANCEL_REQUESTED' && (
+                              <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3 space-y-2">
+                                <p className="text-[10px] font-black text-orange-900">🚨 Customer requested cancellation</p>
+                                {ord.cancelReason && (
+                                  <p className="text-[10px] text-orange-700 font-semibold">Reason: {ord.cancelReason}</p>
+                                )}
+                                <div className="flex gap-2.5">
+                                  <button
+                                    disabled={updatingOrderId === ord.id}
+                                    onClick={() => handleUpdateStatus(ord.id, 'CANCELLED', ord.paymentStatus)}
+                                    className="flex-1 inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-[10px] font-black px-3 py-2.5 rounded-xl transition-all shadow-sm hover:shadow active:scale-[0.97] disabled:opacity-50"
+                                  >
+                                    <Check size={12} className="stroke-[3]" />
+                                    <span>Approve Cancel</span>
+                                  </button>
+                                  <button
+                                    disabled={updatingOrderId === ord.id}
+                                    onClick={() => handleUpdateStatus(ord.id, 'CONFIRMED', ord.paymentStatus)}
+                                    className="flex-1 inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white text-[10px] font-black px-3 py-2.5 rounded-xl transition-all shadow-sm hover:shadow active:scale-[0.97] disabled:opacity-50"
+                                  >
+                                    <X size={12} className="stroke-[3]" />
+                                    <span>Reject Cancel</span>
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
                             <div>
                               <span className="text-[10px] font-bold text-gray-500 block mb-1">{t('admin_order_status')}</span>
                               <CustomSelect
                                 value={ord.orderStatus}
                                 disabled={updatingOrderId === ord.id}
                                 onChange={(val) => handleUpdateStatus(ord.id, val, ord.paymentStatus)}
+                                openUpward={true}
                                 options={[
                                   { value: 'PENDING', label: 'Pending' },
                                   { value: 'CONFIRMED', label: 'Confirmed' },
@@ -317,6 +396,7 @@ export default function AdminOrdersPage() {
                                 value={ord.paymentStatus}
                                 disabled={updatingOrderId === ord.id}
                                 onChange={(val) => handleUpdateStatus(ord.id, ord.orderStatus, val)}
+                                openUpward={true}
                                 options={[
                                   { value: 'PENDING', label: 'Payment Pending' },
                                   { value: 'COMPLETED', label: 'Payment Completed' },
@@ -339,7 +419,7 @@ export default function AdminOrdersPage() {
               </div>
 
               {/* Desktop: Table view */}
-              <div className="hidden sm:block overflow-x-auto no-scrollbar">
+              <div className="hidden sm:block overflow-visible">
                 <table className="w-full min-w-[800px] text-left text-xs font-medium text-amber-950">
                   <thead className="bg-amber-50 text-[10px] uppercase font-bold text-amber-900 border-b border-amber-100">
                     <tr>
@@ -356,7 +436,7 @@ export default function AdminOrdersPage() {
                   <tbody className="divide-y divide-amber-50">
                     {filteredOrders.map((ord) => {
                       const isExpanded = expandedOrderId === ord.id;
-                      const date = new Date(ord.createdAt).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-US');
+                      const date = new Date(ord.createdAt).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-US', { timeZone: 'Asia/Kolkata' });
 
                       return (
                         <React.Fragment key={ord.id}>
@@ -384,6 +464,8 @@ export default function AdminOrdersPage() {
                                   ? 'bg-green-100 text-green-800 border-green-200'
                                   : ord.orderStatus === 'CANCELLED'
                                   ? 'bg-red-50 text-red-700 border-red-200'
+                                  : ord.orderStatus === 'CANCEL_REQUESTED'
+                                  ? 'bg-orange-100 text-orange-800 border-orange-300 animate-pulse'
                                   : ord.orderStatus === 'CONFIRMED'
                                   ? 'bg-blue-100 text-blue-800 border-blue-200'
                                   : ord.orderStatus === 'PROCESSING'
@@ -398,6 +480,8 @@ export default function AdminOrdersPage() {
                                   ? (language === 'te' ? 'డెలివరీ అయింది' : 'DELIVERED')
                                   : ord.orderStatus === 'CANCELLED'
                                   ? (language === 'te' ? 'రద్దు చేయబడింది' : 'CANCELLED')
+                                  : ord.orderStatus === 'CANCEL_REQUESTED'
+                                  ? '🚨 CANCEL REQ.'
                                   : ord.orderStatus === 'PACKED'
                                   ? (language === 'te' ? 'ప్యాక్ చేయబడింది' : 'PACKED')
                                   : ord.orderStatus === 'SHIPPED' || ord.orderStatus === 'OUT_FOR_DELIVERY'
@@ -451,23 +535,60 @@ export default function AdminOrdersPage() {
                                       {ord.line2 && <p>{ord.line2}</p>}
                                       <p>{ord.city}, {ord.state} - {ord.pincode}</p>
                                       <p>{language === 'te' ? 'ఫోన్' : 'Phone'}: {ord.phone}</p>
-                                      {ord.latitude && ord.longitude && (
-                                        <a
-                                          href={`https://www.google.com/maps/search/?api=1&query=${ord.latitude},${ord.longitude}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="inline-flex items-center space-x-1 mt-2 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1 rounded-xl shadow-xs transition-all"
-                                        >
-                                          <span>{t('admin_view_map')}</span>
-                                        </a>
-                                      )}
+                                      {(() => {
+                                        const coords = getCoordinates(ord);
+                                        return coords ? (
+                                          <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center space-x-1 mt-2 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1 rounded-xl shadow-xs transition-all"
+                                          >
+                                            <span>{t('admin_view_map')}</span>
+                                          </a>
+                                        ) : null;
+                                      })()}
                                     </div>
                                   </div>
 
-                                  {/* Actions dropdown */}
+                                  {/* Update Controls */}
                                   <div className="space-y-3">
                                     <p className="text-amber-950 font-black">{t('admin_update_controls')}</p>
-                                    
+
+                                    {/* Approve/Reject Cancellation Request */}
+                                    {ord.orderStatus === 'CANCEL_REQUESTED' && (
+                                      <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 space-y-3">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-base">🚨</span>
+                                          <p className="text-xs font-black text-orange-900">Cancellation Requested</p>
+                                        </div>
+                                        {ord.cancelReason && (
+                                          <div className="bg-white rounded-xl p-2.5 border border-orange-100">
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Customer Reason</p>
+                                            <p className="text-xs font-semibold text-gray-700">{ord.cancelReason}</p>
+                                          </div>
+                                        )}
+                                        <div className="flex gap-2.5">
+                                          <button
+                                            disabled={updatingOrderId === ord.id}
+                                            onClick={() => handleUpdateStatus(ord.id, 'CANCELLED', ord.paymentStatus)}
+                                            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-[11px] font-black px-3 py-2.5 rounded-xl transition-all shadow-sm hover:shadow active:scale-[0.97] disabled:opacity-50"
+                                          >
+                                            <Check size={13} className="stroke-[3]" />
+                                            <span>Approve Cancel</span>
+                                          </button>
+                                          <button
+                                            disabled={updatingOrderId === ord.id}
+                                            onClick={() => handleUpdateStatus(ord.id, 'CONFIRMED', ord.paymentStatus)}
+                                            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white text-[11px] font-black px-3 py-2.5 rounded-xl transition-all shadow-sm hover:shadow active:scale-[0.97] disabled:opacity-50"
+                                          >
+                                            <X size={13} className="stroke-[3]" />
+                                            <span>Reject Cancel</span>
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+
                                     <div className="space-y-2">
                                       <div className="space-y-1">
                                         <span className="text-[10px] font-bold text-gray-500 block">{t('admin_order_status')}</span>
@@ -475,6 +596,7 @@ export default function AdminOrdersPage() {
                                           value={ord.orderStatus}
                                           disabled={updatingOrderId === ord.id}
                                           onChange={(val) => handleUpdateStatus(ord.id, val, ord.paymentStatus)}
+                                          openUpward={true}
                                           options={[
                                             { value: 'PENDING', label: language === 'te' ? 'పెండింగ్' : 'Pending' },
                                             { value: 'CONFIRMED', label: language === 'te' ? 'నిర్ధారించబడింది' : 'Confirmed' },
@@ -494,6 +616,7 @@ export default function AdminOrdersPage() {
                                           value={ord.paymentStatus}
                                           disabled={updatingOrderId === ord.id}
                                           onChange={(val) => handleUpdateStatus(ord.id, ord.orderStatus, val)}
+                                          openUpward={true}
                                           options={[
                                             { value: 'PENDING', label: language === 'te' ? 'చెల్లింపు పెండింగ్' : 'Payment Pending' },
                                             { value: 'COMPLETED', label: language === 'te' ? 'చెల్లింపు పూర్తయింది' : 'Payment Completed' },

@@ -49,13 +49,24 @@ export default function AdminCategoriesPage() {
   const loadCategories = () => {
     setLoading(true);
     fetch('/api/categories')
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
-        setCategories(data);
+        if (Array.isArray(data)) {
+          setCategories(data);
+        } else {
+          console.error('Expected array of categories, got:', data);
+          setCategories([]);
+        }
         setLoading(false);
       })
       .catch((err) => {
         console.error('Error fetching admin categories:', err);
+        setCategories([]);
         setLoading(false);
       });
   };

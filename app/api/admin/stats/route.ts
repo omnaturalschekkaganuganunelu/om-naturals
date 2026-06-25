@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
       });
 
       const dayRevenue = dayOrders.reduce((sum, order) => sum + order.total, 0);
-      const dayName = d.toLocaleDateString('te-IN', { weekday: 'short' }); // Or standard short name
+      const dayName = d.toLocaleDateString('te-IN', { weekday: 'short', timeZone: 'Asia/Kolkata' }); // Or standard short name
       const dayDate = `${d.getDate()}/${d.getMonth() + 1}`;
 
       last7DaysData.push({

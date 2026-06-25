@@ -99,6 +99,31 @@ export async function POST(req: NextRequest) {
             },
           });
 
+          // Notify customer
+          await tx.notification.create({
+            data: {
+              title: '💳 Payment Successful!',
+              body: `Your payment for Order ${order.orderId} was successful and your order is confirmed.`,
+              type: 'ORDER',
+              userId: order.userId,
+              orderId: order.id,
+            },
+          });
+
+          // Notify admins
+          const admins = await tx.user.findMany({ where: { role: 'ADMIN' } });
+          for (const admin of admins) {
+            await tx.notification.create({
+              data: {
+                title: '💰 Order Paid!',
+                body: `Payment for Order ${order.orderId} (₹${order.total}) was successful.`,
+                type: 'ORDER',
+                userId: admin.id,
+                orderId: order.id,
+              },
+            });
+          }
+
           // Deduct inventory stock
           for (const item of order.items) {
             await tx.product.update({

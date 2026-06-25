@@ -116,7 +116,8 @@ model Order {
   couponCode    String?
   paymentMethod String      // "PHONEPE" or "COD"
   paymentStatus String      // "PENDING", "COMPLETED", "FAILED"
-  orderStatus   String      // "PENDING", "CONFIRMED", "PACKED", "SHIPPED", "DELIVERED", "CANCELLED"
+  orderStatus   String      // "PENDING", "CONFIRMED", "PACKED", "SHIPPED", "DELIVERED", "CANCELLED", "CANCEL_REQUESTED"
+  cancelReason  String?
   notes         String?
   items         OrderItem[]
   payments      Payment[]

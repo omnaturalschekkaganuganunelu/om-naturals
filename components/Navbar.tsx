@@ -153,12 +153,12 @@ function NavbarContent() {
                 <span className={`font-black tracking-tight text-amber-900 leading-none font-heading transition-all duration-300 group-hover:text-amber-700 ${
                   scrolled ? 'text-[11px] sm:text-sm' : 'text-xs sm:text-base lg:text-lg'
                 }`}>
-                  {language === 'te' ? 'ఓం సహజ' : 'OM Natural'}
+                  {language === 'te' ? 'ఓం సహజ' : 'Om Naturals'}
                 </span>
                 <span className={`font-extrabold tracking-[0.12em] text-amber-700 leading-none uppercase transition-all duration-300 group-hover:text-amber-600 ${
                   scrolled ? 'text-[6px] sm:text-[8px] mt-0.5' : 'text-[7px] sm:text-[9px] mt-1'
                 }`}>
-                  {language === 'te' ? 'చెక్క గానుగ' : 'Chekka Ganuga'}
+                  {language === 'te' ? 'చెక్క గానుగ' : 'Cold Pressed Oils'}
                 </span>
               </div>
             </Link>
@@ -291,14 +291,40 @@ function NavbarContent() {
                         <p className="text-sm font-black text-amber-950 truncate">{session.user?.name}</p>
                       </div>
                       {session.user.role === 'ADMIN' ? (
-                        <Link
-                          href="/admin/dashboard"
-                          onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-amber-900 hover:bg-amber-50 transition-colors"
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
-                          <span>{t('nav_admin_panel')}</span>
-                        </Link>
+                        <>
+                          <Link
+                            href="/admin/dashboard"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-amber-900 hover:bg-amber-50 transition-colors"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                            <span>{t('nav_admin_panel')}</span>
+                          </Link>
+                          <Link
+                            href="/admin/orders"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-amber-900 hover:bg-amber-50 transition-colors"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                            <span>{language === 'te' ? 'ఆర్డర్లు' : 'Orders'}</span>
+                          </Link>
+                          <Link
+                            href="/admin/products"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-amber-900 hover:bg-amber-50 transition-colors"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                            <span>{language === 'te' ? 'ఉత్పత్తులు' : 'Products'}</span>
+                          </Link>
+                          <Link
+                            href="/admin/notifications"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-amber-900 hover:bg-amber-50 transition-colors"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                            <span>{language === 'te' ? 'నోటిఫికేషన్లు' : 'Notifications'}</span>
+                          </Link>
+                        </>
                       ) : (
                         <>
                           <Link
@@ -316,6 +342,14 @@ function NavbarContent() {
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500/50" />
                             <span>{t('nav_my_orders')}</span>
+                          </Link>
+                          <Link
+                            href="/account?tab=notifications"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center space-x-2 px-4 py-2.5 text-xs font-semibold text-amber-800 hover:bg-amber-50 transition-colors"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500/50" />
+                            <span>{language === 'te' ? 'నోటిఫికేషన్లు' : 'Notifications'}</span>
                           </Link>
                         </>
                       )}

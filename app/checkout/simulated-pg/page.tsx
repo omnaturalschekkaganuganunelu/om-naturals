@@ -32,7 +32,11 @@ function SimulatedPGContent() {
       if (res.ok) {
         setOutcome(status);
         setTimeout(() => {
-          router.push(`/order-confirmation?orderId=${orderId}&status=${status}`);
+          if (status === 'success') {
+            router.push(`/account?tab=orders`);
+          } else {
+            router.push(`/order-confirmation?orderId=${orderId}&status=${status}`);
+          }
         }, 1500);
       } else {
         alert(

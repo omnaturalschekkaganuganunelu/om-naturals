@@ -4,6 +4,7 @@ import Providers from '@/components/Providers';
 import { Suspense } from 'react';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import InstallPrompt from '@/components/InstallPrompt';
+import GlobalToast from '@/components/GlobalToast';
 import { Inter, Outfit } from 'next/font/google';
 
 const inter = Inter({
@@ -81,6 +82,7 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <InstallPrompt />
           </Suspense>
+          <GlobalToast />
         </Providers>
       </body>
     </html>

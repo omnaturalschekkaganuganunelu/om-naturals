@@ -52,7 +52,13 @@ export async function POST(req: NextRequest) {
         value: parseFloat(value.toString()),
         minOrderValue: minOrderValue ? parseFloat(minOrderValue.toString()) : 0,
         maxDiscount: maxDiscount ? parseFloat(maxDiscount.toString()) : null,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        expiresAt: expiresAt ? (() => {
+          const d = new Date(expiresAt);
+          const y = d.toLocaleDateString('en-US', { year: 'numeric', timeZone: 'Asia/Kolkata' });
+          const m = d.toLocaleDateString('en-US', { month: '2-digit', timeZone: 'Asia/Kolkata' });
+          const day = d.toLocaleDateString('en-US', { day: '2-digit', timeZone: 'Asia/Kolkata' });
+          return new Date(`${y}-${m}-${day}T23:59:59.999+05:30`);
+        })() : null,
         isActive: true,
       },
     });

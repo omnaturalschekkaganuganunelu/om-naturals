@@ -28,7 +28,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         value: value !== undefined ? parseFloat(value.toString()) : undefined,
         minOrderValue: minOrderValue !== undefined ? parseFloat(minOrderValue.toString()) : undefined,
         maxDiscount: maxDiscount !== undefined ? (maxDiscount ? parseFloat(maxDiscount.toString()) : null) : undefined,
-        expiresAt: expiresAt !== undefined ? (expiresAt ? new Date(expiresAt) : null) : undefined,
+        expiresAt: expiresAt !== undefined ? (expiresAt ? (() => {
+          const d = new Date(expiresAt);
+          const y = d.toLocaleDateString('en-US', { year: 'numeric', timeZone: 'Asia/Kolkata' });
+          const m = d.toLocaleDateString('en-US', { month: '2-digit', timeZone: 'Asia/Kolkata' });
+          const day = d.toLocaleDateString('en-US', { day: '2-digit', timeZone: 'Asia/Kolkata' });
+          return new Date(`${y}-${m}-${day}T23:59:59.999+05:30`);
+        })() : null) : undefined,
         isActive,
       },
     });

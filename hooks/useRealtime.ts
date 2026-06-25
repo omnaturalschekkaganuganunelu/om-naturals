@@ -7,6 +7,7 @@ export function useRealtime(
   callback: (payload: any) => void
 ) {
   const savedCallback = useRef(callback);
+  const channelId = useRef(Math.random().toString(36).substring(7)).current;
 
   useEffect(() => {
     savedCallback.current = callback;
@@ -15,9 +16,9 @@ export function useRealtime(
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Create a unique channel name for this table and event
+    // Create a unique channel name for this hook instance to avoid conflicts
     const channel = supabase
-      .channel(`public-${table}-changes`)
+      .channel(`public-${table}-changes-${channelId}`)
       .on(
         'postgres_changes',
         { event, schema: 'public', table },
@@ -30,5 +31,5 @@ export function useRealtime(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [table, event]);
+  }, [table, event, channelId]);
 }

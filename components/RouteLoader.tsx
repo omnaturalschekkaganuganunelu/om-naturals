@@ -39,6 +39,7 @@ export default function RouteLoader() {
 
         // If it's internal navigation, not a file, and not just a hash change or identical URL
         if (
+          !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0 &&
           url.origin === currentUrl.origin &&
           url.pathname !== currentUrl.pathname &&
           target.target !== '_blank' &&

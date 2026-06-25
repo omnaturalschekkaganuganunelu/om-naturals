@@ -109,7 +109,7 @@ function OrderConfirmationContent() {
                 <span>
                   {language === 'te' ? 'తేదీ' : 'Date'}:{' '}
                   <span className="font-extrabold text-amber-950">
-                    {new Date(order.createdAt).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN')}
+                    {new Date(order.createdAt).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { timeZone: 'Asia/Kolkata' })}
                   </span>
                 </span>
               </span>
