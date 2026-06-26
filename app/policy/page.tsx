@@ -125,12 +125,12 @@ function PolicyContent() {
                 {isTe ? (
                   <>
                     <li>డ్యామేజ్ అయిన పార్సెల్ యొక్క స్పష్టమైన ఫోటో లేదా అన్‌బాక్సింగ్ వీడియోను మా వాట్సాప్ (+91 86882 91288) నెంబర్ కు పంపాలి.</li>
-                    <li>సమస్య నిర్ధారణ అయిన తర్వాత, మేము ఉచితంగా మరొక ఉత్పత్తిని పంపుతాము లేదా రీఫండ్ అందిస్తాము.</li>
+                    <li>సమస్య నిర్ధారణ అయిన తర్వాత, మేము ఉచితంగా మరొక ఉత్పత్తిని పంపుతాము లేదా రీఫండ్ అందిస్తాము. రీప్లేస్ చేయబడిన ఉత్పత్తి 2-5 రోజులలోపు డెలివరీ చేయబడుతుంది లేదా పూర్తి రీఫండ్ ఇవ్వబడుతుంది.</li>
                   </>
                 ) : (
                   <>
                     <li>Please provide clear photo or unboxing video proof of the damage on WhatsApp (+91 86882 91288).</li>
-                    <li>Upon validation, we will gladly arrange a free replacement delivery or initiate a full refund.</li>
+                    <li>Upon validation, we will gladly arrange a free replacement delivery or initiate a full refund. Replaced product will be delivered within 2-5 days or a full refund will be given.</li>
                   </>
                 )}
               </ul>
@@ -197,6 +197,9 @@ function PolicyContent() {
             <div className="space-y-1 mt-4">
               <p className="font-extrabold text-amber-950">{isTe ? 'సంప్రదించవలసిన చిరునామా:' : 'Contact Information:'}</p>
               <p className="font-bold text-gray-700">OM NATURAL CHEKKA GANUGA NUNELU</p>
+              <p className="text-xs text-gray-650 font-bold">
+                {isTe ? 'యజమాని & ప్రొప్రైటర్:' : 'Owner & Proprietor:'} Attipatla Nagarjuna
+              </p>
               <p>D.No. 126-137, Sri Lakshmi Narasimha Nagar, 5th Line, Inner Ring Road, Gorantla, Guntur, Andhra Pradesh - 522034</p>
               <p>Email: info@om-naturals.com (24 Hrs Support)</p>
             </div>

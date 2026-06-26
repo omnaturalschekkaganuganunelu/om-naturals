@@ -44,6 +44,9 @@ export default function ContactPage() {
                     <h3 className="font-bold text-amber-950 text-sm mb-1">{isTe ? 'రిజిస్టర్డ్ ఆఫీస్ అడ్రస్' : 'Registered Office Address'}</h3>
                     <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
                       <strong className="text-amber-900 block mb-1">OM NATURAL CHEKKA GANUGA NUNELU</strong>
+                      <span className="block mb-1 text-xs font-bold text-amber-955">
+                        {isTe ? 'యజమాని & ప్రొప్రైటర్:' : 'Owner & Proprietor:'} Attipatla Nagarjuna
+                      </span>
                       D.No. 126-137, Sri Lakshmi Narasimha Nagar,<br />
                       5th Line, Inner Ring Road, Gorantla,<br />
                       Guntur, Andhra Pradesh - 522034

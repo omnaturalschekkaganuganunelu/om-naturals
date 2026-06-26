@@ -82,6 +82,7 @@ export default function TermsConditionsPage() {
                 <div className="space-y-3 flex flex-col justify-center">
                   <p className="font-black text-amber-950 text-sm">OM NATURAL CHEKKA GANUGA NUNELU</p>
                   <p className="text-xs text-gray-600 leading-relaxed">
+                    <strong>{isTe ? 'యజమాని & ప్రొప్రైటర్:' : 'Owner & Proprietor:'}</strong> Attipatla Nagarjuna<br />
                     D.No. 126-137, Sri Lakshmi Narasimha Nagar,<br />
                     5th Line, Inner Ring Road, Gorantla,<br />
                     Guntur, Andhra Pradesh - 522034

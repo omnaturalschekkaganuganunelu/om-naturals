@@ -47,8 +47,8 @@ export default function RefundPolicyPage() {
               </h2>
               <p>
                 {isTe
-                  ? 'ఒకవేళ మీకు అందిన బాటిల్ డ్యామేజ్ అయినా, లీకేజీ ఉన్నా లేదా తప్పు ఉత్పత్తి వచ్చినా, డెలివరీ అయిన 24 గంటల్లోపు మా కస్టమర్ కేర్‌ను సంప్రదించాలి. డ్యామేజ్ అయిన పార్సెల్ యొక్క స్పష్టమైన ఫోటో లేదా అన్‌బాక్సింగ్ వీడియోను మా వాట్సాప్ (+91 86882 91288) నెంబర్ కు పంపాలి. సమస్య నిర్ధారణ అయిన తర్వాత, మేము ఉచితంగా మరొక ఉత్పత్తిని పంపుతాము లేదా రీఫండ్ అందిస్తాము.'
-                  : 'If you receive a package that is physically damaged, leaking, or contains incorrect items, please contact us within 24 hours of delivery. You must provide photographic proof or an unboxing video showing the damage/leakage to our WhatsApp support (+91 86882 91288) or email. Once reviewed and validated, we will process a free product replacement or issue a full refund.'}
+                  ? 'ఒకవేళ మీకు అందిన బాటిల్ డ్యామేజ్ అయినా, లీకేజీ ఉన్నా లేదా తప్పు ఉత్పత్తి వచ్చినా, డెలివరీ అయిన 24 గంటల్లోపు మా కస్టమర్ కేర్‌ను సంప్రదించాలి. డ్యామేజ్ అయిన పార్సెల్ యొక్క స్పష్టమైన ఫోటో లేదా అన్‌బాక్సింగ్ వీడియోను మా వాట్సాప్ (+91 86882 91288) నెంబర్ కు పంపాలి. సమస్య నిర్ధారణ అయిన తర్వాత, మేము ఉచితంగా మరొక ఉత్పత్తిని పంపుతాము లేదా రీఫండ్ అందిస్తాము. రీప్లేస్ చేయబడిన ఉత్పత్తి 2-5 రోజులలోపు డెలివరీ చేయబడుతుంది లేదా పూర్తి రీఫండ్ ఇవ్వబడుతుంది.'
+                  : 'If you receive a package that is physically damaged, leaking, or contains incorrect items, please contact us within 24 hours of delivery. You must provide photographic proof or an unboxing video showing the damage/leakage to our WhatsApp support (+91 86882 91288) or email. Once reviewed and validated, we will process a free product replacement or issue a full refund. Replaced product will be delivered within 2-5 days or a full refund will be given.'}
               </p>
             </div>
 
@@ -82,6 +82,7 @@ export default function RefundPolicyPage() {
                 <div className="space-y-3 flex flex-col justify-center">
                   <p className="font-black text-amber-950 text-sm">OM NATURAL CHEKKA GANUGA NUNELU</p>
                   <p className="text-xs text-gray-600 leading-relaxed">
+                    <strong>{isTe ? 'యజమాని & ప్రొప్రైటర్:' : 'Owner & Proprietor:'}</strong> Attipatla Nagarjuna<br />
                     D.No. 126-137, Sri Lakshmi Narasimha Nagar,<br />
                     5th Line, Inner Ring Road, Gorantla,<br />
                     Guntur, Andhra Pradesh - 522034
