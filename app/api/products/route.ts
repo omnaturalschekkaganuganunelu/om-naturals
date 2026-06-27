@@ -45,6 +45,15 @@ export async function GET(req: NextRequest) {
       ];
     }
 
+    // Filter by specific product IDs (used by cart to refresh stale images)
+    const idsParam = searchParams.get('ids');
+    if (idsParam) {
+      const ids = idsParam.split(',').filter(Boolean);
+      if (ids.length > 0) {
+        where.id = { in: ids };
+      }
+    }
+
     // Build sort options
     let orderBy: any = { createdAt: 'desc' };
     if (sort === 'price-asc') {

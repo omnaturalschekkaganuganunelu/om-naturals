@@ -11,14 +11,14 @@ import { useLanguage } from '@/context/LanguageContext';
 import Image from 'next/image';
 
 const FALLBACK_PRODUCT_IMAGES = [
-  '/images/logo-512.png',
-  '/images/logo-512.png',
-  '/images/logo-512.png',
-  '/images/logo-512.png',
-  '/images/logo-512.png',
-  '/images/logo-512.png',
-  '/images/logo-512.png',
-  '/images/logo-512.png',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238180/cojbx1woteneyhoumhv5.jpg',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238178/gkpir09dnxp5mxpqes2j.jpg',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238177/nnenzvc66v5ozyhiytfp.jpg',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238181/vljsmlizd3a1hunt1cs6.jpg',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238188/anxys6btekuo9frfqjhc.jpg',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238192/r7l4zdvnldxnyh1bl19g.jpg',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238191/yxruvtuczqn1uc3xh3qu.jpg',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238190/skx6wfnrdw3kgt0dnmp4.jpg',
 ];
 
 function LoginContent() {

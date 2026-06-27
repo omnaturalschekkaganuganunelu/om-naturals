@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -46,6 +46,33 @@ export default function CartPage() {
     minOrderValue: number;
     maxDiscount: number | null;
   }[]>([]);
+
+  // Refresh stale cart images from API on mount
+  useEffect(() => {
+    const cartItems = useCartStore.getState().items;
+    if (cartItems.length === 0) return;
+    const productIds = cartItems.map((i) => i.productId);
+    fetch(`/api/products?ids=${productIds.join(',')}`, { cache: 'no-store' })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: { id: string; images?: string[] }[] | null) => {
+        if (!Array.isArray(data)) return;
+        const store = useCartStore.getState();
+        const updatedItems = store.items.map((cartItem) => {
+          const freshProduct = data.find((p) => p.id === cartItem.productId);
+          if (freshProduct && freshProduct.images?.[0] && freshProduct.images[0] !== cartItem.image) {
+            return { ...cartItem, image: freshProduct.images[0] };
+          }
+          return cartItem;
+        });
+        // Only update store if images actually changed
+        const anyChanged = updatedItems.some((u, i) => u.image !== store.items[i].image);
+        if (anyChanged) {
+          useCartStore.setState({ items: updatedItems });
+        }
+      })
+      .catch(() => {/* silently fail — stale images are still usable */});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch settings & active coupons once on mount
   useEffect(() => {
