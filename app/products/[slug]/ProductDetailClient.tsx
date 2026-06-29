@@ -171,9 +171,11 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
   const [added, setAdded] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'benefits' | 'ingredients' | 'usage'>('details');
   const [modalOpen, setModalOpen] = useState(false);
+  const [loadingSlug, setLoadingSlug] = useState<string | null>(null);
 
   React.useEffect(() => {
     setActiveImage(product.images[0] || FALLBACK_IMG);
+    setLoadingSlug(null);
   }, [product.id, product.images]);
 
   const allVariants: Variant[] = [
@@ -330,18 +332,29 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
                         const vDisc = v.mrp > v.price ? Math.round(((v.mrp - v.price) / v.mrp) * 100) : 0;
                         return (
                           <button key={v.id}
-                            onClick={() => { if (!isActive) router.push(`/products/${v.slug}`); }}
-                            disabled={v.stock <= 0 && !isActive}
+                            onClick={() => {
+                              if (!isActive) {
+                                setLoadingSlug(v.slug);
+                                router.push(`/products/${v.slug}`);
+                              }
+                            }}
+                            disabled={(v.stock <= 0 && !isActive) || loadingSlug === v.slug}
                             className={`relative flex flex-col items-start px-3.5 py-2.5 rounded-2xl border-2 min-w-[76px] transition-all text-left ${
                               isActive
                                 ? 'border-amber-800 bg-amber-800 text-white shadow-md'
                                 : v.stock <= 0
                                 ? 'border-gray-200 text-gray-300 bg-gray-50 cursor-not-allowed'
                                 : 'border-gray-200 bg-white hover:border-amber-400 hover:shadow-sm cursor-pointer'
-                            }`}
+                            } ${loadingSlug === v.slug ? 'opacity-80' : ''}`}
                           >
-                            <span className={`text-sm font-black ${isActive ? 'text-white' : 'text-gray-900'}`}>
+                            <span className={`text-sm font-black flex items-center gap-1.5 ${isActive ? 'text-white' : 'text-gray-900'}`}>
                               {formatVariantLabel(v)}
+                              {loadingSlug === v.slug && (
+                                <svg className="animate-spin h-3.5 w-3.5 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              )}
                             </span>
                             <span className={`text-xs font-bold mt-0.5 ${isActive ? 'text-amber-200' : 'text-gray-700'}`}>
                               ₹{v.price}
