@@ -176,6 +176,17 @@ export async function POST(req: NextRequest) {
             providerResponse: JSON.stringify(decodedJson),
           },
         });
+
+        // Notify customer of payment failure
+        await prisma.notification.create({
+          data: {
+            title: '❌ Payment Failed',
+            body: `The payment for Order ${currentOrder.orderId} was not completed or declined. Please try again.`,
+            type: 'ORDER',
+            userId: currentOrder.userId,
+            orderId: currentOrder.id,
+          },
+        });
       }
 
       return NextResponse.json({ success: false, message: 'Payment marked as failed' });

@@ -166,8 +166,8 @@ model SiteSettings {
   shippingFee       Float   @default(30)
   packingFee        Float   @default(20)
   gstRate           Float   @default(5) // percent
-  contactPhone      String  @default("+919999999999")
-  whatsappNumber    String  @default("+919999999999")
+  contactPhone      String  @default("+918688291288")
+  whatsappNumber    String  @default("+918688291288")
   businessName      String  @default("నూనె బజార్ / Nune Bazaar")
   businessEmail     String  @default("support@nunebazaar.com")
 }

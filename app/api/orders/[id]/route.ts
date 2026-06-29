@@ -101,6 +101,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       if (isAdmin) {
         updateData.orderStatus = orderStatus;
         if (paymentStatus) updateData.paymentStatus = paymentStatus;
+        
+        // Auto-mark PhonePe payments as REFUNDED if cancelling an already paid order
+        if (
+          orderStatus === 'CANCELLED' && 
+          existingOrder.orderStatus !== 'CANCELLED' &&
+          existingOrder.paymentMethod === 'PHONEPE' &&
+          existingOrder.paymentStatus === 'COMPLETED'
+        ) {
+          updateData.paymentStatus = 'REFUNDED';
+        }
+
         if (notes !== undefined) updateData.notes = notes;
         // Keep cancelReason intact for both approval and rejection to prevent double-cancels
       } else {
@@ -147,6 +158,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       CONFIRMED:        { title: '✅ Order Confirmed!',        body: `Your order ${order.orderId} has been confirmed by our team. We're preparing it fresh for you!` },
       PROCESSING:       { title: '⚙️ Order Processing',       body: `Your order ${order.orderId} is currently being prepared. Fresh wood-pressed oils on the way!` },
       PACKED:           { title: '📦 Order Packed!',           body: `Your order ${order.orderId} is securely packed and ready to dispatch. Almost there!` },
+      SHIPPED:          { title: '🚚 Order Shipped!',          body: `Your order ${order.orderId} has been shipped and is on its way to you via courier.` },
       OUT_FOR_DELIVERY: { title: '🛵 Out for Delivery!',       body: `Your order ${order.orderId} is out for delivery! Our delivery executive is heading your way.` },
       DELIVERED:        { title: '🎉 Order Delivered!',        body: `Your order ${order.orderId} has been delivered successfully. Enjoy your pure oils!` },
       CANCELLED:        { title: '❌ Order Cancelled',          body: `Your order ${order.orderId} has been cancelled. ${body.notes ? `Reason: ${body.notes}` : ''}` },
@@ -191,7 +203,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       const notifData = STATUS_NOTIF[order.orderStatus];
       // Suppress duplicate confirmation status notification when admin rejects a cancellation request
       const isRejection = existingOrder.orderStatus === 'CANCEL_REQUESTED' && order.orderStatus !== 'CANCELLED' && order.orderStatus !== 'CANCEL_REQUESTED';
-      if (notifData && !isRejection) {
+      
+      // ONLY send order status notification if the orderStatus actually changed
+      const orderStatusChanged = existingOrder.orderStatus !== order.orderStatus;
+      
+      if (notifData && !isRejection && orderStatusChanged) {
         try {
           await prisma.notification.create({
             data: {
@@ -204,6 +220,39 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           });
         } catch (err) {
           console.error('Failed to create status notification:', err);
+        }
+      }
+
+      // Check if paymentStatus changed and send notification
+      const paymentStatusChanged = existingOrder.paymentStatus !== order.paymentStatus;
+      if (paymentStatusChanged) {
+        let payTitle = '';
+        let payBody = '';
+        if (order.paymentStatus === 'COMPLETED') {
+          payTitle = '💳 Payment Received!';
+          payBody = `We have received your payment for Order ${order.orderId}. Thank you!`;
+        } else if (order.paymentStatus === 'FAILED') {
+          payTitle = '❌ Payment Failed';
+          payBody = `The payment for Order ${order.orderId} failed or was declined. Please try again or choose COD.`;
+        } else if (order.paymentStatus === 'REFUNDED') {
+          payTitle = '💸 Payment Refunded';
+          payBody = `Your payment for Order ${order.orderId} has been successfully refunded.`;
+        }
+        
+        if (payTitle) {
+          try {
+            await prisma.notification.create({
+              data: {
+                title: payTitle,
+                body: payBody,
+                type: 'ORDER',
+                userId: existingOrder.userId,
+                orderId: order.id,
+              },
+            });
+          } catch (err) {
+            console.error('Failed to create payment notification:', err);
+          }
         }
       }
 

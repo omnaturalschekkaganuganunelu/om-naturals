@@ -158,7 +158,11 @@ function printInvoice(order: any) {
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:12px">
       <img src="/images/logo.png" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #b45309" />
-      <div><div class="logo">Om Natural</div><div style="font-size:11px;color:#b45309">Chekka Ganuga Nune</div></div>
+      <div>
+        <div class="logo">Om Natural</div>
+        <div style="font-size:11px;color:#b45309">Chekka Ganuga Nune</div>
+        <div style="font-size:10px;color:#475569;margin-top:2px">📞 +91 99999 99999 | ✉️ info@om-naturals.com</div>
+      </div>
     </div>
     <div><div class="inv">INVOICE</div><div style="font-size:11px;color:#b45309;text-align:right">${order.orderId}</div></div>
   </div>
@@ -183,7 +187,7 @@ function printInvoice(order: any) {
     <div class="tot-row"><span>Shipping</span><span>&#x20B9;${order.shipping ?? 0}</span></div>
     <div class="tot-row"><span>Packing Charges</span><span>&#x20B9;20</span></div>
     <div class="tot-row"><span>Tax (GST)</span><span>&#x20B9;${order.tax ?? 0}</span></div>
-    ${order.discount > 0 ? `<div class="tot-row" style="color:#16a34a"><span>Discount</span><span>-&#x20B9;${order.discount}</span></div>` : ''}
+    ${order.discount > 0 ? `<div class="tot-row" style="color:#16a34a"><span>Discount ${order.couponCode ? `(${order.couponCode})` : ''}</span><span>-&#x20B9;${order.discount}</span></div>` : ''}
     <div class="tot-row grand"><span>Grand Total</span><span>&#x20B9;${order.total}</span></div>
   </div>
   <div class="ftr"><p>Thank you for choosing Om Natural wood-pressed oils!</p><p>Computer-generated invoice. No physical signature required.</p></div>

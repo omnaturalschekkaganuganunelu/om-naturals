@@ -322,7 +322,7 @@ function AccountContent() {
           'error'
         );
       });
-  }, [authStatus]);
+  }, [authStatus, language]);
 
   // Fetch user notifications
   useEffect(() => {
@@ -370,7 +370,7 @@ function AccountContent() {
   });
 
   // Load Addresses
-  const fetchAddresses = () => {
+  const fetchAddresses = React.useCallback(() => {
     if (authStatus !== 'authenticated') return;
     setLoadingAddresses(true);
 
@@ -384,11 +384,11 @@ function AccountContent() {
         console.error('Error loading addresses:', err);
         setLoadingAddresses(false);
       });
-  };
+  }, [authStatus]);
 
   useEffect(() => {
     fetchAddresses();
-  }, [authStatus]);
+  }, [fetchAddresses]);
 
   // Handle address input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -665,11 +665,12 @@ function AccountContent() {
         </head>
         <body>
           <div class="header" style="align-items: center;">
-            <div style="display: flex; align-items: center; gap: 15px;">
-              <img src="/images/logo.png" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #b45309;" alt="Logo" />
+            <div style="display:flex;align-items:center;gap:12px">
+              <img src="/images/logo.png" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #b45309" />
               <div>
                 <div class="logo">Om Natural</div>
-                <div style="font-size: 12px; color: #b45309; margin-top: 4px;">Chekka Ganuga Nune</div>
+                <div style="font-size:11px;color:#b45309">Chekka Ganuga Nune</div>
+                <div style="font-size:10px;color:#475569;margin-top:2px">📞 +91 99999 99999 | ✉️ info@om-naturals.com</div>
               </div>
             </div>
             <div>
@@ -724,12 +725,7 @@ function AccountContent() {
               <span>Tax (GST):</span>
               <span>₹${order.tax.toFixed(2)}</span>
             </div>
-            ${order.discount > 0 ? `
-              <div class="totals-row" style="color: #16a34a;">
-                <span>Discount:</span>
-                <span>-₹${order.discount.toFixed(2)}</span>
-              </div>
-            ` : ''}
+            ${order.discount > 0 ? `<div class="totals-row" style="color:#16a34a"><span>Discount ${order.couponCode ? `(${order.couponCode})` : ''}</span><span>-₹${order.discount.toFixed(2)}</span></div>` : ''}
             <div class="totals-row grand">
               <span>Grand Total:</span>
               <span>₹${order.total.toFixed(2)}</span>

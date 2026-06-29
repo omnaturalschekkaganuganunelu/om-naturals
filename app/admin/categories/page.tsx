@@ -43,10 +43,10 @@ export default function AdminCategoriesPage() {
     } else if (authStatus === 'authenticated' && session?.user?.role !== 'ADMIN') {
       router.push('/');
     }
-  }, [authStatus, session]);
+  }, [authStatus, session, router]);
 
   // Load Categories
-  const loadCategories = () => {
+  const loadCategories = React.useCallback(() => {
     setLoading(true);
     fetch('/api/categories')
       .then((res) => {
@@ -69,13 +69,13 @@ export default function AdminCategoriesPage() {
         setCategories([]);
         setLoading(false);
       });
-  };
+  }, []);
 
   useEffect(() => {
     if (authStatus === 'authenticated' && session?.user?.role === 'ADMIN') {
       loadCategories();
     }
-  }, [authStatus]);
+  }, [authStatus, session?.user?.role, loadCategories]);
 
   // Handle Input Changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

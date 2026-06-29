@@ -70,7 +70,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`overflow-x-clip max-w-full ${inter.variable} ${outfit.variable}`}>
-      <body className="antialiased min-h-screen flex flex-col bg-[#fdfbf7] pb-24 md:pb-0 overflow-x-clip">
+      <body className="antialiased min-h-screen flex flex-col bg-[#fdfbf7] overflow-x-clip">
         <Providers>
           <Suspense fallback={null}>
             <RouteLoader />

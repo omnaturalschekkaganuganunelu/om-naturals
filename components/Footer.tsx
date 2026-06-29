@@ -11,7 +11,7 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative bg-gradient-to-b from-[#180e05] to-[#0c0602] text-amber-100/90 mt-auto border-t border-amber-955 before:absolute before:top-0 before:left-0 before:right-0 before:h-[1px] before:bg-gradient-to-r before:from-transparent before:via-amber-500/40 before:to-transparent">
+    <footer className="relative bg-gradient-to-b from-[#180e05] to-[#0c0602] text-amber-100/90 mt-auto border-t border-amber-955 before:absolute before:top-0 before:left-0 before:right-0 before:h-[1px] before:bg-gradient-to-r before:from-transparent before:via-amber-500/40 before:to-transparent pb-24 md:pb-0">
       <div className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 py-6 sm:py-8 lg:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12 items-stretch">
           
@@ -130,15 +130,32 @@ export default function Footer() {
         </div>
 
         {/* ══ BOTTOM BAR: Copyright & Secure Payments ══ */}
-        <div className="mt-6 pt-4 border-t border-amber-955 w-full flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
-          <p className="text-[9px] sm:text-xs text-amber-600/70 font-bold order-2 md:order-1">
+        <div className="mt-6 pt-4 border-t border-amber-955 w-full flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+          
+          <p className="text-[9px] sm:text-xs text-amber-600/70 font-bold order-2 md:order-1 flex-1">
             © {year} {language === 'te' ? 'ఓం సహజ చెక్క గానుగ నూనెలు' : 'OM NATURAL CHEKKA GANUGA NUNELU'}.<br className="sm:hidden" /> {language === 'te' ? 'అన్ని హక్కులు రక్షించబడ్డాయి.' : 'All Rights Reserved.'}
           </p>
-          <div className="flex items-center space-x-1.5 bg-[#140b05] px-3 py-1 rounded-full border border-amber-955 order-1 md:order-2 shadow-inner">
-            <ShieldCheck size={12} className="text-amber-500" />
-            <span className="text-[9px] font-bold text-amber-200/50 uppercase tracking-wide">{t('footer_secure')}:</span>
-            <span className="text-[9px] font-black text-amber-400 tracking-wider">PhonePe / UPI / COD</span>
+
+          <a 
+            href="https://wa.me/918886154275?text=Hi Satvik, I loved the Nune Bazaar website and want to discuss a project!" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="order-3 md:order-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-900/30 bg-[#1c1009]/50 hover:bg-[#2a170c] hover:border-amber-700/50 transition-all duration-300 group"
+          >
+            <span className="text-[10px] text-amber-500/80 font-medium tracking-wide group-hover:text-amber-400 transition-colors">Made with</span>
+            <span className="text-red-500 animate-pulse text-[11px]">❤️</span>
+            <span className="text-[10px] text-amber-500/80 font-medium tracking-wide group-hover:text-amber-400 transition-colors">by</span>
+            <span className="text-[11px] font-bold text-amber-300 group-hover:text-amber-200 transition-colors">Satvik</span>
+          </a>
+
+          <div className="flex-1 flex justify-center md:justify-end order-1 md:order-3">
+            <div className="flex items-center space-x-1.5 bg-[#140b05] px-3 py-1 rounded-full border border-amber-955 shadow-inner">
+              <ShieldCheck size={12} className="text-amber-500" />
+              <span className="text-[9px] font-bold text-amber-200/50 uppercase tracking-wide">{t('footer_secure')}:</span>
+              <span className="text-[9px] font-black text-amber-400 tracking-wider">PhonePe / UPI / COD</span>
+            </div>
           </div>
+
         </div>
 
       </div>

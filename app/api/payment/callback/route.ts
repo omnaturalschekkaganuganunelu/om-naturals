@@ -185,13 +185,24 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date().toISOString(),
       });
 
-      // Redirect to user's order history page
-      return NextResponse.redirect(`${appUrl}/account?tab=orders`, { status: 303 });
+      // Redirect to order confirmation page to show success pop-up and clear cart
+      return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
     } else {
       // Mark payment as FAILED
       await prisma.order.update({
         where: { id: orderId },
         data: { paymentStatus: 'FAILED' },
+      });
+
+      // Notify customer of payment failure
+      await prisma.notification.create({
+        data: {
+          title: '❌ Payment Failed',
+          body: `The payment for Order ${order.orderId} was not completed or declined. Please try again.`,
+          type: 'ORDER',
+          userId: order.userId,
+          orderId: order.id,
+        },
       });
 
       if (merchantTransactionId) {

@@ -62,13 +62,13 @@ export default function CheckoutPage() {
     if (authStatus === 'unauthenticated') {
       router.push('/login?redirect=/checkout');
     }
-  }, [authStatus]);
+  }, [authStatus, router]);
 
   useEffect(() => {
     if (authStatus === 'authenticated' && items.length === 0) {
       router.push('/cart');
     }
-  }, [items, authStatus]);
+  }, [items, authStatus, router]);
 
   // Load Saved Addresses and Site Settings
   useEffect(() => {
@@ -299,9 +299,8 @@ export default function CheckoutPage() {
           const payData = await payRes.json();
 
           if (payRes.ok && payData.url) {
-            clearCart();
             // Redirect user to PhonePe PG page
-            router.push(payData.url);
+            window.location.href = payData.url;
           } else {
             setCheckoutError(language === 'te' ? 'పేమెంట్ గేట్‌వే ప్రారంభించడంలో లోపం జరిగింది. దయచేసి మళ్ళీ ప్రయత్నించండి.' : 'Error initializing payment gateway. Please try again.');
             setPlacingOrder(false);

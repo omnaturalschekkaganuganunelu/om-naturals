@@ -93,7 +93,7 @@ export default function FAQPage() {
           <h3 className="text-sm font-bold text-amber-950">ఇంకా ఏవైనా సందేహాలు ఉన్నాయా? (Still have questions?)</h3>
           <p className="text-xs text-gray-500">మా వాట్సాప్ కస్టమర్ కేర్ ఎల్లప్పుడూ మీకు సహాయం చేయడానికి సిద్ధంగా ఉంటుంది</p>
           <a
-            href="https://wa.me/919999999999?text=Hi, I have a question about Nune Bazaar products."
+            href="https://wa.me/918688291288?text=Hi, I have a question about Nune Bazaar products."
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center space-x-2 bg-green-600 hover:bg-green-500 text-white font-bold text-xs px-6 py-2.5 rounded-full shadow-sm hover:shadow"

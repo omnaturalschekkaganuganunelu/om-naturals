@@ -94,7 +94,7 @@ function LoginContent() {
     if (authStatus === 'authenticated') {
       router.push(redirectUrl);
     }
-  }, [authStatus, redirectUrl]);
+  }, [authStatus, router, redirectUrl]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

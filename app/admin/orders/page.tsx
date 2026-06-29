@@ -401,6 +401,7 @@ export default function AdminOrdersPage() {
                                   { value: 'PENDING', label: 'Payment Pending' },
                                   { value: 'COMPLETED', label: 'Payment Completed' },
                                   { value: 'FAILED', label: 'Payment Failed' },
+                                  { value: 'REFUNDED', label: 'Payment Refunded' },
                                 ]}
                               />
                             </div>
@@ -621,6 +622,7 @@ export default function AdminOrdersPage() {
                                             { value: 'PENDING', label: language === 'te' ? 'చెల్లింపు పెండింగ్' : 'Payment Pending' },
                                             { value: 'COMPLETED', label: language === 'te' ? 'చెల్లింపు పూర్తయింది' : 'Payment Completed' },
                                             { value: 'FAILED', label: language === 'te' ? 'చెల్లింపు వైఫల్యం' : 'Payment Failed' },
+                                            { value: 'REFUNDED', label: language === 'te' ? 'రీఫండ్ చేయబడింది' : 'Payment Refunded' },
                                           ]}
                                         />
                                       </div>

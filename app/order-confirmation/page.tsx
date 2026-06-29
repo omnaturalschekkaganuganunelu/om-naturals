@@ -9,6 +9,7 @@ import { CheckCircle, XCircle, FileText, MapPin, Calendar, HelpCircle, ArrowRigh
 import PremiumLoader from '@/components/PremiumLoader';
 import confetti from 'canvas-confetti';
 import { useLanguage } from '@/context/LanguageContext';
+import { useCartStore } from '@/store/cartStore';
 
 function OrderConfirmationContent() {
   const searchParams = useSearchParams();
@@ -23,8 +24,11 @@ function OrderConfirmationContent() {
   const [retryError, setRetryError] = useState('');
 
   // Trigger Confetti on Load for Successful Payments/Orders
+  const { clearCart } = useCartStore();
+
   useEffect(() => {
     if (status === 'success') {
+      clearCart();
       confetti({
         particleCount: 150,
         spread: 80,
@@ -32,7 +36,7 @@ function OrderConfirmationContent() {
         colors: ['#b45309', '#f59e0b', '#10b981', '#3b82f6'],
       });
     }
-  }, [status]);
+  }, [status, clearCart]);
 
   // Load Order Details
   useEffect(() => {
@@ -319,8 +323,8 @@ function OrderConfirmationContent() {
             <HelpCircle size={14} className="text-amber-700" />
             <span>
               {language === 'te'
-                ? 'సహాయం కొరకు వాట్సాప్ (+91 99999 99999) సంప్రదించండి'
-                : 'Contact WhatsApp (+91 99999 99999) for support'}
+                ? 'సహాయం కొరకు వాట్సాప్ (+91 86882 91288) సంప్రదించండి'
+                : 'Contact WhatsApp (+91 86882 91288) for support'}
             </span>
           </div>
         </div>

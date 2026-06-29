@@ -137,7 +137,7 @@ export default function CartPage() {
     setTax(computedTax);
     setShipping(computedShipping);
     setTotal(computedTotal);
-  }, [items, coupon, FREE_SHIPPING_THRESHOLD, SHIPPING_FEE, PACKING_FEE, GST_RATE]);
+  }, [items, coupon, FREE_SHIPPING_THRESHOLD, SHIPPING_FEE, PACKING_FEE, GST_RATE, getCartTotal, language, setCoupon]);
 
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
