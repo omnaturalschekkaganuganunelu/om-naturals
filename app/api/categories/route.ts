@@ -2,14 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_cache } from 'next/cache';
 
 // GET /api/categories - List all categories
 export async function GET(req: NextRequest) {
   try {
-    const categories = await prisma.category.findMany({
-      orderBy: { sortOrder: 'asc' },
-    });
+    const getCategoriesData = unstable_cache(
+      async () => {
+        return await prisma.category.findMany({
+          orderBy: { sortOrder: 'asc' },
+        });
+      },
+      ['categories-list'],
+      { revalidate: 60, tags: ['categories'] }
+    );
+    
+    const categories = await getCategoriesData();
     return NextResponse.json(categories);
   } catch (err: any) {
     console.error('Error fetching categories:', err);

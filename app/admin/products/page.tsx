@@ -6,10 +6,8 @@ import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import {
-  Plus, Edit3, Trash2, Search, X, AlertCircle, Layers, Package,
-  ChevronDown, ChevronUp, Image as ImageIcon, RefreshCw
-} from 'lucide-react';
+import { Plus, Edit3, Trash2, Search, Package, Layers, Image as ImageIcon, ChevronDown, ChevronUp, X, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomSelect from '@/components/CustomSelect';
@@ -53,6 +51,8 @@ export default function AdminProductsPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterActive, setFilterActive] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+  const [sortBy, setSortBy] = useState<'DEFAULT' | 'STOCK_LOW' | 'STOCK_HIGH' | 'MOST_BOUGHT'>('DEFAULT');
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
   // Modal state
@@ -175,12 +175,19 @@ export default function AdminProductsPage() {
 
   // ─── Group products by base name ──────────────────────────────────────────
   const productGroups = React.useMemo(() => {
+    let filteredProducts = products.filter(p => {
+      if (filterActive === 'ACTIVE' && !p.isActive) return false;
+      if (filterActive === 'INACTIVE' && p.isActive) return false;
+      return true;
+    });
+
     const map = new Map<string, any[]>();
-    products.forEach((p) => {
+    filteredProducts.forEach((p) => {
       const key = extractBaseName(p.name);
       map.set(key, [...(map.get(key) || []), p]);
     });
-    return Array.from(map.entries())
+    
+    let groups = Array.from(map.entries())
       .map(([key, variants]) => ({
         key,
         variants: [...variants].sort((a, b) => a.weight - b.weight),
@@ -189,7 +196,17 @@ export default function AdminProductsPage() {
         key.toLowerCase().includes(search.toLowerCase()) ||
         groupVariants[0]?.nameTe?.toLowerCase().includes(search.toLowerCase())
       );
-  }, [products, search]);
+
+    if (sortBy === 'STOCK_LOW') {
+      groups.sort((a, b) => Math.min(...a.variants.map(v => v.stock)) - Math.min(...b.variants.map(v => v.stock)));
+    } else if (sortBy === 'STOCK_HIGH') {
+      groups.sort((a, b) => Math.max(...b.variants.map(v => v.stock)) - Math.max(...a.variants.map(v => v.stock)));
+    } else if (sortBy === 'MOST_BOUGHT') {
+      groups.sort((a, b) => Math.max(...b.variants.map(v => v.salesCount || 0)) - Math.max(...a.variants.map(v => v.salesCount || 0)));
+    }
+
+    return groups;
+  }, [products, search, filterActive, sortBy]);
 
   // ─── Slug generator ───────────────────────────────────────────────────────
   const makeSlug = (name: string, weight?: string, unit?: string) => {
@@ -423,16 +440,49 @@ export default function AdminProductsPage() {
               </div>
             </div>
 
-            {/* Search */}
-            <div className="bg-white border border-amber-100 p-4 rounded-3xl shadow-sm flex items-center relative">
-              <input
-                type="text"
-                placeholder={t('admin_products_placeholder')}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-transparent text-xs border-none focus:outline-none"
-              />
-              <Search size={18} className="absolute right-7 text-gray-400" />
+            {/* Search and Filters Container */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Search */}
+              <div className="bg-white border border-amber-100 p-4 rounded-3xl shadow-sm flex-1 flex items-center relative">
+                <input
+                  type="text"
+                  placeholder={t('admin_products_placeholder')}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full bg-transparent text-xs font-semibold text-amber-950 placeholder-gray-400 border-none focus:outline-none"
+                />
+                <Search size={18} className="absolute right-6 text-gray-400" />
+              </div>
+
+              {/* Filters */}
+              <div className="flex gap-3 w-full sm:w-auto">
+                <div className="w-1/2 sm:w-40 shrink-0">
+                  <CustomSelect
+                    value={filterActive}
+                    onChange={(val) => setFilterActive(val as any)}
+                    options={[
+                      { value: 'ALL', label: 'All Status' },
+                      { value: 'ACTIVE', label: 'Active Only' },
+                      { value: 'INACTIVE', label: 'Inactive Only' },
+                    ]}
+                    className="z-50"
+                  />
+                </div>
+
+                <div className="w-1/2 sm:w-40 shrink-0">
+                  <CustomSelect
+                    value={sortBy}
+                    onChange={(val) => setSortBy(val as any)}
+                    options={[
+                      { value: 'DEFAULT', label: 'Sort By' },
+                      { value: 'STOCK_LOW', label: 'Low Stock First' },
+                      { value: 'STOCK_HIGH', label: 'High Stock First' },
+                      { value: 'MOST_BOUGHT', label: 'Most Bought' },
+                    ]}
+                    className="z-40"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Products List — mobile-first card layout */}
@@ -457,13 +507,14 @@ export default function AdminProductsPage() {
                         <div className="p-3 sm:p-4 hover:bg-amber-50/30 transition-colors">
                           {/* Top row: Image + Name + Expand toggle */}
                           <div className="flex items-start gap-3">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={first.images[0] || ''}
+                            <Image
+                              src={first.images[0] || '/images/logo-512.png'}
                               alt=""
+                              width={48}
+                              height={48}
                               className="w-12 h-12 rounded-xl object-cover border border-amber-50 flex-shrink-0"
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/images/logo-512.png';
+                                (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                               }}
                             />
                             <div className="flex-1 min-w-0">
@@ -534,13 +585,14 @@ export default function AdminProductsPage() {
                           <div className="bg-amber-50/20 border-t border-amber-50 divide-y divide-amber-50/60">
                             {groupVariants.map((v) => (
                               <div key={v.id} className="flex items-center gap-3 px-4 py-3">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={v.images[0] || ''}
+                                <Image
+                                  src={v.images[0] || '/images/logo-512.png'}
                                   alt=""
+                                  width={36}
+                                  height={36}
                                   className="w-9 h-9 rounded-lg object-cover border border-amber-100 flex-shrink-0"
                                   onError={(e) => {
-                                    (e.target as HTMLImageElement).src = '/images/logo-512.png';
+                                    (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                                   }}
                                 />
                                 <div className="flex-1 min-w-0">
@@ -724,8 +776,16 @@ export default function AdminProductsPage() {
                       </label>
                     </div>
                     {singleForm.imageUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={singleForm.imageUrl} alt="" className="mt-2 w-20 h-20 rounded-xl object-cover border border-amber-100" />
+                      <Image 
+                        src={singleForm.imageUrl || '/images/logo-512.png'} 
+                        alt="" 
+                        width={56} 
+                        height={56} 
+                        className="mt-1.5 w-14 h-14 rounded-xl object-cover border border-amber-100" 
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
+                        }}
+                      />
                     )}
                   </div>
 
@@ -944,7 +1004,7 @@ export default function AdminProductsPage() {
                             </label>
                           </div>
                           {v.imageUrl && (
-                            <img src={v.imageUrl} alt="" className="mt-1.5 w-14 h-14 rounded-xl object-cover border border-amber-100" />
+                            <Image src={v.imageUrl || '/images/logo-512.png'} alt="" width={56} height={56} className="mt-1.5 w-14 h-14 rounded-xl object-cover border border-amber-100" onError={(e) => { (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png'; }} />
                           )}
                         </div>
 

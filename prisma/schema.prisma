@@ -67,6 +67,7 @@ model Product {
   mrp         Float
   sku         String   @unique
   stock       Int      @default(0)
+  salesCount  Int      @default(0)
   unit        String   // "Litre", "Gram", "Kg", "Bottle", etc.
   weight      Float    // numerical weight e.g., 1, 500, 250
   categoryId  String

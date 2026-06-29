@@ -11,6 +11,8 @@ import { useLanguage } from '@/context/LanguageContext';
 import { MapPin, Plus, Check, ShieldCheck, CreditCard, RefreshCw, Truck, Tag, AlertCircle } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomSelect from '@/components/CustomSelect';
+import Link from 'next/link';
+import Image from 'next/image';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -679,25 +681,30 @@ export default function CheckoutPage() {
 
               {/* Items List mini */}
               <div className="divide-y divide-amber-50 max-h-48 overflow-y-auto no-scrollbar">
-                {items.map((item) => (
-                  <div key={item.productId} className="flex justify-between items-center py-2 text-xs">
-                    <div className="flex items-center space-x-2">
-                      <img
-                        src={item.image}
-                        alt=""
-                        className="w-8 h-8 rounded-lg object-cover border border-amber-50"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/logo-512.png';
-                        }}
-                      />
-                      <div className="font-semibold text-amber-950 max-w-[150px] truncate">
-                        <p className="truncate font-bold">{language === 'te' ? item.nameTe : item.name}</p>
-                        <p className="text-[9px] text-amber-600 font-bold">{item.quantity} x ₹{item.price}</p>
+                {items.map((item) => {
+                  const Wrapper = item.slug ? Link : 'div';
+                  return (
+                    <Wrapper href={item.slug ? `/products/${item.slug}` : ''} key={item.productId} className={`flex justify-between items-center py-2 text-xs ${item.slug ? 'hover:bg-amber-50/50 cursor-pointer group transition-colors px-2 -mx-2 rounded-lg' : ''}`}>
+                      <div className="flex items-center space-x-2">
+                        <Image
+                          src={item.image}
+                          alt=""
+                          width={32}
+                          height={32}
+                          className="w-8 h-8 rounded-lg object-cover border border-amber-50"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
+                          }}
+                        />
+                        <div className={`font-semibold text-amber-950 max-w-[150px] truncate ${item.slug ? 'group-hover:text-amber-700 transition-colors' : ''}`}>
+                          <p className="truncate font-bold">{language === 'te' ? item.nameTe : item.name}</p>
+                          <p className="text-[9px] text-amber-600 font-bold">{item.quantity} x ₹{item.price}</p>
+                        </div>
                       </div>
-                    </div>
-                    <span className="font-bold text-amber-950">₹{item.price * item.quantity}</span>
-                  </div>
-                ))}
+                      <span className="font-bold text-amber-950">₹{item.price * item.quantity}</span>
+                    </Wrapper>
+                  );
+                })}
               </div>
 
               {/* Cost Breakdown */}

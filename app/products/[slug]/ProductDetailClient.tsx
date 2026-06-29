@@ -7,6 +7,7 @@ import {
   ShieldCheck, Truck, Leaf, Star, ChevronRight,
   Zap, Award, ChevronDown
 } from 'lucide-react';
+import Image from 'next/image';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
 import { formatVariantLabel, extractBaseNameTe } from '@/components/ProductCard';
@@ -79,7 +80,10 @@ function RelatedCard({ rel, language }: { rel: any; language: string }) {
     e.stopPropagation();
     if (outOfStock) return;
     addItem({
-      productId: rel.id, name: rel.name, nameTe: rel.nameTe || rel.name,
+      productId: rel.id, 
+      slug: rel.slug,
+      name: rel.name, 
+      nameTe: rel.nameTe || rel.name,
       price: rel.price, mrp: rel.mrp, quantity: 1,
       image: relImages[0] || FALLBACK_IMG,
       weight: rel.weight, unit: rel.unit, stock: rel.stock,
@@ -107,12 +111,13 @@ function RelatedCard({ rel, language }: { rel: any; language: string }) {
               <span className="text-[10px] font-black text-red-500">{language === 'te' ? 'అయిపోయింది' : 'Out of Stock'}</span>
             </div>
           )}
-          <img
+          <Image
             src={imgSrc}
             alt={displayName}
-            className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-400"
+            fill
+            sizes="(max-width: 768px) 50vw, 33vw"
+            className="object-cover group-hover:scale-[1.04] transition-transform duration-400"
             onError={() => setImgErr(true)}
-            loading="lazy"
           />
           {/* Add button */}
           {!outOfStock && (
@@ -200,7 +205,10 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
   const handleAddToCart = useCallback((shouldRedirect = false) => {
     if (outOfStock) return;
     addItem({
-      productId: product.id, name: product.name, nameTe: product.nameTe,
+      productId: product.id, 
+      slug: product.slug,
+      name: product.name, 
+      nameTe: product.nameTe,
       price: product.price, mrp: product.mrp, quantity,
       image: product.images[0] || FALLBACK_IMG,
       weight: product.weight, unit: product.unit, stock: product.stock,
@@ -260,12 +268,14 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
                   </div>
                 )}
                 {/* Main image */}
-                <div className="aspect-square overflow-hidden">
-                  <img
+                <div className="relative aspect-square overflow-hidden">
+                  <Image
                     src={activeImage}
                     alt={displayName}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_IMG; }}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).srcset = FALLBACK_IMG; }}
                   />
                 </div>
                 {/* Thumbnails */}
@@ -273,11 +283,11 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
                   <div className="flex gap-2 p-3 overflow-x-auto no-scrollbar border-t border-gray-100">
                     {product.images.map((img, i) => (
                       <button key={i} onClick={() => setActiveImage(img)}
-                        className={`flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden border-2 transition-all ${
+                        className={`relative flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden border-2 transition-all ${
                           activeImage === img ? 'border-amber-700 shadow-sm scale-105' : 'border-transparent opacity-60 hover:opacity-100'
                         }`}>
-                        <img src={img} alt="" className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_IMG; }} />
+                        <Image src={img} alt="" fill sizes="56px" className="object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).srcset = FALLBACK_IMG; }} />
                       </button>
                     ))}
                   </div>

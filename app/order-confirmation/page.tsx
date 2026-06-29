@@ -10,6 +10,7 @@ import PremiumLoader from '@/components/PremiumLoader';
 import confetti from 'canvas-confetti';
 import { useLanguage } from '@/context/LanguageContext';
 import { useCartStore } from '@/store/cartStore';
+import Image from 'next/image';
 
 function OrderConfirmationContent() {
   const searchParams = useSearchParams();
@@ -202,12 +203,14 @@ function OrderConfirmationContent() {
                 {order.items.map((item: any) => (
                   <div key={item.id} className="flex justify-between items-center text-xs font-bold text-amber-950">
                     <div className="flex items-center space-x-2.5">
-                      <img
+                      <Image
                         src={item.image}
                         alt=""
+                        width={32}
+                        height={32}
                         className="w-8 h-8 rounded-lg object-cover border border-amber-50"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/logo-512.png';
+                          (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                         }}
                       />
                       <div>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_cache } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,22 +64,32 @@ export async function GET(req: NextRequest) {
       orderBy = { stock: 'asc' }; // Mock popularity by lower stock or other criteria
     }
 
-    const products = await prisma.product.findMany({
-      where,
-      orderBy,
-      include: {
-        category: true,
-      },
-    });
+    // Create a unique cache key based on the parameters
+    const cacheKey = `products-${JSON.stringify(where)}-${JSON.stringify(orderBy)}`;
 
-    // Parse JSON string arrays
-    const formattedProducts = products.map((p) => ({
-      ...p,
-      images: JSON.parse(p.images),
-      benefits: JSON.parse(p.benefits),
-      ingredients: p.ingredients ? JSON.parse(p.ingredients) : [],
-      usage: p.usage ? JSON.parse(p.usage) : [],
-    }));
+    const getProductsData = unstable_cache(
+      async (whereQuery: any, orderByQuery: any) => {
+        const products = await prisma.product.findMany({
+          where: whereQuery,
+          orderBy: orderByQuery,
+          include: {
+            category: true,
+          },
+        });
+
+        return products.map((p) => ({
+          ...p,
+          images: JSON.parse(p.images),
+          benefits: JSON.parse(p.benefits),
+          ingredients: p.ingredients ? JSON.parse(p.ingredients) : [],
+          usage: p.usage ? JSON.parse(p.usage) : [],
+        }));
+      },
+      [cacheKey],
+      { revalidate: 60, tags: ['products', cacheKey] }
+    );
+
+    const formattedProducts = await getProductsData(where, orderBy);
 
     return NextResponse.json(formattedProducts);
   } catch (err: any) {

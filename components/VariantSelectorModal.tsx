@@ -148,12 +148,13 @@ export default function VariantSelectorModal({
               >
                 {/* Thumbnail */}
                 <div className="relative flex-shrink-0 w-16 h-16 rounded-2xl overflow-hidden bg-amber-50 border border-amber-100">
-                  <img
+                  <Image
                     src={imgSrc}
                     alt={variant.name}
+                    width={64}
+                    height={64}
                     className="w-full h-full object-cover"
                     onError={() => setImgErrors((prev) => ({ ...prev, [variant.id]: true }))}
-                    loading="lazy"
                   />
                 </div>
 

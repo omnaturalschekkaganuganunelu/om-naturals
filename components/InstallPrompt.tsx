@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Download, Share, Smartphone } from 'lucide-react';
+import { X, Download, Share, PlusSquare } from 'lucide-react';
+import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -99,7 +100,7 @@ export default function InstallPrompt() {
         {/* Main Banner Area */}
         <div className="p-3.5 flex items-center gap-3">
           <div className="w-10 h-10 shrink-0 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center overflow-hidden">
-            <img src="/images/logo.png" alt="Logo" className="w-full h-full object-cover" />
+            <Image src="/images/logo.png" alt="Logo" width={40} height={40} className="w-full h-full object-cover" />
           </div>
           
           <div className="flex-1 min-w-0">

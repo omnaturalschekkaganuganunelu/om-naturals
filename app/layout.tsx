@@ -61,7 +61,7 @@ export const viewport: Viewport = {
   themeColor: '#92400e',
 };
 
-import RouteLoader from '@/components/RouteLoader';
+import NextTopLoader from 'nextjs-toploader';
 
 export default function RootLayout({
   children,
@@ -72,9 +72,18 @@ export default function RootLayout({
     <html lang="en" className={`overflow-x-clip max-w-full ${inter.variable} ${outfit.variable}`}>
       <body className="antialiased min-h-screen flex flex-col bg-[#fdfbf7] overflow-x-clip">
         <Providers>
-          <Suspense fallback={null}>
-            <RouteLoader />
-          </Suspense>
+          <NextTopLoader
+            color="#b45309"
+            initialPosition={0.08}
+            crawlSpeed={200}
+            height={3}
+            crawl={true}
+            showSpinner={false}
+            easing="ease"
+            speed={200}
+            shadow="0 0 10px #b45309,0 0 5px #b45309"
+            zIndex={1600}
+          />
           {children}
           <Suspense fallback={null}>
             <MobileBottomNav />

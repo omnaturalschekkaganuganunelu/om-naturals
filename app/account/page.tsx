@@ -579,6 +579,7 @@ function AccountContent() {
 
           cartStore.addItem({
             productId: p.id,
+            slug: p.slug || '',
             name: p.name,
             nameTe: p.nameTe,
             price: p.price,
@@ -1493,17 +1494,18 @@ function AccountContent() {
                 <label className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">
                   Select a reason for cancellation:
                 </label>
-                <select
+                <CustomSelect
                   value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  className="w-full bg-[#fdfbf7] border border-amber-100 rounded-xl p-2.5 text-xs font-bold focus:outline-none"
-                >
-                  <option value="Ordered by mistake">Ordered by mistake</option>
-                  <option value="Incorrect delivery address">Incorrect delivery address</option>
-                  <option value="Found a better price elsewhere">Found a better price elsewhere</option>
-                  <option value="Changed mind / No longer needed">Changed mind / No longer needed</option>
-                  <option value="Other">Other (Please describe below)</option>
-                </select>
+                  onChange={(val) => setCancelReason(val)}
+                  options={[
+                    { value: 'Ordered by mistake', label: 'Ordered by mistake' },
+                    { value: 'Incorrect delivery address', label: 'Incorrect delivery address' },
+                    { value: 'Found a better price elsewhere', label: 'Found a better price elsewhere' },
+                    { value: 'Changed mind / No longer needed', label: 'Changed mind / No longer needed' },
+                    { value: 'Other', label: 'Other (Please describe below)' },
+                  ]}
+                  openUpward={true}
+                />
               </div>
 
               {cancelReason === 'Other' && (

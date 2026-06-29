@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { Plus, Edit3, Trash2, Search, X, AlertCircle } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import Image from 'next/image';
 import PremiumLoader from '@/components/PremiumLoader';
 
 export default function AdminCategoriesPage() {
@@ -242,9 +243,11 @@ export default function AdminCategoriesPage() {
                   <p className="text-center text-xs text-gray-400 py-10">{language === 'te' ? 'విభాగాలు లేవు' : 'No categories found'}</p>
                 ) : filteredCategories.map((c) => (
                   <div key={c.id} className="p-4 flex items-center gap-3">
-                    <img
+                    <Image
                       src="/images/logo-512.png"
                       alt=""
+                      width={48}
+                      height={48}
                       className="w-12 h-12 rounded-xl object-cover border border-amber-50 flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
@@ -294,10 +297,12 @@ export default function AdminCategoriesPage() {
                     {filteredCategories.map((c) => (
                       <tr key={c.id} className="hover:bg-amber-50/10">
                         <td className="py-3 px-4">
-                          <img
+                          <Image
                             src="/images/logo-512.png"
                             alt=""
-                            className="w-10 h-10 rounded-lg object-cover border border-amber-50"
+                            width={40}
+                            height={40}
+                            className="w-10 h-10 rounded-xl object-cover border border-amber-50"
                           />
                         </td>
                         <td className="py-3 px-4">

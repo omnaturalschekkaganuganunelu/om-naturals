@@ -160,6 +160,15 @@ export async function POST(req: NextRequest) {
         quantity: cartItem.quantity,
         image: JSON.parse(product.images)[0] || '',
       });
+
+      // Deduct stock immediately (basic approach) and increase salesCount
+      await prisma.product.update({
+        where: { id: product.id },
+        data: { 
+          stock: { decrement: cartItem.quantity },
+          salesCount: { increment: cartItem.quantity }
+        },
+      });
     }
 
     // Apply Coupon if applicable

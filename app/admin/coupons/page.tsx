@@ -171,7 +171,7 @@ export default function AdminCouponsPage() {
                 className="inline-flex items-center gap-2 bg-amber-800 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-md hover:shadow-lg transition-all shrink-0"
               >
                 <Plus size={15} strokeWidth={3} />
-                {language === 'te' ? '+ కూపన్ జోడించు' : '+ Add Coupon'}
+                {language === 'te' ? 'కూపన్ జోడించు' : 'Add Coupon'}
               </button>
             </div>
 

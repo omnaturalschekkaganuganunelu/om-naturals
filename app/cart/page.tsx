@@ -10,6 +10,7 @@ import BackButton from '@/components/BackButton';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
 import { Plus, Minus, Trash2, Tag, ArrowRight, ShoppingCart, Percent, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 
 export default function CartPage() {
   const router = useRouter();
@@ -244,14 +245,18 @@ export default function CartPage() {
                 <div key={item.productId} className="flex flex-col sm:flex-row gap-4 py-5 first:pt-2">
                   {/* Left: Image */}
                   <div className="flex gap-4 w-full">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shadow-sm shrink-0 border border-amber-50"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/images/logo-512.png';
-                      }}
-                    />
+                    <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0">
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        sizes="(max-width: 640px) 96px, 112px"
+                        className="rounded-2xl object-cover shadow-sm border border-amber-50"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
+                        }}
+                      />
+                    </div>
                     
                     {/* Right: Details */}
                     <div className="flex flex-col flex-1 min-w-0 py-1">
@@ -259,7 +264,7 @@ export default function CartPage() {
                       {/* Title & Delete Row */}
                       <div className="flex justify-between items-start">
                         <div className="pr-2">
-                          <Link href={`/products/${item.productId}`} className="text-sm font-bold text-amber-950 hover:text-amber-700 line-clamp-2 leading-tight">
+                          <Link href={item.slug ? `/products/${item.slug}` : '#'} className="text-sm font-bold text-amber-950 hover:text-amber-700 line-clamp-2 leading-tight">
                             {language === 'te' ? item.nameTe : item.name.split('(')[0]}
                           </Link>
                           <p className="text-[11px] font-bold text-amber-600 mt-1.5 bg-amber-50 inline-block px-2 py-0.5 rounded-md border border-amber-100">{item.weight} {item.unit}</p>

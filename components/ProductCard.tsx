@@ -79,6 +79,7 @@ export default function ProductCard({ group }: ProductCardProps) {
     if (outOfStock) return;
     addItem({
       productId: representative.id,
+      slug: representative.slug,
       name: representative.name,
       nameTe: representative.nameTe,
       price: representative.price,
@@ -99,7 +100,7 @@ export default function ProductCard({ group }: ProductCardProps) {
 
   return (
     <>
-      <div className="group bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col h-full">
+      <div className="group bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col h-full relative">
 
         {/* ── Image Wrapper (contains overlays + button sibling to link) ── */}
         <div className="relative aspect-square bg-[#fdfaf6] flex-shrink-0">
@@ -107,7 +108,7 @@ export default function ProductCard({ group }: ProductCardProps) {
             href={`/products/${representative.slug}`}
             tabIndex={-1}
             aria-hidden="true"
-            className="block relative overflow-hidden w-full h-full"
+            className="block relative overflow-hidden w-full h-full after:absolute after:inset-0 after:z-0"
           >
             <Image
               src={imageUrl}
@@ -226,7 +227,7 @@ export default function ProductCard({ group }: ProductCardProps) {
           {!isSingleVariant ? (
             <button
               onClick={handleOpenModal}
-              className="inline-flex items-center gap-1 bg-gray-50 hover:bg-amber-50 border border-gray-200 hover:border-amber-300 rounded-lg px-2 py-0.5 text-[10px] font-bold text-gray-600 w-fit cursor-pointer transition-colors mb-2"
+              className="relative z-10 inline-flex items-center gap-1 bg-gray-50 hover:bg-amber-50 border border-gray-200 hover:border-amber-300 rounded-lg px-2 py-0.5 text-[10px] font-bold text-gray-600 w-fit cursor-pointer transition-colors mb-2"
             >
               <span>{formatVariantLabel(representative)}</span>
               <ChevronDown size={10} className="text-gray-400" />
@@ -261,6 +262,7 @@ export default function ProductCard({ group }: ProductCardProps) {
                   if (isSingleVariant) {
                     addItem({
                       productId: representative.id,
+                      slug: representative.slug,
                       name: representative.name,
                       nameTe: representative.nameTe,
                       price: representative.price,

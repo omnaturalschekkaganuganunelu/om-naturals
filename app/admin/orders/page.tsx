@@ -42,6 +42,8 @@ export default function AdminOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [searchFilter, setSearchFilter] = useState('');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('');
   
   // UI states
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -130,9 +132,15 @@ export default function AdminOrdersPage() {
         if (!matchesId && !matchesName) return false;
       }
 
+      // 4. Payment Status Filter
+      if (paymentStatusFilter && ord.paymentStatus !== paymentStatusFilter) return false;
+
+      // 5. Payment Method Filter
+      if (paymentMethodFilter && ord.paymentMethod !== paymentMethodFilter) return false;
+
       return true;
     });
-  }, [orders, statusFilter, dateFilter, searchFilter]);
+  }, [orders, statusFilter, dateFilter, searchFilter, paymentStatusFilter, paymentMethodFilter]);
 
   // Expand / collapse row
   const toggleOrderExpand = (id: string) => {
@@ -203,16 +211,16 @@ export default function AdminOrdersPage() {
                   />
                 </div>
 
-                {/* Date + Status — side by side */}
-                <div className="flex gap-2">
-                  <div className="flex-1 sm:flex-none">
+                {/* Filters Row */}
+                <div className="flex gap-2 flex-wrap sm:flex-nowrap w-full">
+                  <div className="flex-1 min-w-[120px] sm:flex-none">
                     <CustomCalendar
                       value={dateFilter}
                       onChange={setDateFilter}
                       placeholder={language === 'te' ? 'తేదీ ఎంచుకోండి' : 'Select Date'}
                     />
                   </div>
-                  <div className="flex-1 sm:flex-none sm:w-40">
+                  <div className="flex-1 min-w-[140px] sm:flex-none sm:w-40 shrink-0">
                     <CustomSelect
                       value={statusFilter}
                       onChange={(val) => setStatusFilter(val)}
@@ -228,6 +236,32 @@ export default function AdminOrdersPage() {
                         { value: 'DELIVERED', label: language === 'te' ? 'డెలివరీ పూర్తయింది' : 'Delivered' },
                         { value: 'CANCELLED', label: language === 'te' ? 'రద్దు చేయబడింది' : 'Cancelled' },
                       ]}
+                      className="z-50"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[140px] sm:flex-none sm:w-40 shrink-0">
+                    <CustomSelect
+                      value={paymentStatusFilter}
+                      onChange={setPaymentStatusFilter}
+                      options={[
+                        { value: '', label: language === 'te' ? 'చెల్లింపు స్థితి' : 'Payment Status' },
+                        { value: 'COMPLETED', label: language === 'te' ? 'పూర్తయింది' : 'Completed' },
+                        { value: 'PENDING', label: language === 'te' ? 'పెండింగ్' : 'Pending' },
+                        { value: 'FAILED', label: language === 'te' ? 'విఫలమైంది' : 'Failed' },
+                      ]}
+                      className="z-40"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[140px] sm:flex-none sm:w-40 shrink-0">
+                    <CustomSelect
+                      value={paymentMethodFilter}
+                      onChange={setPaymentMethodFilter}
+                      options={[
+                        { value: '', label: language === 'te' ? 'చెల్లింపు విధానం' : 'Payment Method' },
+                        { value: 'PHONEPE', label: 'PhonePe' },
+                        { value: 'COD', label: 'Cash on Delivery' },
+                      ]}
+                      className="z-30"
                     />
                   </div>
                 </div>

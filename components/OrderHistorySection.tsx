@@ -8,6 +8,7 @@ import {
   AlertTriangle, ShoppingBag, Printer, ChevronDown, ChevronUp,
   Search, Info, RotateCcw, Navigation2
 } from 'lucide-react';
+import Image from 'next/image';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -911,11 +912,13 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
               <div className="space-y-3">
                 {order.items.map((item: any, idx: number) => (
                   <div key={item.id ?? idx} className="flex items-center gap-3">
-                    <img
+                    <Image
                       src={item.image}
                       alt={item.name}
+                      width={48}
+                      height={48}
                       className="w-12 h-12 rounded-2xl object-cover border border-amber-100 bg-amber-50 shrink-0"
-                      onError={e => { (e.target as HTMLImageElement).src = '/images/logo-512.png'; }}
+                      onError={e => { (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png'; }}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-black text-amber-950 truncate">{language === 'te' ? (item.nameTe || item.name) : item.name}</p>
