@@ -81,10 +81,12 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { items, address, couponCode, paymentMethod, notes, email } = body;
+    const { items, address, couponCode, paymentMethod, notes, email, language } = body;
+
+    const lang = language || 'te'; // Default to Telugu if not provided
 
     if (!items || items.length === 0 || !address) {
-      return NextResponse.json({ error: 'Missing items or address details' }, { status: 400 });
+      return NextResponse.json({ error: lang === 'en' ? 'Missing items or address details' : 'ఐటెమ్‌లు లేదా చిరునామా వివరాలు లేవు' }, { status: 400 });
     }
 
     // If they supplied an email at checkout, update their profile email if they had a placeholder
@@ -134,13 +136,17 @@ export async function POST(req: NextRequest) {
       });
 
       if (!product || !product.isActive) {
-        return NextResponse.json({ error: `ఉత్పత్తి లభ్యం కాలేదు: ${cartItem.name}` }, { status: 400 });
+        const errorMsg = lang === 'en' 
+          ? `Product not available: ${cartItem.name}` 
+          : `ఉత్పత్తి లభ్యం కాలేదు: ${cartItem.name}`;
+        return NextResponse.json({ error: errorMsg }, { status: 400 });
       }
 
       if (product.stock < cartItem.quantity) {
-        return NextResponse.json({
-          error: `క్షమించండి, ${product.name} తగినంత స్టాక్ లేదు. అందుబాటులో ఉన్న స్టాక్: ${product.stock} (Insufficient stock for ${product.name})`
-        }, { status: 400 });
+        const errorMsg = lang === 'en'
+          ? `Sorry, insufficient stock for ${product.name}. Available stock: ${product.stock}`
+          : `క్షమించండి, ${product.name} తగినంత స్టాక్ లేదు. అందుబాటులో ఉన్న స్టాక్: ${product.stock}`;
+        return NextResponse.json({ error: errorMsg }, { status: 400 });
       }
 
       const itemTotal = product.price * cartItem.quantity;

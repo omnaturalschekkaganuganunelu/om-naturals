@@ -258,7 +258,7 @@ export default function CheckoutPage() {
       items: items.map((i) => ({
         productId: i.productId,
         quantity: i.quantity,
-        name: i.name,
+        name: language === 'te' ? i.nameTe : i.name, // Pass correct language name for error tracking
       })),
       address: {
         name: selectedAddress.name,
@@ -274,6 +274,7 @@ export default function CheckoutPage() {
       couponCode: coupon?.code || null,
       paymentMethod,
       email: checkoutEmail || null,
+      language: language,
     };
 
     try {
