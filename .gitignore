@@ -38,3 +38,5 @@ next-env.d.ts
 /app/generated/prisma
 .env
 *.db
+/sync_oils.js
+/circle.js

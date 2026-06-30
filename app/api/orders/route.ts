@@ -24,21 +24,31 @@ export async function GET(req: NextRequest) {
     let orders;
 
     if (session.user.role === 'ADMIN') {
-      const where: any = {};
+      const where: any = {
+        AND: [
+          {
+            OR: [
+              { paymentMethod: { not: 'PHONEPE' } },
+              { paymentStatus: { not: 'PENDING' } }
+            ]
+          }
+        ]
+      };
       if (status) {
-        where.orderStatus = status;
+        where.AND.push({ orderStatus: status });
       }
       if (date) {
-        // Find orders created on exactly this date (local timezone or UTC depending on DB, assume UTC for now)
         const startOfDay = new Date(date);
         startOfDay.setHours(0, 0, 0, 0);
         const endOfDay = new Date(date);
         endOfDay.setHours(23, 59, 59, 999);
         
-        where.createdAt = {
-          gte: startOfDay,
-          lte: endOfDay,
-        };
+        where.AND.push({
+          createdAt: {
+            gte: startOfDay,
+            lte: endOfDay,
+          }
+        });
       }
       orders = await prisma.order.findMany({
         where,
@@ -57,6 +67,10 @@ export async function GET(req: NextRequest) {
       orders = await prisma.order.findMany({
         where: {
           userId: session.user.id,
+          OR: [
+            { paymentMethod: { not: 'PHONEPE' } },
+            { paymentStatus: { not: 'PENDING' } }
+          ]
         },
         include: {
           items: true,
@@ -320,37 +334,38 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Auto-notify user that order was placed
-    try {
-      await prisma.notification.create({
-        data: {
-          title: '🛒 Order Placed Successfully!',
-          body: `Your order ${order.orderId} for ₹${order.total} has been placed. ${paymentMethod === 'COD' ? 'Pay on delivery.' : 'Complete your payment to confirm.'} Expected delivery in 2-3 days.`,
-          type: 'ORDER',
-          userId: session.user.id,
-          orderId: order.id,
-        },
-      });
-    } catch (notifErr) {
-      console.error('Order-placed notification failed:', notifErr);
-    }
-
-    // Notify ADMIN that a new order was placed
-    try {
-      const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
-      for (const admin of admins) {
+    // Auto-notify user and admin that order was placed (Only for COD instantly; PhonePe will be notified upon payment completion)
+    if (paymentMethod === 'COD') {
+      try {
         await prisma.notification.create({
           data: {
-            title: `🛒 New Order Placed!`,
-            body: `Order ${order.orderId} for ₹${order.total} has been placed by ${session.user.name || 'Customer'}.`,
+            title: '🛒 Order Placed Successfully!',
+            body: `Your order ${order.orderId} for ₹${order.total} has been placed. Pay on delivery. Expected delivery in 2-3 days.`,
             type: 'ORDER',
-            userId: admin.id,
+            userId: session.user.id,
             orderId: order.id,
           },
         });
+      } catch (notifErr) {
+        console.error('Order-placed notification failed:', notifErr);
       }
-    } catch (adminNotifErr) {
-      console.error('Admin order-placed notification failed:', adminNotifErr);
+
+      try {
+        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
+        for (const admin of admins) {
+          await prisma.notification.create({
+            data: {
+              title: `🛒 New Order Placed!`,
+              body: `Order ${order.orderId} for ₹${order.total} has been placed by ${session.user.name || 'Customer'}.`,
+              type: 'ORDER',
+              userId: admin.id,
+              orderId: order.id,
+            },
+          });
+        }
+      } catch (adminNotifErr) {
+        console.error('Admin order-placed notification failed:', adminNotifErr);
+      }
     }
 
     // Instantly invalidate the cache globally so the frontend shows accurate live stock!
