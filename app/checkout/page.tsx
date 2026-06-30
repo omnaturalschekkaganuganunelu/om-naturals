@@ -67,8 +67,10 @@ export default function CheckoutPage() {
   }, [authStatus, router]);
 
   useEffect(() => {
-    if (authStatus === 'authenticated' && items.length === 0) {
-      router.push('/cart');
+    if (authStatus === 'authenticated') {
+      if (items.length === 0 || items.some(item => item.isActive === false)) {
+        router.push('/cart');
+      }
     }
   }, [items, authStatus, router]);
 

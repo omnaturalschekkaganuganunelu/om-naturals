@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import crypto from 'crypto';
+import { getPhonePeClient } from '@/lib/phonepe';
 import { orderEmitter } from '@/lib/sse';
 
 // GET handler: Handles user navigation back from PhonePe (browser GET instead of POST redirect)
@@ -8,9 +8,13 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderId = searchParams.get('orderId');
   const reqUrl = new URL(req.url);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL !== 'http://localhost:3000'
+  let appUrl = process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL !== 'http://localhost:3000'
                    ? process.env.NEXT_PUBLIC_APP_URL
                    : reqUrl.origin;
+
+  if (appUrl.endsWith('/')) {
+    appUrl = appUrl.slice(0, -1);
+  }
 
   if (!orderId) {
     return NextResponse.redirect(`${appUrl}/account?tab=orders`, { status: 303 });
@@ -40,9 +44,13 @@ export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderId = searchParams.get('orderId');
   const reqUrl = new URL(req.url);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL !== 'http://localhost:3000' 
+  let appUrl = process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL !== 'http://localhost:3000' 
                    ? process.env.NEXT_PUBLIC_APP_URL 
                    : reqUrl.origin;
+
+  if (appUrl.endsWith('/')) {
+    appUrl = appUrl.slice(0, -1);
+  }
 
   if (!orderId) {
     return NextResponse.redirect(`${appUrl}/order-confirmation?status=error&msg=MissingOrder`, { status: 303 });
@@ -62,6 +70,7 @@ export async function POST(req: NextRequest) {
 
     const { code, success, data } = decodedJson;
     const merchantTransactionId = data?.merchantTransactionId;
+    let phonePeTransactionId = data?.transactionId || null; // PhonePe's own transaction ID
     const paymentAmount = data?.amount ? data.amount / 100 : 0; // convert paise back to INR
 
     const order = await prisma.order.findUnique({
@@ -73,42 +82,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(`${appUrl}/order-confirmation?status=error&msg=OrderNotFound`, { status: 303 });
     }
 
-    // Verify status securely with PhonePe API (Double check status)
-    const merchantId = process.env.PHONEPE_MERCHANT_ID || 'PGTESTPAYUAT86';
-    const saltKey = process.env.PHONEPE_SALT_KEY || '96434309-7796-489d-8924-ab56988a6076';
-    const saltIndex = process.env.PHONEPE_SALT_INDEX || '1';
-    const hostUrl = process.env.PHONEPE_HOST_URL || 'https://api-preprod.phonepe.com/apis/pg-sandbox';
-
+    // Verify status securely with PhonePe API (Double check status) using SDK v2
     let verifiedSuccess = false;
 
     if (code === 'PAYMENT_SUCCESS' && success) {
       try {
-        // Build Verification Hash
-        const stringToHash = `/pg/v1/status/${merchantId}/${merchantTransactionId}${saltKey}`;
-        const checksum = crypto.createHash('sha256').update(stringToHash).digest('hex') + '###' + saltIndex;
+        const client = getPhonePeClient();
+        const verifyResult = await client.getOrderStatus(merchantTransactionId);
 
-        const verifyController = new AbortController();
-        const verifyTimeoutId = setTimeout(() => verifyController.abort(), 10000);
-        const verifyResponse = await fetch(`${hostUrl}/pg/v1/status/${merchantId}/${merchantTransactionId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-VERIFY': checksum,
-            'X-MERCHANT-ID': merchantId,
-          },
-          signal: verifyController.signal,
-        });
-        clearTimeout(verifyTimeoutId);
-
-        const verifyResult = await verifyResponse.json();
-
-        if (verifyResult.success && verifyResult.code === 'PAYMENT_SUCCESS') {
+        if (verifyResult && verifyResult.state === 'COMPLETED') {
           verifiedSuccess = true;
+          // Retrieve final transaction details from PhonePe server response
+          if (verifyResult.paymentDetails && verifyResult.paymentDetails.length > 0) {
+            phonePeTransactionId = verifyResult.paymentDetails[0].transactionId || phonePeTransactionId;
+          }
         }
       } catch (err) {
-        console.error('PhonePe server-to-server status verification check failed. Falling back to signature validation.', err);
-        // Fallback to signature check (if connection failed, trust payload for now in UAT sandbox)
-        if (code === 'PAYMENT_SUCCESS') verifiedSuccess = true;
+        console.error('PhonePe SDK status verification failed. Falling back to callback payload.', err);
+        // Fallback to signature check (if connection failed, trust payload in UAT sandbox)
+        if (code === 'PAYMENT_SUCCESS') {
+          verifiedSuccess = true;
+        }
       }
     }
 
@@ -117,12 +111,13 @@ export async function POST(req: NextRequest) {
       await prisma.$transaction(async (tx) => {
         const currentOrder = await tx.order.findUnique({ where: { id: orderId } });
         if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
-          // Update order status
+          // Update order status and save PhonePe transaction ID
           await tx.order.update({
             where: { id: orderId },
             data: {
               paymentStatus: 'COMPLETED',
               orderStatus: 'CONFIRMED',
+              transactionRef: phonePeTransactionId,
             },
           });
 

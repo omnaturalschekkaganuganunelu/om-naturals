@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import crypto from 'crypto';
+import { getPhonePeClient } from '@/lib/phonepe';
 import { orderEmitter } from '@/lib/sse';
 import { sendOrderConfirmationEmail } from '@/lib/orderEmail';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const responseBody = body.response as string;
+    const rawBody = await req.text();
+    let body: any;
+    try {
+      body = JSON.parse(rawBody);
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const responseBody = body?.response as string;
 
     if (!responseBody) {
       return NextResponse.json({ error: 'Missing response payload' }, { status: 400 });
@@ -19,6 +26,7 @@ export async function POST(req: NextRequest) {
 
     const { code, success, data } = decodedJson;
     const merchantTransactionId = data?.merchantTransactionId;
+    let phonePeTransactionId = data?.transactionId || null; // PhonePe's own transaction ID
     const paymentAmount = data?.amount ? data.amount / 100 : 0; // convert paise back to INR
 
     if (!merchantTransactionId) {
@@ -44,40 +52,49 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Verify status securely with PhonePe API
-    const merchantId = process.env.PHONEPE_MERCHANT_ID || 'PGTESTPAYUAT86';
-    const saltKey = process.env.PHONEPE_SALT_KEY || '96434309-7796-489d-8924-ab56988a6076';
-    const saltIndex = process.env.PHONEPE_SALT_INDEX || '1';
-    const hostUrl = process.env.PHONEPE_HOST_URL || 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+    // Verify status securely with PhonePe API (Double check status) using SDK v2
+    const client = getPhonePeClient();
+    const callbackUsername = process.env.PHONEPE_CALLBACK_USERNAME;
+    const callbackPassword = process.env.PHONEPE_CALLBACK_PASSWORD;
+    const authorization = req.headers.get('Authorization') || req.headers.get('authorization') || '';
 
     let verifiedSuccess = false;
 
-    if (code === 'PAYMENT_SUCCESS' && success) {
+    // 1. Try to validate with the SDK validateCallback first if credentials are set
+    if (callbackUsername && callbackPassword && authorization) {
       try {
-        const stringToHash = `/pg/v1/status/${merchantId}/${merchantTransactionId}${saltKey}`;
-        const checksum = crypto.createHash('sha256').update(stringToHash).digest('hex') + '###' + saltIndex;
-
-        const verifyController = new AbortController();
-        const verifyTimeoutId = setTimeout(() => verifyController.abort(), 10000);
-        const verifyResponse = await fetch(`${hostUrl}/pg/v1/status/${merchantId}/${merchantTransactionId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-VERIFY': checksum,
-            'X-MERCHANT-ID': merchantId,
-          },
-          signal: verifyController.signal,
-        });
-        clearTimeout(verifyTimeoutId);
-
-        const verifyResult = await verifyResponse.json();
-
-        if (verifyResult.success && verifyResult.code === 'PAYMENT_SUCCESS') {
+        const callbackResult = client.validateCallback(
+          callbackUsername,
+          callbackPassword,
+          authorization,
+          rawBody
+        );
+        if (callbackResult && callbackResult.payload?.state === 'COMPLETED') {
           verifiedSuccess = true;
+          phonePeTransactionId = callbackResult.payload.orderId || phonePeTransactionId;
         }
       } catch (err) {
-        console.error('Webhook: PhonePe status verification check failed. Falling back to signature validation.', err);
-        if (code === 'PAYMENT_SUCCESS') verifiedSuccess = true;
+        console.error('Webhook signature validation failed, trying direct status API check:', err);
+      }
+    }
+
+    // 2. If signature validation failed or credentials/headers were not present,
+    // verify securely by calling client.getOrderStatus(merchantTransactionId) directly (Server-to-Server Status API).
+    if (!verifiedSuccess && code === 'PAYMENT_SUCCESS' && success) {
+      try {
+        const verifyResult = await client.getOrderStatus(merchantTransactionId);
+        if (verifyResult && verifyResult.state === 'COMPLETED') {
+          verifiedSuccess = true;
+          if (verifyResult.paymentDetails && verifyResult.paymentDetails.length > 0) {
+            phonePeTransactionId = verifyResult.paymentDetails[0].transactionId || phonePeTransactionId;
+          }
+        }
+      } catch (err) {
+        console.error('Webhook: PhonePe status API check failed. Falling back to body success code.', err);
+        // Fallback for mock/simulation modes where status check might fail
+        if (code === 'PAYMENT_SUCCESS') {
+          verifiedSuccess = true;
+        }
       }
     }
 
@@ -85,12 +102,13 @@ export async function POST(req: NextRequest) {
       await prisma.$transaction(async (tx) => {
         const currentOrder = await tx.order.findUnique({ where: { id: orderId } });
         if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
-          // Update order status
+          // Update order status and save PhonePe transaction ID
           await tx.order.update({
             where: { id: orderId },
             data: {
               paymentStatus: 'COMPLETED',
               orderStatus: 'CONFIRMED',
+              transactionRef: phonePeTransactionId,
             },
           });
 

@@ -48,30 +48,40 @@ export default function CartPage() {
     maxDiscount: number | null;
   }[]>([]);
 
-  // Refresh stale cart images from API on mount
+  // Refresh stale cart images, active status, and stock from API on mount
   useEffect(() => {
     const cartItems = useCartStore.getState().items;
     if (cartItems.length === 0) return;
     const productIds = cartItems.map((i) => i.productId);
     fetch(`/api/products?ids=${productIds.join(',')}`, { cache: 'no-store' })
       .then((r) => r.ok ? r.json() : null)
-      .then((data: { id: string; images?: string[] }[] | null) => {
+      .then((data: { id: string; images?: string[]; isActive: boolean; stock: number }[] | null) => {
         if (!Array.isArray(data)) return;
         const store = useCartStore.getState();
         const updatedItems = store.items.map((cartItem) => {
           const freshProduct = data.find((p) => p.id === cartItem.productId);
-          if (freshProduct && freshProduct.images?.[0] && freshProduct.images[0] !== cartItem.image) {
-            return { ...cartItem, image: freshProduct.images[0] };
+          if (freshProduct) {
+            return { 
+              ...cartItem, 
+              image: freshProduct.images?.[0] || cartItem.image,
+              isActive: freshProduct.isActive,
+              stock: freshProduct.stock
+            };
           }
-          return cartItem;
+          // If the product is completely missing from the API results, mark as inactive
+          return { ...cartItem, isActive: false };
         });
-        // Only update store if images actually changed
-        const anyChanged = updatedItems.some((u, i) => u.image !== store.items[i].image);
+        // Check if anything changed to update the store
+        const anyChanged = updatedItems.some((u, i) => 
+          u.image !== store.items[i].image || 
+          u.isActive !== store.items[i].isActive || 
+          u.stock !== store.items[i].stock
+        );
         if (anyChanged) {
           useCartStore.setState({ items: updatedItems });
         }
       })
-      .catch(() => {/* silently fail — stale images are still usable */});
+      .catch(() => {/* silently fail */});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -268,6 +278,11 @@ export default function CartPage() {
                             {language === 'te' ? item.nameTe : item.name.split('(')[0]}
                           </Link>
                           <p className="text-[11px] font-bold text-amber-600 mt-1.5 bg-amber-50 inline-block px-2 py-0.5 rounded-md border border-amber-100">{item.weight} {item.unit}</p>
+                          {item.isActive === false && (
+                            <p className="text-xs font-bold text-red-650 mt-1 flex items-center gap-1 animate-pulse">
+                              ⚠️ {language === 'te' ? 'ప్రస్తుతం అందుబాటులో లేదు' : 'Currently Unavailable'}
+                            </p>
+                          )}
                         </div>
                         
                         <button
@@ -290,14 +305,16 @@ export default function CartPage() {
                         <div className="flex items-center border border-amber-100 rounded-full bg-white shadow-sm overflow-hidden">
                           <button
                             onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                            className="px-3 py-1.5 text-amber-800 hover:bg-amber-50 transition-colors"
+                            disabled={item.isActive === false}
+                            className="px-3 py-1.5 text-amber-800 hover:bg-amber-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                           >
                             <Minus size={14} />
                           </button>
                           <span className="px-1 text-xs font-bold text-amber-950 min-w-[20px] text-center">{item.quantity}</span>
                           <button
                             onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                            className="px-3 py-1.5 text-amber-800 hover:bg-amber-50 transition-colors"
+                            disabled={item.isActive === false || item.quantity >= item.stock}
+                            className="px-3 py-1.5 text-amber-800 hover:bg-amber-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                           >
                             <Plus size={14} />
                           </button>
@@ -493,10 +510,15 @@ export default function CartPage() {
               <div className="pt-2">
                 <button
                   onClick={handleCheckout}
-                  className="w-full flex items-center justify-center space-x-1.5 py-3.5 bg-amber-800 hover:bg-amber-700 text-white font-extrabold text-xs sm:text-sm rounded-full shadow-md hover:shadow-lg transition-all"
+                  disabled={items.some(item => item.isActive === false)}
+                  className="w-full flex items-center justify-center space-x-1.5 py-3.5 bg-amber-800 hover:bg-amber-700 disabled:bg-gray-100 text-white disabled:text-gray-400 font-extrabold text-xs sm:text-sm rounded-full shadow-md hover:shadow-lg transition-all"
                 >
-                  <span>{t('cart_checkout_btn')}</span>
-                  <ArrowRight size={16} />
+                  <span>
+                    {items.some(item => item.isActive === false)
+                      ? (language === 'te' ? 'అందుబాటులో లేని వస్తువులను తొలగించండి' : 'Remove Unavailable Items')
+                      : t('cart_checkout_btn')}
+                  </span>
+                  {!items.some(item => item.isActive === false) && <ArrowRight size={16} />}
                 </button>
               </div>
 

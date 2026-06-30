@@ -624,6 +624,8 @@ function AccountContent() {
   const handleDownloadInvoice = (order: any) => {
     const trkId = getTrackingId(order.orderId);
     const isCancelled = order.orderStatus === 'CANCELLED';
+    const isCOD = order.paymentMethod === 'COD';
+    const txnRef = order.transactionRef || null;
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       showToast(
@@ -660,9 +662,8 @@ function AccountContent() {
             .totals-row { display: flex; justify-content: space-between; padding: 8px 0; }
             .totals-row.grand { font-size: 18px; font-weight: 900; color: #78350f; border-top: 2px solid #b45309; padding-top: 12px; margin-top: 8px; }
             .footer { text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #fed7aa; padding-top: 20px; margin-top: 50px; }
-            @media print {
-              body { padding: 20px; }
-            }
+            .txn-badge { display: inline-block; background: #fefce8; border: 1px solid #fcd34d; color: #78350f; font-weight: 700; font-family: monospace; padding: 3px 10px; border-radius: 6px; font-size: 13px; letter-spacing: 0.5px; }
+            @media print { body { padding: 20px; } }
           </style>
         </head>
         <body>
@@ -672,7 +673,7 @@ function AccountContent() {
               <div>
                 <div class="logo">Om Natural</div>
                 <div style="font-size:11px;color:#b45309">Chekka Ganuga Nune</div>
-                <div style="font-size:10px;color:#475569;margin-top:2px">📞 +91 99999 99999 | ✉️ info@om-naturals.com</div>
+                <div style="font-size:10px;color:#475569;margin-top:2px">📞 +91 86882 91288 | ✉️ info@om-naturals.com</div>
               </div>
             </div>
             <div>
@@ -702,8 +703,9 @@ function AccountContent() {
               <p><strong>Order ID:</strong> ${order.orderId}</p>
               <p><strong>Tracking ID:</strong> ${trkId}</p>
               <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
-              <p><strong>Payment Status:</strong> ${order.paymentStatus}</p>
-              <p><strong>Payment Method:</strong> ${order.paymentMethod === 'COD' ? 'Cash on Delivery (COD)' : 'PhonePe Online'}</p>
+              <p><strong>Payment:</strong> ${isCOD ? 'Cash on Delivery (COD)' : 'PhonePe Online'}</p>
+              ${txnRef ? `<p><strong>${isCOD ? 'COD Reference:' : 'Transaction ID:'}</strong><br/><span class="txn-badge">${txnRef}</span></p>` : ''}
+              <p><strong>Payment Status:</strong> <span style="color:${order.paymentStatus === 'COMPLETED' ? '#16a34a' : order.paymentStatus === 'REFUNDED' ? '#9333ea' : '#b45309'}">${order.paymentStatus}</span></p>
             </div>
           </div>
           

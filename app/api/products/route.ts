@@ -19,6 +19,8 @@ export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions);
     const isAdmin = session?.user?.role === 'ADMIN';
 
+    const idsParam = searchParams.get('ids');
+
     // Build Prisma query filters
     const where: any = {
       price: {
@@ -27,7 +29,7 @@ export async function GET(req: NextRequest) {
       },
     };
 
-    if (!isAdmin) {
+    if (!isAdmin && !idsParam) {
       where.isActive = true;
     }
 
@@ -46,7 +48,6 @@ export async function GET(req: NextRequest) {
     }
 
     // Filter by specific product IDs (used by cart to refresh stale images)
-    const idsParam = searchParams.get('ids');
     if (idsParam) {
       const ids = idsParam.split(',').filter(Boolean);
       if (ids.length > 0) {

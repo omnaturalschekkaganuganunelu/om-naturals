@@ -131,14 +131,20 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         for (const item of existingOrder.items) {
           await tx.product.update({
             where: { id: item.productId },
-            data: { stock: { increment: item.quantity } },
+            data: { 
+              stock: { increment: item.quantity },
+              salesCount: { decrement: item.quantity },
+            },
           });
         }
       } else if (isRestoringFromCancel) {
         for (const item of existingOrder.items) {
           await tx.product.update({
             where: { id: item.productId },
-            data: { stock: { decrement: item.quantity } },
+            data: { 
+              stock: { decrement: item.quantity },
+              salesCount: { increment: item.quantity },
+            },
           });
         }
       }

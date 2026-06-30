@@ -159,8 +159,8 @@ export default function AdminProductsPage() {
   }, [authStatus, session, router]);
 
   // ─── Load Data ────────────────────────────────────────────────────────────
-  const loadData = () => {
-    setLoading(true);
+  const loadData = (showLoader = true) => {
+    if (showLoader) setLoading(true);
     Promise.all([
       fetch('/api/products').then((r) => r.json()),
       fetch('/api/categories').then((r) => r.json()),
@@ -362,7 +362,7 @@ export default function AdminProductsPage() {
         ? await handleSubmitSingle()
         : await handleSubmitMulti();
       if (ok) {
-        loadData();
+        loadData(false);
         setShowModal(false);
       }
     } catch {
@@ -376,7 +376,38 @@ export default function AdminProductsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm(language === 'te' ? 'ఈ ఉత్పత్తిని తొలగించాలా?' : 'Delete this product?')) return;
     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-    if (res.ok) loadData();
+    if (res.ok) loadData(false);
+  };
+
+  // ─── Toggle Active ────────────────────────────────────────────────────────
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  
+  const handleToggleActive = async (productIds: string[], targetActive: boolean) => {
+    const indicatorId = productIds.length === 1 ? productIds[0] : 'group-' + productIds[0];
+    setTogglingId(indicatorId);
+    
+    try {
+      const promises = productIds.map(id =>
+        fetch(`/api/products/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isActive: targetActive }),
+        })
+      );
+      
+      const results = await Promise.all(promises);
+      const allOk = results.every(res => res.ok);
+      
+      if (allOk) {
+        loadData(false);
+      } else {
+        alert(language === 'te' ? 'స్థితి మార్చడంలో లోపం జరిగింది.' : 'Failed to update active status.');
+      }
+    } catch (err) {
+      console.error('Error toggling active status:', err);
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   // ─── Variant helpers ──────────────────────────────────────────────────────
@@ -540,25 +571,40 @@ export default function AdminProductsPage() {
                             )}
                           </div>
 
-                          {/* Bottom row: Stock badge + Actions (always visible on mobile) */}
+                          {/* Bottom row: Stock badges + Actions (always visible on mobile) */}
                           <div className="flex items-center justify-between mt-2.5 pl-15">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[9px] font-black bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">
+                                {language === 'te' ? 'జోడించినవి' : 'Added'}: {groupVariants.reduce((s, v) => s + v.stock + v.salesCount, 0)}
+                              </span>
+                              <span className="text-[9px] font-black bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full border border-amber-100">
+                                {language === 'te' ? 'బుక్ అయినవి' : 'Booked'}: {groupVariants.reduce((s, v) => s + v.salesCount, 0)}
+                              </span>
+                              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${
                                 Math.min(...groupVariants.map((v) => v.stock)) < 10
                                   ? 'bg-red-50 text-red-600 border-red-100'
                                   : 'bg-green-50 text-green-700 border-green-100'
                               }`}>
-                                {language === 'te' ? 'స్టాక్' : 'Stock'}: {groupVariants.reduce((s, v) => s + v.stock, 0)}
+                                {language === 'te' ? 'మిగిలిన స్టాక్' : 'Left'}: {groupVariants.reduce((s, v) => s + v.stock, 0)}
                               </span>
-                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
-                                first.isActive
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-250'
-                                  : 'bg-red-50 text-red-800 border-red-200'
-                              }`}>
-                                {first.isActive
+                              <button
+                                type="button"
+                                disabled={togglingId === 'group-' + first.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const ids = groupVariants.map(v => v.id);
+                                  handleToggleActive(ids, !first.isActive);
+                                }}
+                                className={`text-[9px] font-black px-2 py-0.5 rounded-full border transition-all active:scale-95 disabled:opacity-50 cursor-pointer ${
+                                  first.isActive
+                                    ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
+                                    : 'bg-red-50 hover:bg-red-100 text-red-800 border-red-200'
+                                }`}
+                              >
+                                {togglingId === 'group-' + first.id ? (language === 'te' ? 'మార్పు...' : 'Saving...') : (first.isActive
                                   ? (language === 'te' ? 'యాక్టివ్' : 'Active')
-                                  : (language === 'te' ? 'ఇన్‌యాక్టివ్' : 'Inactive')}
-                              </span>
+                                  : (language === 'te' ? 'ఇన్‌యాక్టివ్' : 'Inactive'))}
+                              </button>
                               {isMulti && (
                                 <span className="text-[10px] text-gray-400 font-medium">
                                   {language === 'te' ? 'విస్తరించరండి' : 'Tap ↑ to expand'}
@@ -602,17 +648,38 @@ export default function AdminProductsPage() {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
                                     <p className="text-[11px] font-bold text-amber-900">{v.weight} {v.unit}</p>
-                                    <span className={`text-[8px] font-black px-1.5 py-0.2 rounded-md border ${
-                                      v.isActive
-                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-250'
-                                        : 'bg-red-50 text-red-800 border-red-200'
-                                    }`}>
-                                      {v.isActive
+                                    <button
+                                      type="button"
+                                      disabled={togglingId === v.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleActive([v.id], !v.isActive);
+                                      }}
+                                      className={`text-[8px] font-black px-1.5 py-0.5 rounded-md border transition-all active:scale-95 disabled:opacity-50 cursor-pointer ${
+                                        v.isActive
+                                          ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
+                                          : 'bg-red-50 hover:bg-red-100 text-red-800 border-red-200'
+                                      }`}
+                                    >
+                                      {togglingId === v.id ? '...' : (v.isActive
                                         ? (language === 'te' ? 'యాక్టివ్' : 'Active')
-                                        : (language === 'te' ? 'ఇన్‌యాక్టివ్' : 'Inactive')}
+                                        : (language === 'te' ? 'ఇన్‌యాక్టివ్' : 'Inactive'))}
+                                    </button>
+                                  </div>
+                                  <p className="text-[10px] text-gray-400">SKU: {v.sku} · ₹{v.price}</p>
+                                  <div className="flex gap-2.5 mt-1.5 flex-wrap">
+                                    <span className="text-[9px] font-bold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100">
+                                      {language === 'te' ? 'చేర్చబడింది' : 'Added'}: {v.stock + v.salesCount}
+                                    </span>
+                                    <span className="text-[9px] font-bold bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded border border-amber-100">
+                                      {language === 'te' ? 'బుక్ చేయబడింది' : 'Booked'}: {v.salesCount}
+                                    </span>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                                      v.stock < 10 ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100'
+                                    }`}>
+                                      {language === 'te' ? 'మిగిలి ఉంది' : 'Left'}: {v.stock}
                                     </span>
                                   </div>
-                                  <p className="text-[10px] text-gray-400">SKU: {v.sku} · Stock: {v.stock} · ₹{v.price}</p>
                                 </div>
                                 <div className="flex gap-2 flex-shrink-0">
                                   <button

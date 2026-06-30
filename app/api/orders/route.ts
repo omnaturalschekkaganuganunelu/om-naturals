@@ -72,6 +72,16 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// Generate a unique alphanumeric COD reference number (e.g. COD-A3B7K2MN)
+function generateCODReference(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let ref = 'COD-';
+  for (let i = 0; i < 8; i++) {
+    ref += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return ref;
+}
+
 // POST /api/orders - Create a new order
 export async function POST(req: NextRequest) {
   try {
@@ -243,6 +253,8 @@ export async function POST(req: NextRequest) {
               paymentMethod,
               paymentStatus: 'PENDING',
               orderStatus: 'PENDING',
+              // COD gets an immediate alphanumeric reference; PhonePe will be set on payment success
+              transactionRef: paymentMethod === 'COD' ? generateCODReference() : null,
               notes: notes || `Packing: ₹${packingFee} + Shipping: ₹${shipping}`,
               items: {
                 create: itemsToCreate,

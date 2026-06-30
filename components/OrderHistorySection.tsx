@@ -132,6 +132,8 @@ function useToastBus() {
 function printInvoice(order: any) {
   const trkId = getTrackingId(order.orderId);
   const isCancelled = order.orderStatus === 'CANCELLED';
+  const isCOD = order.paymentMethod === 'COD';
+  const txnRef = order.transactionRef || null;
   const win = window.open('', '_blank');
   if (!win) return;
   const rows = order.items.map((it: any) => `
@@ -156,6 +158,7 @@ function printInvoice(order: any) {
     .tot-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #fef3c7}
     .grand{font-size:17px;font-weight:900;color:#78350f;border-top:2px solid #b45309;padding-top:10px;margin-top:6px}
     .ftr{text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #fed7aa;padding-top:16px;margin-top:40px}
+    .txn-badge{display:inline-block;background:#fefce8;border:1px solid #fcd34d;color:#78350f;font-weight:700;font-family:monospace;padding:3px 10px;border-radius:6px;font-size:12px;letter-spacing:0.5px}
   </style></head><body>
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:12px">
@@ -163,7 +166,7 @@ function printInvoice(order: any) {
       <div>
         <div class="logo">Om Natural</div>
         <div style="font-size:11px;color:#b45309">Chekka Ganuga Nune</div>
-        <div style="font-size:10px;color:#475569;margin-top:2px">📞 +91 99999 99999 | ✉️ info@om-naturals.com</div>
+        <div style="font-size:10px;color:#475569;margin-top:2px">📞 +91 86882 91288 | ✉️ info@om-naturals.com</div>
       </div>
     </div>
     <div><div class="inv">${isCancelled ? '<span style="color:#dc2626">CANCELLED</span>' : 'INVOICE'}</div><div style="font-size:11px;color:#b45309;text-align:right">${order.orderId}</div></div>
@@ -183,7 +186,9 @@ function printInvoice(order: any) {
       <p><strong>Order ID:</strong> ${order.orderId}</p>
       <p><strong>Tracking:</strong> ${trkId}</p>
       <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
-      <p><strong>Payment:</strong> ${order.paymentMethod === 'COD' ? 'Cash on Delivery' : 'PhonePe Online'}</p>
+      <p><strong>Payment:</strong> ${isCOD ? 'Cash on Delivery (COD)' : 'PhonePe Online'}</p>
+      ${txnRef ? `<p><strong>${isCOD ? 'COD Reference:' : 'Transaction ID:'}</strong><br/><span class="txn-badge">${txnRef}</span></p>` : ''}
+      <p><strong>Payment Status:</strong> <span style="color:${order.paymentStatus === 'COMPLETED' ? '#16a34a' : order.paymentStatus === 'REFUNDED' ? '#9333ea' : '#b45309'}">${order.paymentStatus}</span></p>
     </div>
   </div>
   <table><thead><tr>
@@ -454,6 +459,26 @@ function TrackingDrawer({ order, onClose, copiedId, onCopy, language }: Tracking
               {copiedId === trkId ? <><Check size={12} className="text-green-600"/> {language === 'te' ? 'కాపీ అయింది' : 'Copied!'}</> : <><Copy size={12}/> {language === 'te' ? 'కాపీ' : 'Copy'}</>}
             </button>
           </div>
+
+          {/* Transaction / Payment Reference */}
+          {order.transactionRef && (
+            <div className="bg-white border border-amber-100 rounded-2xl p-4">
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">
+                {order.paymentMethod === 'COD'
+                  ? (language === 'te' ? 'COD రిఫరెన్స్ నంబర్' : 'COD Reference Number')
+                  : (language === 'te' ? 'PhonePe ట్రాన్సాక్షన్ ఐడీ' : 'PhonePe Transaction ID')}
+              </p>
+              <div className="flex items-center justify-between">
+                <p className="font-mono font-black text-amber-900 text-sm tracking-wider">{order.transactionRef}</p>
+                <button
+                  onClick={() => onCopy(order.transactionRef)}
+                  className="flex items-center gap-1.5 text-xs font-bold bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 px-3 py-1.5 rounded-xl transition-colors"
+                >
+                  {copiedId === order.transactionRef ? <><Check size={12} className="text-green-600"/> {language === 'te' ? 'కాపీ అయింది' : 'Copied!'}</> : <><Copy size={12}/> {language === 'te' ? 'కాపీ' : 'Copy'}</>}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Status + ETA row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -965,10 +990,18 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
                   </div>
                   <div className="flex justify-between">
                     <span>Status</span>
-                    <span className={`font-bold ${order.paymentStatus === 'COMPLETED' ? 'text-green-700' : 'text-yellow-700'}`}>
+                    <span className={`font-bold ${order.paymentStatus === 'COMPLETED' ? 'text-green-700' : order.paymentStatus === 'REFUNDED' ? 'text-purple-700' : order.paymentStatus === 'FAILED' ? 'text-red-700' : 'text-yellow-700'}`}>
                       {order.paymentStatus}
                     </span>
                   </div>
+                  {order.transactionRef && (
+                    <div className="flex flex-col gap-0.5 pt-1">
+                      <span className="text-gray-400">{order.paymentMethod === 'COD' ? 'COD Reference' : 'Transaction ID'}</span>
+                      <span className="font-mono font-black text-amber-900 text-xs tracking-wider bg-amber-50 border border-amber-100 px-2 py-1 rounded-lg mt-0.5 inline-block">
+                        {order.transactionRef}
+                      </span>
+                    </div>
+                  )}
                   {(order.discount ?? 0) > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span>Discount</span><span>-₹{order.discount}</span>

@@ -197,10 +197,10 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              {/* Filters — search on top row, date+status on second row for mobile */}
-              <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-3">
-                {/* Search — full width */}
-                <div className="relative sm:flex-1 sm:max-w-xs">
+              {/* Filters — search and dropdown selectors */}
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 w-full">
+                {/* Search — full width on mobile, custom-width on desktop */}
+                <div className="relative w-full md:w-72 shrink-0">
                   <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-900/50 pointer-events-none" />
                   <input
                     type="text"
@@ -212,15 +212,15 @@ export default function AdminOrdersPage() {
                 </div>
 
                 {/* Filters Row */}
-                <div className="flex gap-2 flex-wrap sm:flex-nowrap w-full">
-                  <div className="flex-1 min-w-[120px] sm:flex-none">
+                <div className="flex gap-2 flex-wrap md:flex-nowrap w-full md:w-auto items-center justify-start md:justify-end flex-1">
+                  <div className="flex-1 min-w-[120px] md:flex-none">
                     <CustomCalendar
                       value={dateFilter}
                       onChange={setDateFilter}
                       placeholder={language === 'te' ? 'తేదీ ఎంచుకోండి' : 'Select Date'}
                     />
                   </div>
-                  <div className="flex-1 min-w-[140px] sm:flex-none sm:w-40 shrink-0">
+                  <div className="flex-1 min-w-[140px] md:flex-none md:w-36 shrink-0">
                     <CustomSelect
                       value={statusFilter}
                       onChange={(val) => setStatusFilter(val)}
@@ -239,7 +239,7 @@ export default function AdminOrdersPage() {
                       className="z-50"
                     />
                   </div>
-                  <div className="flex-1 min-w-[140px] sm:flex-none sm:w-40 shrink-0">
+                  <div className="flex-1 min-w-[140px] md:flex-none md:w-36 shrink-0">
                     <CustomSelect
                       value={paymentStatusFilter}
                       onChange={setPaymentStatusFilter}
@@ -252,7 +252,7 @@ export default function AdminOrdersPage() {
                       className="z-40"
                     />
                   </div>
-                  <div className="flex-1 min-w-[140px] sm:flex-none sm:w-40 shrink-0">
+                  <div className="flex-1 min-w-[140px] md:flex-none md:w-36 shrink-0">
                     <CustomSelect
                       value={paymentMethodFilter}
                       onChange={setPaymentMethodFilter}
@@ -358,6 +358,23 @@ export default function AdminOrdersPage() {
                             <p className="text-xs text-gray-500">{ord.line1}{ord.line2 ? `, ${ord.line2}` : ''}</p>
                             <p className="text-xs text-gray-500">{ord.city}, {ord.state} – {ord.pincode}</p>
                             <p className="text-xs text-gray-500">{language === 'te' ? 'ఫోన్' : 'Phone'}: {ord.phone}</p>
+                            
+                            {/* Payment Info */}
+                            <div className="mt-2.5 pt-2 border-t border-amber-100/50 text-xs">
+                              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Payment Info</p>
+                              <p className="font-semibold text-amber-950">
+                                Method: <span className="font-black">{ord.paymentMethod}</span>
+                              </p>
+                              <p className="font-semibold text-amber-950">
+                                Status: <span className="font-black uppercase">{ord.paymentStatus}</span>
+                              </p>
+                              {ord.transactionRef && (
+                                <p className="font-semibold text-amber-950 mt-1">
+                                  Ref: <span className="font-mono bg-amber-50 border border-amber-100 px-1.5 py-0.5 rounded text-[11px] font-black">{ord.transactionRef}</span>
+                                </p>
+                              )}
+                            </div>
+
                             {(() => {
                               const coords = getCoordinates(ord);
                               return coords ? (
@@ -365,7 +382,7 @@ export default function AdminOrdersPage() {
                                   href={`https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center space-x-1 mt-2 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1 rounded-xl shadow-xs transition-all"
+                                  className="inline-flex items-center space-x-1 mt-2.5 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1 rounded-xl shadow-xs transition-all"
                                 >
                                   <span>{t('admin_view_map') || 'View on Map'}</span>
                                 </a>
@@ -570,6 +587,19 @@ export default function AdminOrdersPage() {
                                       {ord.line2 && <p>{ord.line2}</p>}
                                       <p>{ord.city}, {ord.state} - {ord.pincode}</p>
                                       <p>{language === 'te' ? 'ఫోన్' : 'Phone'}: {ord.phone}</p>
+
+                                      {/* Payment Info */}
+                                      <div className="mt-3 pt-2.5 border-t border-amber-100/60 text-xs">
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Payment Info</p>
+                                        <p>Method: <span className="font-black">{ord.paymentMethod}</span></p>
+                                        <p>Status: <span className="font-black uppercase">{ord.paymentStatus}</span></p>
+                                        {ord.transactionRef && (
+                                          <p className="mt-1">
+                                            Ref: <span className="font-mono bg-amber-50 border border-amber-100 px-2 py-0.5 rounded text-[11px] font-black">{ord.transactionRef}</span>
+                                          </p>
+                                        )}
+                                      </div>
+
                                       {(() => {
                                         const coords = getCoordinates(ord);
                                         return coords ? (
@@ -577,7 +607,7 @@ export default function AdminOrdersPage() {
                                             href={`https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center space-x-1 mt-2 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1 rounded-xl shadow-xs transition-all"
+                                            className="inline-flex items-center space-x-1 mt-2.5 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1 rounded-xl shadow-xs transition-all"
                                           >
                                             <span>{t('admin_view_map')}</span>
                                           </a>
