@@ -128,14 +128,13 @@ export async function POST(req: NextRequest) {
             });
           }
 
-          // Deduct inventory stock
+          // Deduct inventory stock and increment salesCount (only on confirmed payment)
           for (const item of order.items) {
             await tx.product.update({
               where: { id: item.productId },
               data: {
-                stock: {
-                  decrement: item.quantity,
-                },
+                stock: { decrement: item.quantity },
+                salesCount: { increment: item.quantity },
               },
             });
           }

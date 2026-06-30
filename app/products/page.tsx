@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, Suspense, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -24,11 +24,18 @@ function ProductListingContent() {
   const [products,           setProducts]           = useState<any[]>([]);
   const [categories,         setCategories]         = useState<any[]>([]);
   const [loading,            setLoading]            = useState(true);
+  const [isFetching,         setIsFetching]         = useState(false);
   const [category,           setCategory]           = useState(initialCategory);
   const [search,             setSearch]             = useState(initialSearch);
   const [sort,               setSort]               = useState('newest');
   const [maxPrice,           setMaxPrice]           = useState(2500);
   const [mobileFiltersOpen,  setMobileFiltersOpen]  = useState(false);
+
+  // Use a ref to store products length to avoid referencing products state directly inside the debounced search useEffect.
+  const productsLengthRef = useRef(0);
+  useEffect(() => {
+    productsLengthRef.current = products.length;
+  }, [products]);
 
   // Sync with URL params
   useEffect(() => {
@@ -47,7 +54,9 @@ function ProductListingContent() {
   // Load products whenever filters change (debounced to prevent API spam)
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      setLoading(true);
+      if (productsLengthRef.current === 0) setLoading(true);
+      else setIsFetching(true);
+      
       const p = new URLSearchParams();
       if (category) p.append('category', category);
       if (search)   p.append('search',   search);
@@ -56,8 +65,8 @@ function ProductListingContent() {
 
       fetch(`/api/products?${p}`)
         .then((r) => r.json())
-        .then((data) => { setProducts(data); setLoading(false); })
-        .catch(() => setLoading(false));
+        .then((data) => { setProducts(data); setLoading(false); setIsFetching(false); })
+        .catch(() => { setLoading(false); setIsFetching(false); });
     }, 400); // 400ms debounce
 
     return () => clearTimeout(delayDebounceFn);
@@ -350,8 +359,7 @@ function ProductListingContent() {
               </button>
             </div>
           ) : (
-            /* ─── Products Grid ─── */
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 animate-fade-in-up">
+            <div className={`grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 animate-fade-in-up transition-opacity duration-300 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
               {grouped.map((grp) => (
                 <ProductCard key={grp.groupKey} group={grp} />
               ))}

@@ -161,14 +161,10 @@ export async function POST(req: NextRequest) {
         image: JSON.parse(product.images)[0] || '',
       });
 
-      // Deduct stock immediately (basic approach) and increase salesCount
-      await prisma.product.update({
-        where: { id: product.id },
-        data: { 
-          stock: { decrement: cartItem.quantity },
-          salesCount: { increment: cartItem.quantity }
-        },
-      });
+      // Note: stock deduction happens ONLY:
+      //  - For COD orders: inside the transaction below (line 261)
+      //  - For PhonePe orders: in the callback/webhook AFTER payment is confirmed
+      // We do NOT deduct stock here to avoid phantom stock reduction on failed payments.
     }
 
     // Apply Coupon if applicable
@@ -257,15 +253,14 @@ export async function POST(req: NextRequest) {
             },
           });
 
-          // 2. If COD, we can immediately deduct inventory stock
+          // 2. If COD, we can immediately deduct inventory stock and increment salesCount
           if (paymentMethod === 'COD') {
             for (const item of itemsToCreate) {
               const updatedProduct = await tx.product.update({
                 where: { id: item.productId },
                 data: {
-                  stock: {
-                    decrement: item.quantity,
-                  },
+                  stock: { decrement: item.quantity },
+                  salesCount: { increment: item.quantity },
                 },
               });
 

@@ -127,7 +127,7 @@ function OrderConfirmationContent() {
             ? (language === 'te' ? 'మాతో కొనుగోలు చేసినందుకు ధన్యవాదాలు. మీ ఆర్డర్ కన్ఫర్మ్ చేయబడింది.' : 'Thank you for shopping with us. Your order has been confirmed.')
             : isPending
             ? (language === 'te' ? 'మీ చెల్లింపు ఇంకా ప్రాసెస్ అవుతోంది. దయచేసి కొంత సేపు వేచి ఉండండి.' : 'Your payment is still being processed. Please wait a moment or check your orders.')
-            : (language === 'te' ? 'క్షమించండి, మీ ఆన్‌లైన్ చెల్లింపు పూర్తి కాలేదు. దయచేసి మళ్ళీ ప్రయత్నించండి.' : 'Sorry, your online payment could not be completed. Please try again.')}
+            : (language === 'te' ? 'క్షమించండి, మీ ఆన్‌లైన్ చెల్లింపు పూర్తి కాలేదు. మీ ఆర్డర్ ఇంకా కన్ఫర్మ్ కాలేదు — దయచేసి మళ్ళీ పే చేయండి లేదా కొత్త ఆర్డర్ పెట్టండి.' : 'Your payment was not completed. Your order is NOT confirmed — please retry payment or place a new order.')}
         </p>
       </div>
 
@@ -281,16 +281,19 @@ function OrderConfirmationContent() {
         <div className="text-center pt-6 space-y-5 max-w-sm mx-auto">
           {/* Retry Payment for online orders with known orderId */}
           {orderId && order && isOnlineOrder && order.paymentStatus !== 'COMPLETED' && (
-            <div className="bg-red-50 border border-red-100 rounded-3xl p-6 space-y-4">
-              <p className="text-xs font-bold text-red-800">
+            <div className="bg-red-50 border border-red-200 rounded-3xl p-6 space-y-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+                <XCircle size={24} className="text-red-600" />
+              </div>
+              <p className="text-sm font-extrabold text-red-800">
                 {language === 'te'
-                  ? `ఆర్డర్ #${order.orderId} కు చెల్లింపు పూర్తికాలేదు.`
-                  : `Payment for Order #${order?.orderId} was not completed.`}
+                  ? '⚠️ మీ ఆర్డర్ కన్ఫర్మ్ కాలేదు!'
+                  : '⚠️ Your Order is NOT Confirmed!'}
               </p>
-              <p className="text-[10px] text-gray-500">
+              <p className="text-xs text-gray-600 font-semibold leading-relaxed">
                 {language === 'te'
-                  ? 'మీ ఆర్డర్ సేవ్ అయింది. అదే ఆర్డర్ కు మళ్ళీ చెల్లింపు చేయవచ్చు.'
-                  : 'Your order was saved. You can retry payment for the same order below.'}
+                  ? `ఆర్డర్ #${order.orderId} కు చెల్లింపు పూర్తికాలేదు. చెల్లింపు విఫలమైంది కాబట్టి ఆర్డర్ ప్రాసెస్ కాలేదు.`
+                  : `Payment for Order #${order?.orderId} failed. Since payment was not received, your order has NOT been processed or confirmed.`}
               </p>
               {retryError && (
                 <p className="text-xs text-red-600 font-semibold">{retryError}</p>
@@ -298,7 +301,7 @@ function OrderConfirmationContent() {
               <button
                 onClick={handleRetryPayment}
                 disabled={retrying}
-                className="w-full flex items-center justify-center space-x-2 bg-amber-800 hover:bg-amber-700 disabled:bg-gray-300 text-white font-bold px-8 py-3 rounded-full text-xs sm:text-sm shadow-sm transition-all"
+                className="w-full flex items-center justify-center space-x-2 bg-amber-800 hover:bg-amber-700 disabled:bg-gray-300 text-white font-bold px-8 py-3 rounded-full text-sm shadow-sm transition-all"
               >
                 {retrying ? (
                   <>
@@ -308,10 +311,16 @@ function OrderConfirmationContent() {
                 ) : (
                   <>
                     <RefreshCw size={14} />
-                    <span>{language === 'te' ? 'చెల్లింపు మళ్ళీ ప్రయత్నించు' : 'Retry Payment'}</span>
+                    <span>{language === 'te' ? 'చెల్లింపు మళ్ళీ ప్రయత్నించు' : '🔄 Retry Payment'}</span>
                   </>
                 )}
               </button>
+              <Link
+                href="/products"
+                className="w-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-8 py-3 rounded-full text-sm transition-all"
+              >
+                {language === 'te' ? '🛒 నూతన ఆర్డర్ పెట్టు' : '🛒 Place a New Order'}
+              </Link>
             </div>
           )}
           

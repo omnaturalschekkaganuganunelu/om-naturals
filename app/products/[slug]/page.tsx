@@ -7,11 +7,13 @@ import Footer from '@/components/Footer';
 import BackButton from '@/components/BackButton';
 import ProductDetailClient from './ProductDetailClient';
 import { extractBaseName } from '@/hooks/useGroupedProducts';
+import { unstable_cache } from 'next/cache';
 
 export const revalidate = 600; // Cache for 10 minutes to save Neon compute
 
-async function getProductData(slug: string) {
-  try {
+const getProductData = unstable_cache(
+  async (slug: string) => {
+    try {
     let product = await prisma.product.findUnique({
       where: { slug },
       include: { category: true },
@@ -105,7 +107,10 @@ async function getProductData(slug: string) {
     console.error('Error fetching product detail data:', err);
     return null;
   }
-}
+},
+['product-detail'],
+{ revalidate: 60, tags: ['products'] }
+);
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   try {

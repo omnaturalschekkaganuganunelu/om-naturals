@@ -22,7 +22,7 @@ interface VariantForm {
   mrp: string;
   sku: string;
   stock: string;
-  imageUrl: string;
+  imageUrls: string[];
   description: string;
   variantNameTe: string; // renamed to avoid conflict with singleForm.nameTe
   benefits: string;
@@ -35,7 +35,7 @@ const EMPTY_VARIANT = (): VariantForm => ({
   mrp: '',
   sku: '',
   stock: '',
-  imageUrl: '',
+  imageUrls: [],
   description: '',
   variantNameTe: '',
   benefits: '',
@@ -80,7 +80,7 @@ export default function AdminProductsPage() {
     mrp: string;
     sku: string;
     stock: string;
-    imageUrl: string;
+    imageUrls: string[];
     description: string;
     benefits: string;
     isActive: boolean;
@@ -95,7 +95,7 @@ export default function AdminProductsPage() {
     mrp: '',
     sku: '',
     stock: '',
-    imageUrl: '',
+    imageUrls: [],
     description: '',
     benefits: '',
     isActive: true,
@@ -108,8 +108,8 @@ export default function AdminProductsPage() {
   const [uploadingSingle, setUploadingSingle] = useState(false);
   const [uploadingVariantIndex, setUploadingVariantIndex] = useState<number | null>(null);
 
-  const handleUploadImage = async (file: File, isVariant: boolean, variantIdx?: number) => {
-    if (!file) return;
+  const handleUploadImages = async (files: FileList | null, isVariant: boolean, variantIdx?: number) => {
+    if (!files || files.length === 0) return;
     if (isVariant && variantIdx !== undefined) {
       setUploadingVariantIndex(variantIdx);
     } else {
@@ -117,28 +117,32 @@ export default function AdminProductsPage() {
     }
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const formData = new FormData();
+        formData.append('file', files[i]);
 
-      const res = await fetch('/api/admin/upload', {
-        method: 'POST',
-        body: formData,
-      });
+        const res = await fetch('/api/admin/upload', {
+          method: 'POST',
+          body: formData,
+        });
 
-      if (!res.ok) {
-        const err = await res.json();
-        alert(err.error || 'Failed to upload image.');
-        return;
+        if (res.ok) {
+          const data = await res.json();
+          newUrls.push(data.url);
+        } else {
+          const err = await res.json();
+          alert(`Failed to upload ${files[i].name}: ${err.error}`);
+        }
       }
 
-      const data = await res.json();
       if (isVariant && variantIdx !== undefined) {
-        updateVariant(variantIdx, 'imageUrl', data.url);
+        updateVariant(variantIdx, 'imageUrls', [...(variants[variantIdx].imageUrls || []), ...newUrls] as any);
       } else {
-        setSingleForm((p) => ({ ...p, imageUrl: data.url }));
+        setSingleForm((p) => ({ ...p, imageUrls: [...(p.imageUrls || []), ...newUrls] }));
       }
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('Error uploading files:', error);
       alert('Connection error during file upload.');
     } finally {
       setUploadingSingle(false);
@@ -230,7 +234,7 @@ export default function AdminProductsPage() {
       name: '', nameTe: '', slug: '',
       categoryId: categories[0]?.id || '',
       weight: '', unit: 'Litre', price: '', mrp: '',
-      sku: '', stock: '', imageUrl: '', description: '', benefits: '', isActive: true,
+      sku: '', stock: '', imageUrls: [], description: '', benefits: '', isActive: true,
     });
     setVariants([EMPTY_VARIANT(), EMPTY_VARIANT()]);
     setShowModal(true);
@@ -254,7 +258,7 @@ export default function AdminProductsPage() {
       mrp: p.mrp.toString(),
       sku: p.sku,
       stock: p.stock.toString(),
-      imageUrl: p.images[0] || '',
+      imageUrls: p.images || [],
       description: p.description,
       benefits: Array.isArray(p.benefits) ? p.benefits.join(', ') : p.benefits,
       isActive: p.isActive !== undefined ? p.isActive : true,
@@ -274,7 +278,7 @@ export default function AdminProductsPage() {
       nameTe: nameTe || name,
       slug,
       description,
-      images: singleForm.imageUrl ? [singleForm.imageUrl] : [],
+      images: singleForm.imageUrls,
       price: parseFloat(price),
       mrp: singleForm.mrp ? parseFloat(singleForm.mrp) : parseFloat(price),
       sku,
@@ -325,7 +329,7 @@ export default function AdminProductsPage() {
         nameTe: v.variantNameTe || variantName,
         slug: i === 0 ? slug : `${slug}-${i + 1}`,
         description: v.description || `${sharedName} - ${wLabel} variant`,
-        images: v.imageUrl ? [v.imageUrl] : [],
+        images: v.imageUrls,
         price: parseFloat(v.price),
         mrp: v.mrp ? parseFloat(v.mrp) : parseFloat(v.price),
         sku: v.sku,
@@ -449,7 +453,7 @@ export default function AdminProductsPage() {
                   placeholder={t('admin_products_placeholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-transparent text-xs font-semibold text-amber-950 placeholder-gray-400 border-none focus:outline-none"
+                  className="w-full bg-transparent text-xs font-semibold text-amber-950 placeholder-gray-400 border-none focus:outline-none pr-10"
                 />
                 <Search size={18} className="absolute right-6 text-gray-400" />
               </div>
@@ -746,47 +750,51 @@ export default function AdminProductsPage() {
                     <label className={labelCls}>
                       <ImageIcon size={10} className="inline mr-1" />
                       {t('admin_products_form_image')}
-                      <span className="ml-1 text-amber-600 normal-case font-normal">
-                        (Cloudinary upload or paste URL)
-                      </span>
                     </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        className={`${inputCls} flex-1`}
-                        value={singleForm.imageUrl}
-                        onChange={(e) => setSingleForm((p) => ({ ...p, imageUrl: e.target.value }))}
-                        placeholder="https://res.cloudinary.com/your-cloud/image/upload/..."
-                      />
-                      <label className="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer select-none shrink-0 flex items-center justify-center min-w-[100px] transition-colors">
+                    <div className="flex flex-col gap-2">
+                      <label className="bg-amber-50 hover:bg-amber-100 border-2 border-dashed border-amber-200 text-amber-900 font-bold text-xs p-4 rounded-xl cursor-pointer select-none flex flex-col items-center justify-center transition-colors w-full">
                         {uploadingSingle ? (
-                          <div className="w-3.5 h-3.5 border-2 border-amber-900/30 border-t-amber-900 rounded-full animate-spin" />
+                          <div className="w-5 h-5 border-2 border-amber-900/30 border-t-amber-900 rounded-full animate-spin mb-1" />
                         ) : (
-                          language === 'te' ? 'అప్‌లోడ్' : 'Upload File'
+                          <ImageIcon size={20} className="mb-2 text-amber-500 opacity-60" />
                         )}
+                        {language === 'te' ? 'చిత్రాలను ఎంచుకోండి' : 'Select Images'}
                         <input
                           type="file"
                           accept="image/*"
+                          multiple
                           className="hidden"
                           onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleUploadImage(file, false);
+                            if (e.target.files) handleUploadImages(e.target.files, false);
                           }}
                         />
                       </label>
+                      
+                      {singleForm.imageUrls && singleForm.imageUrls.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {singleForm.imageUrls.map((url, idx) => (
+                            <div key={idx} className="relative w-14 h-14 rounded-xl border border-amber-100 overflow-hidden shadow-sm group">
+                              <Image 
+                                src={url || '/images/logo-512.png'} 
+                                alt="" 
+                                fill 
+                                className="object-cover" 
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setSingleForm(p => ({ ...p, imageUrls: p.imageUrls.filter((_, i) => i !== idx) }))}
+                                className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white p-1 rounded-bl-lg transition-colors"
+                              >
+                                <X size={10} strokeWidth={4} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    {singleForm.imageUrl && (
-                      <Image 
-                        src={singleForm.imageUrl || '/images/logo-512.png'} 
-                        alt="" 
-                        width={56} 
-                        height={56} 
-                        className="mt-1.5 w-14 h-14 rounded-xl object-cover border border-amber-100" 
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
-                        }}
-                      />
-                    )}
                   </div>
 
                   {/* Weight + Unit + Price + MRP */}
@@ -973,39 +981,52 @@ export default function AdminProductsPage() {
                         <div>
                           <label className={labelCls}>
                             <ImageIcon size={10} className="inline mr-1" />
-                            {language === 'te' ? 'చిత్రం URL' : 'Image URL'}
-                            <span className="ml-1 text-amber-600 normal-case font-normal text-[9px]">
-                              (Cloudinary upload or paste URL)
-                            </span>
+                            {language === 'te' ? 'చిత్రం URL' : 'Images'}
                           </label>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              className={`${inputCls} flex-1`}
-                              value={v.imageUrl}
-                              onChange={(e) => updateVariant(idx, 'imageUrl', e.target.value)}
-                              placeholder="https://res.cloudinary.com/..."
-                            />
-                            <label className="bg-amber-100 hover:bg-amber-250 text-amber-900 font-bold text-[10px] px-3 py-2 rounded-xl cursor-pointer select-none shrink-0 flex items-center justify-center min-w-[80px] transition-colors">
+                          <div className="flex flex-col gap-2">
+                            <label className="bg-amber-50 hover:bg-amber-100 border-2 border-dashed border-amber-200 text-amber-900 font-bold text-[10px] p-3 rounded-xl cursor-pointer select-none flex flex-col items-center justify-center transition-colors w-full">
                               {uploadingVariantIndex === idx ? (
-                                <div className="w-3 h-3 border-2 border-amber-900/30 border-t-amber-900 rounded-full animate-spin" />
+                                <div className="w-4 h-4 border-2 border-amber-900/30 border-t-amber-900 rounded-full animate-spin mb-1" />
                               ) : (
-                                language === 'te' ? 'అప్‌లోడ్' : 'Upload File'
+                                <ImageIcon size={16} className="mb-1 text-amber-500 opacity-60" />
                               )}
+                              {language === 'te' ? 'చిత్రాలను ఎంచుకోండి' : 'Select Images'}
                               <input
                                 type="file"
                                 accept="image/*"
+                                multiple
                                 className="hidden"
                                 onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleUploadImage(file, true, idx);
+                                  if (e.target.files) handleUploadImages(e.target.files, true, idx);
                                 }}
                               />
                             </label>
+                            
+                            {v.imageUrls && v.imageUrls.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                {v.imageUrls.map((url, iUrl) => (
+                                  <div key={iUrl} className="relative w-12 h-12 rounded-xl border border-amber-100 overflow-hidden shadow-sm group">
+                                    <Image 
+                                      src={url || '/images/logo-512.png'} 
+                                      alt="" 
+                                      fill 
+                                      className="object-cover" 
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => updateVariant(idx, 'imageUrls', v.imageUrls.filter((_, i) => i !== iUrl) as any)}
+                                      className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white p-0.5 rounded-bl-lg transition-colors"
+                                    >
+                                      <X size={10} strokeWidth={4} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          {v.imageUrl && (
-                            <Image src={v.imageUrl || '/images/logo-512.png'} alt="" width={56} height={56} className="mt-1.5 w-14 h-14 rounded-xl object-cover border border-amber-100" onError={(e) => { (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png'; }} />
-                          )}
                         </div>
 
                         {/* Weight + Unit + Price + MRP */}
