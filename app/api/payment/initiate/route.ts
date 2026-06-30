@@ -20,10 +20,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch order details
+    console.time('[Performance] Database Order Fetch');
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: { items: true },
     });
+    console.timeEnd('[Performance] Database Order Fetch');
 
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
@@ -41,12 +43,11 @@ export async function POST(req: NextRequest) {
       appUrl = appUrl.slice(0, -1);
     }
 
-    // Check if we are running in simulation/mock mode due to missing variables or UAT bypass
-    const isMockMode = process.env.PHONEPE_MERCHANT_ID === 'MOCK';
+    // Check if we are running in simulation/mock mode (Only allowed in local development)
+    const isMockMode = process.env.NODE_ENV === 'development' && process.env.PHONEPE_MERCHANT_ID === 'MOCK';
 
     if (isMockMode) {
       console.log('Running in PhonePe Simulation mode');
-      // Redirect to simulated payment portal built inside the application
       const mockPayUrl = `${appUrl}/checkout/simulated-pg?txnId=${merchantTransactionId}&orderId=${order.id}&amount=${order.total}`;
       return NextResponse.json({ url: mockPayUrl, simulated: true });
     }
@@ -70,10 +71,13 @@ export async function POST(req: NextRequest) {
         .build();
 
       // Call PhonePe SDK pay
+      console.time('[Performance] PhonePe SDK Pay API Request');
       const result = await client.pay(payRequest);
+      console.timeEnd('[Performance] PhonePe SDK Pay API Request');
 
       if (result && result.redirectUrl) {
         // Create payment record in PENDING state
+        console.time('[Performance] Database Payment Log Creation');
         await prisma.payment.create({
           data: {
             orderId: order.id,
@@ -82,17 +86,16 @@ export async function POST(req: NextRequest) {
             status: 'PENDING',
           },
         });
+        console.timeEnd('[Performance] Database Payment Log Creation');
 
         return NextResponse.json({ url: result.redirectUrl, simulated: false });
       } else {
-        console.error('PhonePe PG response failed, entering fallback simulation mode', result);
-        const mockPayUrl = `${appUrl}/checkout/simulated-pg?txnId=${merchantTransactionId}&orderId=${order.id}&amount=${order.total}&fallback=true`;
-        return NextResponse.json({ url: mockPayUrl, simulated: true });
+        console.error('PhonePe PG response failed:', result);
+        return NextResponse.json({ error: 'Payment gateway rejected request. Please try again.' }, { status: 502 });
       }
     } catch (apiErr) {
-      console.error('PhonePe Connection error, entering fallback simulation mode', apiErr);
-      const mockPayUrl = `${appUrl}/checkout/simulated-pg?txnId=${merchantTransactionId}&orderId=${order.id}&amount=${order.total}&fallback=true`;
-      return NextResponse.json({ url: mockPayUrl, simulated: true });
+      console.error('PhonePe Connection error:', apiErr);
+      return NextResponse.json({ error: 'Failed to communicate with payment gateway. Please check connectivity and try again.' }, { status: 502 });
     }
   } catch (err: any) {
     console.error('Payment initiation exception:', err);

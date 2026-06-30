@@ -5,6 +5,11 @@ import { revalidatePath } from 'next/cache';
 import { sendOrderConfirmationEmail } from '@/lib/orderEmail';
 
 export async function POST(req: NextRequest) {
+  // Hard security gate: Block simulation endpoints completely in production environments
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const body = await req.json();
     const { orderId, status } = body;

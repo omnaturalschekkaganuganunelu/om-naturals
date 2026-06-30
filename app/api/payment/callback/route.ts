@@ -119,13 +119,27 @@ export async function GET(req: NextRequest) {
 
           // Deduct stock
           for (const item of order.items) {
-            await tx.product.update({
+            const updatedProduct = await tx.product.update({
               where: { id: item.productId },
               data: {
                 stock: { decrement: item.quantity },
                 salesCount: { increment: item.quantity },
               },
             });
+
+            if (updatedProduct.stock < 5) {
+              const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });
+              if (admin) {
+                await tx.notification.create({
+                  data: {
+                    title: '⚠️ Low Stock Alert!',
+                    body: `Product "${updatedProduct.name}" has critically low stock (${updatedProduct.stock} left).`,
+                    type: 'INFO',
+                    userId: admin.id,
+                  }
+                });
+              }
+            }
           }
         }
       });
@@ -296,13 +310,27 @@ export async function POST(req: NextRequest) {
 
           // Deduct inventory stock and increment salesCount (only on confirmed PhonePe payment)
           for (const item of order.items) {
-            await tx.product.update({
+            const updatedProduct = await tx.product.update({
               where: { id: item.productId },
               data: {
                 stock: { decrement: item.quantity },
                 salesCount: { increment: item.quantity },
               },
             });
+
+            if (updatedProduct.stock < 5) {
+              const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });
+              if (admin) {
+                await tx.notification.create({
+                  data: {
+                    title: '⚠️ Low Stock Alert!',
+                    body: `Product "${updatedProduct.name}" has critically low stock (${updatedProduct.stock} left).`,
+                    type: 'INFO',
+                    userId: admin.id,
+                  }
+                });
+              }
+            }
           }
         }
       });

@@ -19,6 +19,16 @@ function SimulatedPGContent() {
   const [processing, setProcessing] = useState(false);
   const [outcome, setOutcome] = useState<'success' | 'failure' | null>(null);
 
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'production') {
+      router.replace('/');
+    }
+  }, [router]);
+
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+
   const handleSimulate = async (status: 'success' | 'failure') => {
     setProcessing(true);
 

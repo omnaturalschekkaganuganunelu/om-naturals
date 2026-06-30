@@ -91,9 +91,25 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     // ── Inventory Management ──────────────────────────────────────────
-    // Only restore stock when admin ACTUALLY cancels (not on CANCEL_REQUESTED)
-    const isActuallyCancelling = orderStatus === 'CANCELLED' && existingOrder.orderStatus !== 'CANCELLED';
-    const isRestoringFromCancel = orderStatus !== 'CANCELLED' && existingOrder.orderStatus === 'CANCELLED';
+    // Stock was previously decremented if it was a COD order or a completed PhonePe order
+    const wasStockDecremented = 
+      existingOrder.paymentMethod === 'COD' || 
+      existingOrder.paymentStatus === 'COMPLETED';
+
+    const isActuallyCancelling = 
+      orderStatus === 'CANCELLED' && 
+      existingOrder.orderStatus !== 'CANCELLED' &&
+      wasStockDecremented;
+
+    const isRestoringFromCancel = 
+      orderStatus !== 'CANCELLED' && 
+      existingOrder.orderStatus === 'CANCELLED' &&
+      (existingOrder.paymentMethod === 'COD' || paymentStatus === 'COMPLETED' || existingOrder.paymentStatus === 'COMPLETED');
+
+    const isOnlinePaymentConfirmation = 
+      existingOrder.paymentMethod === 'PHONEPE' &&
+      existingOrder.paymentStatus !== 'COMPLETED' &&
+      paymentStatus === 'COMPLETED';
 
     const order = await prisma.$transaction(async (tx) => {
       const updateData: any = {};
@@ -113,7 +129,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         }
 
         if (notes !== undefined) updateData.notes = notes;
-        // Keep cancelReason intact for both approval and rejection to prevent double-cancels
       } else {
         // Customer requesting cancellation
         updateData.orderStatus = 'CANCEL_REQUESTED';
@@ -126,7 +141,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         include: { items: true },
       });
 
-      // Restore stock only on actual cancellation
+      // 1. Restore stock only if it was previously decremented
       if (isActuallyCancelling) {
         for (const item of existingOrder.items) {
           await tx.product.update({
@@ -137,7 +152,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             },
           });
         }
-      } else if (isRestoringFromCancel) {
+      } 
+      // 2. Re-deduct stock if un-cancelling a previously decremented order
+      else if (isRestoringFromCancel) {
         for (const item of existingOrder.items) {
           await tx.product.update({
             where: { id: item.productId },
@@ -146,6 +163,32 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
               salesCount: { increment: item.quantity },
             },
           });
+        }
+      }
+      // 3. Deduct stock if manually confirming payment for a PhonePe order
+      else if (isOnlinePaymentConfirmation) {
+        for (const item of existingOrder.items) {
+          const updatedProduct = await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stock: { decrement: item.quantity },
+              salesCount: { increment: item.quantity },
+            },
+          });
+
+          if (updatedProduct.stock < 5) {
+            const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });
+            if (admin) {
+              await tx.notification.create({
+                data: {
+                  title: '⚠️ Low Stock Alert!',
+                  body: `Product "${updatedProduct.name}" has critically low stock (${updatedProduct.stock} left).`,
+                  type: 'INFO',
+                  userId: admin.id,
+                }
+              });
+            }
+          }
         }
       }
 
