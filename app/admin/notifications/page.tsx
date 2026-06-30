@@ -50,7 +50,18 @@ export default function AdminNotificationsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  interface UserOption {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    role: string;
+  }
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState('');
@@ -80,7 +91,22 @@ export default function AdminNotificationsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchNotifications(); }, []);
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/admin/users');
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data.users || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin users:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    fetchUsers();
+  }, []);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,8 +172,8 @@ export default function AdminNotificationsPage() {
 
               {/* Compose Form */}
               <div className="lg:col-span-5">
-                <div className="bg-white rounded-3xl border border-amber-100 shadow-sm overflow-hidden">
-                  <div className="bg-gradient-to-r from-amber-800 to-amber-900 px-5 py-4 flex items-center gap-2">
+                <div className="bg-white rounded-3xl border border-amber-100 shadow-sm relative">
+                  <div className="bg-gradient-to-r from-amber-800 to-amber-900 px-5 py-4 flex items-center gap-2 rounded-t-3xl">
                     <Sparkles size={16} className="text-amber-300" />
                     <h2 className="font-black text-white text-sm">Create Notification</h2>
                   </div>
@@ -202,19 +228,80 @@ export default function AdminNotificationsPage() {
                       <p className="text-[10px] text-gray-300 text-right mt-0.5">{form.body.length}/500</p>
                     </div>
 
-                    {/* Target User ID (optional) */}
+                    {/* Target User ID (Searchable Dropdown) */}
                     <div>
                       <label className="text-[10px] font-black text-amber-900 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                        <Users size={11} /> Target User ID
-                        <span className="font-normal text-gray-400 normal-case">(leave empty to broadcast to all)</span>
+                        <Users size={11} /> Target User
+                        <span className="font-normal text-gray-400 normal-case">(select a user or search by name/email/phone)</span>
                       </label>
-                      <input
-                        type="text"
-                        value={form.userId}
-                        onChange={e => setForm(f => ({ ...f, userId: e.target.value }))}
-                        placeholder="User UUID (optional)"
-                        className="w-full bg-amber-50/30 border border-amber-100 rounded-xl px-3 py-2.5 text-xs font-mono text-amber-950 focus:outline-none focus:border-amber-500 transition-colors"
-                      />
+                      
+                      {form.userId ? (
+                        (() => {
+                          const selectedUser = users.find(u => u.id === form.userId);
+                          return (
+                            <div className="flex items-center justify-between w-full bg-amber-50/50 border border-amber-200 rounded-xl px-3 py-2 text-xs text-amber-950">
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-bold truncate">{selectedUser ? selectedUser.name : 'Unknown User'}</span>
+                                <span className="text-[10px] text-amber-800/70 truncate">{selectedUser?.email}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setForm(f => ({ ...f, userId: '' }))}
+                                className="p-1.5 hover:bg-amber-100/85 rounded-lg text-amber-900 transition-colors shrink-0"
+                                title="Clear selection"
+                              >
+                                <Trash2 size={13} className="text-red-600" />
+                              </button>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={userSearch}
+                            onFocus={() => setDropdownOpen(true)}
+                            onChange={e => {
+                              setUserSearch(e.target.value);
+                              setDropdownOpen(true);
+                            }}
+                            placeholder="Type to search and select user... (Broadcast to all if empty)"
+                            className="w-full bg-amber-50/30 border border-amber-100 rounded-xl px-3 py-2.5 text-xs font-semibold text-amber-950 focus:outline-none focus:border-amber-500 transition-colors"
+                          />
+                          {dropdownOpen && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
+                              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-amber-100 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto divide-y divide-gray-50 no-scrollbar">
+                                {(() => {
+                                  const filtered = users.filter(u =>
+                                    u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+                                    u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+                                    (u.phone && u.phone.includes(userSearch))
+                                  );
+                                  if (filtered.length === 0) {
+                                    return <div className="p-3 text-center text-xs text-gray-400">No users found</div>;
+                                  }
+                                  return filtered.map(u => (
+                                    <button
+                                      type="button"
+                                      key={u.id}
+                                      onClick={() => {
+                                        setForm(f => ({ ...f, userId: u.id }));
+                                        setUserSearch('');
+                                        setDropdownOpen(false);
+                                      }}
+                                      className="w-full text-left p-2.5 hover:bg-amber-50/60 transition-colors text-xs flex flex-col gap-0.5"
+                                    >
+                                      <span className="font-bold text-amber-950">{u.name} {u.role === 'ADMIN' ? '★' : ''}</span>
+                                      <span className="text-[10px] text-gray-500">{u.email} {u.phone ? `| ${u.phone}` : ''}</span>
+                                    </button>
+                                  ));
+                                })()}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Target indicator */}
