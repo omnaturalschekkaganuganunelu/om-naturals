@@ -40,6 +40,14 @@ export async function POST(req: NextRequest) {
 
     // Execute address creation in transaction to handle default status
     const address = await prisma.$transaction(async (tx) => {
+      // Verify user exists to prevent foreign key violation if db was reset
+      const userExists = await tx.user.findUnique({
+        where: { id: session.user.id },
+      });
+      if (!userExists) {
+        throw new Error('USER_NOT_FOUND');
+      }
+
       if (isDefault) {
         // Clear previous defaults
         await tx.address.updateMany({
@@ -73,6 +81,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(address);
   } catch (err: any) {
     console.error('Error creating address:', err);
+    if (err.message === 'USER_NOT_FOUND') {
+      return NextResponse.json({ error: 'User session invalid. Please log out and log in again.' }, { status: 401 });
+    }
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
 }

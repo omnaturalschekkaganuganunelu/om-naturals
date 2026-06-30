@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { LogOut, X } from 'lucide-react';
+import { LogOut, X, Trash2, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface ConfirmModalProps {
@@ -14,6 +14,7 @@ interface ConfirmModalProps {
   confirmText?: string;
   cancelText?: string;
   isDestructive?: boolean;
+  iconType?: 'logout' | 'delete' | 'warning';
 }
 
 export default function ConfirmModal({
@@ -25,6 +26,7 @@ export default function ConfirmModal({
   confirmText,
   cancelText,
   isDestructive = false,
+  iconType = 'logout',
 }: ConfirmModalProps) {
   const { language } = useLanguage();
 
@@ -51,8 +53,16 @@ export default function ConfirmModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
-          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4 mx-auto">
-            <LogOut className="text-red-500 w-6 h-6 ml-1" />
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto ${
+            isDestructive ? 'bg-red-50' : 'bg-amber-50'
+          }`}>
+            {iconType === 'delete' ? (
+              <Trash2 className="text-red-500 w-6 h-6" />
+            ) : iconType === 'warning' ? (
+              <AlertTriangle className="text-amber-500 w-6 h-6" />
+            ) : (
+              <LogOut className="text-red-500 w-6 h-6 ml-1" />
+            )}
           </div>
           <h3 className="text-xl font-black text-gray-900 text-center mb-2">
             {title}

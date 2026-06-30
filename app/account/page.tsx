@@ -104,6 +104,7 @@ function AccountContent() {
   const defaultTab = searchParams.get('tab') || 'profile';
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
 
   // Profile edit states
   const [profileName, setProfileName] = useState('');
@@ -514,17 +515,31 @@ function AccountContent() {
     }
   };
 
-  // Delete address
-  const handleDeleteAddress = async (id: string) => {
-    if (!confirm('ఈ చిరునామాను ఖచ్చితంగా తొలగించాలనుకుంటున్నారా?')) return;
+  // Delete address trigger modal
+  const handleDeleteAddress = (id: string) => {
+    setAddressToDelete(id);
+  };
 
+  // Confirm delete address action
+  const confirmDeleteAddress = async () => {
+    if (!addressToDelete) return;
     try {
-      const res = await fetch(`/api/addresses/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/addresses/${addressToDelete}`, { method: 'DELETE' });
       if (res.ok) {
         fetchAddresses();
+        showToast(
+          language === 'te' ? 'చిరునామా విజయవంతంగా తొలగించబడింది!' : 'Address deleted successfully!',
+          'success'
+        );
+      } else {
+        const err = await res.json();
+        showToast(err.error || (language === 'te' ? 'తొలగించడం విఫలమైంది.' : 'Delete failed.'), 'error');
       }
     } catch (err) {
       console.error('Error deleting address:', err);
+      showToast(language === 'te' ? 'కనెక్షన్ లోపం.' : 'Connection error.', 'error');
+    } finally {
+      setAddressToDelete(null);
     }
   };
 
@@ -1795,6 +1810,18 @@ function AccountContent() {
         confirmText={language === 'te' ? 'లాగ్ అవుట్' : 'Logout'}
         cancelText={language === 'te' ? 'రద్దు చేయి' : 'Cancel'}
         isDestructive
+      />
+
+      <ConfirmModal
+        isOpen={!!addressToDelete}
+        onClose={() => setAddressToDelete(null)}
+        onConfirm={confirmDeleteAddress}
+        title={language === 'te' ? 'చిరునామాను తొలగించాలా?' : 'Delete Address?'}
+        message={language === 'te' ? 'ఈ చిరునామాను మీ ఖాతా నుండి శాశ్వతంగా తొలగించాలనుకుంటున్నారా?' : 'Are you sure you want to permanently delete this address from your account?'}
+        confirmText={language === 'te' ? 'తొలగించు' : 'Delete'}
+        cancelText={language === 'te' ? 'రద్దు చేయి' : 'Cancel'}
+        isDestructive
+        iconType="delete"
       />
     </>
   );
