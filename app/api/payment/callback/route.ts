@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getPhonePeClient } from '@/lib/phonepe';
 import { orderEmitter } from '@/lib/sse';
+import { sendOrderConfirmationEmail } from '@/lib/orderEmail';
 
 // GET handler: Handles user navigation back from PhonePe (browser GET instead of POST redirect)
 export async function GET(req: NextRequest) {
@@ -21,22 +22,156 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Check current order status to give proper redirect
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
+
     if (!order) {
       return NextResponse.redirect(`${appUrl}/order-confirmation?status=error&msg=OrderNotFound`, { status: 303 });
     }
 
     if (order.paymentStatus === 'COMPLETED') {
       // Payment already processed (perhaps webhook fired first)
-      return NextResponse.redirect(`${appUrl}/account?tab=orders`, { status: 303 });
+      return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
+    }
+
+    // Since the database status is PENDING, query PhonePe Status API server-to-server directly!
+    // This resolves the local testing issue (since webhook cannot reach localhost) and acts as a fast-track callback fallback!
+    const payment = await prisma.payment.findFirst({
+      where: { orderId: order.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    let verifiedSuccess = false;
+    let verifiedFailure = false;
+    let phonePeTransactionId = null;
+
+    if (payment) {
+      try {
+        const client = getPhonePeClient();
+        const verifyResult = await client.getOrderStatus(payment.merchantTransactionId);
+        
+        if (verifyResult) {
+          if (verifyResult.state === 'COMPLETED') {
+            verifiedSuccess = true;
+            if (verifyResult.paymentDetails && verifyResult.paymentDetails.length > 0) {
+              phonePeTransactionId = verifyResult.paymentDetails[0].transactionId || null;
+            }
+          } else if (verifyResult.state === 'FAILED') {
+            verifiedFailure = true;
+          }
+        }
+      } catch (err) {
+        console.error('GET Callback: Error calling PhonePe status API:', err);
+      }
+    }
+
+    if (verifiedSuccess) {
+      // Update order and payment to COMPLETED in database
+      await prisma.$transaction(async (tx) => {
+        const currentOrder = await tx.order.findUnique({ where: { id: orderId } });
+        if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
+          // Update order status
+          await tx.order.update({
+            where: { id: orderId },
+            data: {
+              paymentStatus: 'COMPLETED',
+              orderStatus: 'CONFIRMED',
+              transactionRef: phonePeTransactionId,
+            },
+          });
+
+          // Update payment record
+          if (payment) {
+            await tx.payment.update({
+              where: { id: payment.id },
+              data: {
+                status: 'COMPLETED',
+              },
+            });
+          }
+
+          // Notify customer
+          await tx.notification.create({
+            data: {
+              title: '💳 Payment Successful!',
+              body: `Your payment for Order ${order.orderId} was successful and your order is confirmed.`,
+              type: 'ORDER',
+              userId: order.userId,
+              orderId: order.id,
+            },
+          });
+
+          // Notify admins
+          const admins = await tx.user.findMany({ where: { role: 'ADMIN' } });
+          for (const admin of admins) {
+            await tx.notification.create({
+              data: {
+                title: '💰 Order Paid!',
+                body: `Payment for Order ${order.orderId} (₹${order.total}) was successful.`,
+                type: 'ORDER',
+                userId: admin.id,
+                orderId: order.id,
+              },
+            });
+          }
+
+          // Deduct stock
+          for (const item of order.items) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: {
+                stock: { decrement: item.quantity },
+                salesCount: { increment: item.quantity },
+              },
+            });
+          }
+        }
+      });
+
+      // Send Order Confirmation Email
+      try {
+        const orderUser = await prisma.user.findUnique({ where: { id: order.userId } });
+        if (orderUser && orderUser.email && orderUser.name) {
+          await sendOrderConfirmationEmail(order.id, orderUser.email, orderUser.name);
+        }
+      } catch (emailErr) {
+        console.error('GET Callback: Failed to send confirmation email:', emailErr);
+      }
+
+      // Broadcast SSE notification
+      orderEmitter.emit('order-update', {
+        orderId: order.id,
+        status: 'CONFIRMED',
+        updatedAt: new Date().toISOString(),
+      });
+
+      return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
+
+    } else if (verifiedFailure) {
+      // Process payment failure
+      await prisma.order.update({
+        where: { id: orderId },
+        data: { paymentStatus: 'FAILED' },
+      });
+
+      if (payment) {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: 'FAILED' },
+        });
+      }
+
+      return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=failed`, { status: 303 });
     } else {
       // Payment still pending — redirect to order-confirmation with pending status
       return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=pending`, { status: 303 });
     }
+
   } catch (err) {
     console.error('GET Callback: Error checking order status:', err);
-    return NextResponse.redirect(`${appUrl}/account?tab=orders`, { status: 303 });
+    return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=error`, { status: 303 });
   }
 }
 
