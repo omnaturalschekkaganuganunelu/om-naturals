@@ -120,14 +120,17 @@ function NavbarContent() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full transition-all duration-300">
-      {/* Main Header */}
-      <div className={`w-full bg-white/95 backdrop-blur-md border-b smooth-shadow transition-all duration-300 ${
-        scrolled 
-          ? 'h-14 border-amber-100/40 shadow-md' 
-          : 'h-16 border-amber-100/80'
-      }`}>
-        <div className="max-w-screen-2xl mx-auto px-2 sm:px-6 lg:px-10 h-full flex items-center gap-1.5 sm:gap-4">
+      <header
+        className={`sticky top-0 z-[150] w-full transition-all duration-300 bg-white/95 backdrop-blur-md border-b smooth-shadow ${
+          scrolled ? 'border-amber-100/40 shadow-md' : 'border-amber-100/80'
+        }`}
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        {/* Main Header */}
+        <div className={`w-full transition-all duration-300 ${
+          scrolled ? 'h-14' : 'h-16'
+        }`}>
+          <div className="max-w-screen-2xl mx-auto px-2 sm:px-6 lg:px-10 h-full flex items-center gap-1.5 sm:gap-4">
           
           {/* Brand Logo & Name */}
           <div className="flex-shrink-0">

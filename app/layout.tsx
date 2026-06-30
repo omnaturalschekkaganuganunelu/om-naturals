@@ -52,6 +52,11 @@ export const metadata: Metadata = {
     type: 'website',
   },
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'OM Natural',
+  },
 };
 
 export const viewport: Viewport = {
@@ -59,6 +64,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: '#92400e',
+  viewportFit: 'cover',
 };
 
 import NextTopLoader from 'nextjs-toploader';
