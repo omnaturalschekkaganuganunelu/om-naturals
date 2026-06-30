@@ -4,6 +4,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath, unstable_cache } from 'next/cache';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/categories - List all categories
 export async function GET(req: NextRequest) {
   try {

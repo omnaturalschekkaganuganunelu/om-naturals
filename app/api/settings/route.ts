@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/settings - Fetch singleton site settings
 export async function GET(req: NextRequest) {
   try {
