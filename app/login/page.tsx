@@ -73,21 +73,33 @@ function LoginContent() {
       .catch((err) => console.error('Failed to load product images:', err));
   }, []);
 
-  const displayImages = productImages.length > 0 ? productImages : FALLBACK_PRODUCT_IMAGES;
-  
-  // Distribute images to two columns for scrolling effects
-  let col1Images = displayImages.slice(0, Math.ceil(displayImages.length / 2));
-  let col2Images = displayImages.slice(Math.ceil(displayImages.length / 2));
-  
-  while (col1Images.length < 4) {
-    col1Images = [...col1Images, ...col1Images];
-  }
-  while (col2Images.length < 4) {
-    col2Images = [...col2Images, ...col2Images];
-  }
-  
-  const fullCol1 = [...col1Images.slice(0, 4), ...col1Images.slice(0, 4)];
-  const fullCol2 = [...col2Images.slice(0, 4), ...col2Images.slice(0, 4)];
+  // Deduplicate product images (since variants share the same image) and limit to a max of 12 unique images to avoid exceeding browser GPU height rendering limits
+  const uniqueImages = Array.from(new Set(productImages.length > 0 ? productImages : FALLBACK_PRODUCT_IMAGES));
+  const displayImages = uniqueImages.slice(0, 12);
+
+  // Distribute all available product images evenly between the two scrolling columns
+  const col1Images = displayImages.filter((_, i) => i % 2 === 0);
+  const col2Images = displayImages.filter((_, i) => i % 2 !== 0);
+
+  // Helper to ensure each column has enough items (at least 4) to fill the screen before duplicating for the seamless loop
+  const prepareColumn = (imgs: string[]) => {
+    let list = [...imgs];
+    if (list.length === 0) {
+      list = [...FALLBACK_PRODUCT_IMAGES.slice(0, 4)];
+    }
+    while (list.length < 4) {
+      list = [...list, ...list];
+    }
+    // Duplicate the list once so the translateY(-50%) keyframe creates a seamless scroll wrap
+    return [...list, ...list];
+  };
+
+  const fullCol1 = prepareColumn(col1Images);
+  const fullCol2 = prepareColumn(col2Images);
+
+  // Dynamically calculate speed based on item count so scrolling speed is constant and gentle
+  const col1Duration = Math.round((fullCol1.length / 2) * 14);
+  const col2Duration = Math.round((fullCol2.length / 2) * 15);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -204,7 +216,7 @@ function LoginContent() {
             ? 'నమోదు విజయవంతమైంది! స్వయంచాలకంగా లాగిన్ అవుతోంది...'
             : 'Registration successful! Logging in automatically...'
         );
-        
+
         // Log in immediately with email or phone number
         const loginRes = await signIn('credentials', {
           email: email || phone,
@@ -224,7 +236,7 @@ function LoginContent() {
       } else {
         setErrorMsg(
           data.error ||
-            (language === 'te' ? 'నమోదు చేయడంలో లోపం జరిగింది.' : 'Registration failed.')
+          (language === 'te' ? 'నమోదు చేయడంలో లోపం జరిగింది.' : 'Registration failed.')
         );
         setLoading(false);
       }
@@ -254,7 +266,7 @@ function LoginContent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
-      
+
       setForgotSuccess(language === 'te' ? 'OTP మీ ఈమెయిల్ కి పంపబడింది.' : 'OTP sent to your email.');
       setForgotStep('otp');
     } catch (err: any) {
@@ -280,7 +292,7 @@ function LoginContent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to reset password');
-      
+
       setForgotSuccess(language === 'te' ? 'పాస్‌వర్డ్ విజయవంతంగా మార్చబడింది!' : 'Password successfully reset!');
       setTimeout(() => {
         setForgotPasswordOpen(false);
@@ -309,7 +321,7 @@ function LoginContent() {
   return (
     <div className="flex-1 flex flex-col w-full animate-fade-in-up">
       <div className="flex w-full min-h-[calc(100vh-80px)]">
-        
+
         {/* LEFT SIDE - Brand Visuals (Desktop Only) */}
         <div className="hidden lg:flex w-[45%] xl:w-1/2 relative bg-amber-950 overflow-hidden items-center justify-center">
           {/* Abstract Background Elements */}
@@ -318,22 +330,23 @@ function LoginContent() {
             <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-amber-800/40 blur-[100px]"></div>
             <div className="absolute inset-0 bg-repeat bg-center opacity-[0.02] mix-blend-overlay" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg viewBox=\"0 0 200 200\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"noise\"%3E%3CfeTurbulence type=\"fractalNoise\" baseFrequency=\"0.65\" numOctaves=\"3\" stitchTiles=\"stitch\"/%3E%3C/filter%3E%3Crect width=\"100%25\" height=\"100%25\" filter=\"url(%23noise)\"/%3E%3C/svg%3E')" }}></div>
           </div>
-          
+
           {/* Custom Styles for Carousel */}
-          <style dangerouslySetInnerHTML={{__html: `
-            @keyframes scroll {
+          <style dangerouslySetInnerHTML={{
+            __html: `
+            @keyframes marqueescroll {
               0% { transform: translateY(0); }
               100% { transform: translateY(-50%); }
             }
-            @keyframes scrollReverse {
+            @keyframes marqueescrollreverse {
               0% { transform: translateY(-50%); }
               100% { transform: translateY(0); }
             }
-            .animate-scroll {
-              animation: scroll 35s linear infinite;
+            .animate-marquee-scroll {
+              animation: marqueescroll ${col1Duration}s linear infinite;
             }
-            .animate-scroll-reverse {
-              animation: scrollReverse 40s linear infinite;
+            .animate-marquee-scroll-reverse {
+              animation: marqueescrollreverse ${col2Duration}s linear infinite;
             }
           `}} />
 
@@ -348,35 +361,35 @@ function LoginContent() {
 
           {/* Premium Carousel Collage */}
           <div className="absolute inset-[-50%] z-10 flex gap-6 md:gap-8 justify-center items-center opacity-85 rotate-[-6deg] scale-[0.8] xl:scale-100 pointer-events-none">
-            
+
             {/* Column 1 */}
-            <div className="flex flex-col gap-6 md:gap-8 animate-scroll pt-[50%]">
-               {fullCol1.map((img, idx) => (
-                 <div key={idx} className="relative w-48 h-64 md:w-56 md:h-72 rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(0,0,0,0.5)] border border-amber-500/20 bg-gradient-to-br from-amber-800/40 to-amber-950/80 backdrop-blur-sm group">
-                    <div className="absolute inset-0 bg-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"></div>
-                    <Image src={img} alt="Product" fill className="object-contain p-6 group-hover:scale-110 transition-transform duration-700 ease-out z-0" />
-                 </div>
-               ))}
+            <div className="flex flex-col gap-6 md:gap-8 animate-marquee-scroll pt-[50%]">
+              {fullCol1.map((img, idx) => (
+                <div key={idx} className="relative w-48 h-64 md:w-56 md:h-72 rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(0,0,0,0.5)] border border-amber-500/20 bg-gradient-to-br from-amber-800/40 to-amber-950/80 backdrop-blur-sm group">
+                  <div className="absolute inset-0 bg-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"></div>
+                  <Image src={img} alt="Product" fill className="object-contain p-6 group-hover:scale-110 transition-transform duration-700 ease-out z-0" />
+                </div>
+              ))}
             </div>
 
             {/* Column 2 */}
-            <div className="flex flex-col gap-6 md:gap-8 animate-scroll-reverse pb-[50%] mt-32">
-               {fullCol2.map((img, idx) => (
-                 <div key={`col2-${idx}`} className="relative w-48 h-64 md:w-56 md:h-72 rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(0,0,0,0.5)] border border-amber-500/20 bg-gradient-to-br from-amber-800/40 to-amber-950/80 backdrop-blur-sm group">
-                    <div className="absolute inset-0 bg-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"></div>
-                    <Image src={img} alt="Product" fill className="object-contain p-6 group-hover:scale-110 transition-transform duration-700 ease-out z-0" />
-                 </div>
-               ))}
+            <div className="flex flex-col gap-6 md:gap-8 animate-marquee-scroll-reverse pb-[50%] mt-32">
+              {fullCol2.map((img, idx) => (
+                <div key={`col2-${idx}`} className="relative w-48 h-64 md:w-56 md:h-72 rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(0,0,0,0.5)] border border-amber-500/20 bg-gradient-to-br from-amber-800/40 to-amber-950/80 backdrop-blur-sm group">
+                  <div className="absolute inset-0 bg-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"></div>
+                  <Image src={img} alt="Product" fill className="object-contain p-6 group-hover:scale-110 transition-transform duration-700 ease-out z-0" />
+                </div>
+              ))}
             </div>
 
           </div>
-          
+
           {/* Overlay Gradient to fade out top/bottom edges of carousel */}
           <div className="absolute inset-0 bg-gradient-to-b from-amber-950 via-transparent to-amber-950 z-20 pointer-events-none opacity-90"></div>
           <div className="absolute inset-0 bg-gradient-to-r from-amber-950/80 via-transparent to-amber-950/40 z-20 pointer-events-none"></div>
 
           {/* Brand Tagline Floating over carousel */}
-          <div className="absolute bottom-10 left-10 xl:bottom-16 xl:left-16 z-30 max-w-md animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+          <div className="absolute bottom-10 left-10 xl:bottom-16 xl:left-16 z-30 max-w-md animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
             <div className="w-12 h-1 bg-amber-500 rounded-full mb-6 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
             <h1 className="text-4xl xl:text-5xl font-black mb-3 leading-[1.1] font-heading tracking-tight text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
               {language === 'te' ? 'స్వచ్ఛత. సంప్రదాయం.' : 'Pure.'}
@@ -395,14 +408,14 @@ function LoginContent() {
         <div className="w-full lg:w-[55%] xl:w-1/2 flex items-center justify-center p-4 sm:p-8 lg:p-12 relative bg-[#fdfbf7]">
           {/* Mobile decorative background */}
           <div className="absolute top-0 left-0 right-0 h-72 bg-gradient-to-b from-amber-100/60 to-transparent lg:hidden pointer-events-none"></div>
-          
+
           <div className="w-full max-w-[460px] bg-white rounded-[2rem] shadow-[0_8px_40px_-12px_rgba(180,83,9,0.15)] p-6 sm:p-8 border border-amber-100/50 relative z-10">
-            
+
             {/* Header Text */}
             <div className="text-center mb-6">
               <h2 className="text-3xl font-black text-amber-950 font-heading mb-3 tracking-tight">
-                {language === 'te' 
-                  ? (activeTab === 'login' ? 'తిరిగి స్వాగతం!' : 'ఖాతా సృష్టించండి') 
+                {language === 'te'
+                  ? (activeTab === 'login' ? 'తిరిగి స్వాగతం!' : 'ఖాతా సృష్టించండి')
                   : (activeTab === 'login' ? 'Welcome Back!' : 'Create an Account')}
               </h2>
               <p className="text-gray-500 font-medium text-sm">
@@ -411,7 +424,7 @@ function LoginContent() {
                   : (activeTab === 'login' ? 'Please enter your details to sign in to your account.' : 'Join us to get the best pure oils for your family.')}
               </p>
             </div>
-            
+
             {/* Custom Premium Tabs */}
             <div className="flex p-1 bg-amber-50/80 rounded-2xl mb-6">
               <button
@@ -420,11 +433,10 @@ function LoginContent() {
                   setErrorMsg('');
                   setSuccessMsg('');
                 }}
-                className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-300 ${
-                  activeTab === 'login' 
-                    ? 'bg-white text-amber-900 shadow-[0_2px_10px_-2px_rgba(180,83,9,0.15)]' 
-                    : 'text-amber-700/60 hover:text-amber-800 hover:bg-white/50'
-                }`}
+                className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'login'
+                  ? 'bg-white text-amber-900 shadow-[0_2px_10px_-2px_rgba(180,83,9,0.15)]'
+                  : 'text-amber-700/60 hover:text-amber-800 hover:bg-white/50'
+                  }`}
               >
                 {language === 'te' ? 'లాగిన్' : 'Sign In'}
               </button>
@@ -434,11 +446,10 @@ function LoginContent() {
                   setErrorMsg('');
                   setSuccessMsg('');
                 }}
-                className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-300 ${
-                  activeTab === 'register' 
-                    ? 'bg-white text-amber-900 shadow-[0_2px_10px_-2px_rgba(180,83,9,0.15)]' 
-                    : 'text-amber-700/60 hover:text-amber-800 hover:bg-white/50'
-                }`}
+                className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'register'
+                  ? 'bg-white text-amber-900 shadow-[0_2px_10px_-2px_rgba(180,83,9,0.15)]'
+                  : 'text-amber-700/60 hover:text-amber-800 hover:bg-white/50'
+                  }`}
               >
                 {language === 'te' ? 'నమోదు' : 'Register'}
               </button>
@@ -448,7 +459,7 @@ function LoginContent() {
             {activeTab === 'login' ? (
               /* LOGIN FORM */
               <form onSubmit={handleLoginSubmit} className="space-y-4 animate-fade-in-up">
-                
+
                 <div className="space-y-2">
                   <label htmlFor="login-email" className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
                     {language === 'te' ? 'ఈమెయిల్ లేదా ఫోన్ నెంబర్' : 'Email or Mobile Number'}
@@ -471,7 +482,7 @@ function LoginContent() {
                     <label htmlFor="login-password" className="text-xs font-bold text-gray-600 uppercase tracking-wider">
                       {language === 'te' ? 'పాస్‌వర్డ్' : 'Password'}
                     </label>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setForgotPasswordOpen(true)}
                       className="text-xs font-bold text-amber-600 hover:text-amber-800 transition-colors"
@@ -583,7 +594,7 @@ function LoginContent() {
             ) : (
               /* REGISTRATION FORM */
               <form onSubmit={handleRegisterSubmit} className="space-y-4 animate-fade-in-up">
-                
+
                 <div className="space-y-2">
                   <label htmlFor="register-name" className="text-xs font-bold text-gray-600 block ml-1 uppercase tracking-wider">
                     {language === 'te' ? 'పూర్తి పేరు' : 'Full Name'}
@@ -740,7 +751,7 @@ function LoginContent() {
             {forgotPasswordOpen && (
               <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in-up rounded-l-[2.5rem]">
                 <div className="bg-white border border-amber-100 w-full max-w-sm rounded-3xl p-6 sm:p-8 shadow-2xl relative">
-                  <button 
+                  <button
                     onClick={() => {
                       setForgotPasswordOpen(false);
                       setForgotStep('email');
@@ -758,11 +769,11 @@ function LoginContent() {
                     {language === 'te' ? 'పాస్‌వర్డ్ రీసెట్' : 'Reset Password'}
                   </h3>
                   <p className="text-sm text-gray-600 mb-6">
-                    {forgotStep === 'email' 
+                    {forgotStep === 'email'
                       ? (language === 'te' ? 'మీ ఈమెయిల్ నమోదు చేయండి.' : 'Enter your registered email address.')
                       : forgotStep === 'otp'
-                      ? (language === 'te' ? 'మీ ఈమెయిల్ కి పంపిన OTP నమోదు చేయండి.' : 'Enter the OTP sent to your email.')
-                      : (language === 'te' ? 'మీ కొత్త పాస్‌వర్డ్ నమోదు చేయండి.' : 'Enter your new password.')
+                        ? (language === 'te' ? 'మీ ఈమెయిల్ కి పంపిన OTP నమోదు చేయండి.' : 'Enter the OTP sent to your email.')
+                        : (language === 'te' ? 'మీ కొత్త పాస్‌వర్డ్ నమోదు చేయండి.' : 'Enter your new password.')
                     }
                   </p>
 
@@ -816,11 +827,11 @@ function LoginContent() {
 
                     <button
                       onClick={
-                        forgotStep === 'email' ? handleForgotSendOtp : 
-                        forgotStep === 'otp' ? () => {
-                          if (forgotOtp.length > 3) setForgotStep('new_password');
-                          else setForgotError('Invalid OTP length');
-                        } : handleForgotReset
+                        forgotStep === 'email' ? handleForgotSendOtp :
+                          forgotStep === 'otp' ? () => {
+                            if (forgotOtp.length > 3) setForgotStep('new_password');
+                            else setForgotError('Invalid OTP length');
+                          } : handleForgotReset
                       }
                       disabled={forgotLoading}
                       className="w-full py-3 bg-amber-800 hover:bg-amber-900 text-white font-bold rounded-xl flex justify-center items-center gap-2"
@@ -828,7 +839,7 @@ function LoginContent() {
                       {forgotLoading && <RefreshCw size={16} className="animate-spin" />}
                       {forgotStep === 'email' ? (language === 'te' ? 'OTP పంపు' : 'Send OTP')
                         : forgotStep === 'otp' ? (language === 'te' ? 'ధృవీకరించు' : 'Verify')
-                        : (language === 'te' ? 'పాస్‌వర్డ్ మార్చు' : 'Reset Password')
+                          : (language === 'te' ? 'పాస్‌వర్డ్ మార్చు' : 'Reset Password')
                       }
                     </button>
                   </div>

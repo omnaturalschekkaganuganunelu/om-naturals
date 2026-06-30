@@ -131,6 +131,7 @@ function useToastBus() {
 
 function printInvoice(order: any) {
   const trkId = getTrackingId(order.orderId);
+  const isCancelled = order.orderStatus === 'CANCELLED';
   const win = window.open('', '_blank');
   if (!win) return;
   const rows = order.items.map((it: any) => `
@@ -165,8 +166,14 @@ function printInvoice(order: any) {
         <div style="font-size:10px;color:#475569;margin-top:2px">📞 +91 99999 99999 | ✉️ info@om-naturals.com</div>
       </div>
     </div>
-    <div><div class="inv">INVOICE</div><div style="font-size:11px;color:#b45309;text-align:right">${order.orderId}</div></div>
+    <div><div class="inv">${isCancelled ? '<span style="color:#dc2626">CANCELLED</span>' : 'INVOICE'}</div><div style="font-size:11px;color:#b45309;text-align:right">${order.orderId}</div></div>
   </div>
+  ${isCancelled ? `
+  <div style="background-color: #fef2f2; border: 1px solid #fca5a5; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; color: #991b1b; font-size: 14px; font-weight: bold; text-align: center; font-family: sans-serif;">
+    ❌ THIS ORDER HAS BEEN CANCELLED
+    ${order.cancelReason ? `<br/><span style="font-size: 11px; font-weight: normal; color: #7f1d1d;">Reason: ${order.cancelReason}</span>` : ''}
+  </div>
+  ` : ''}
   <div class="grid">
     <div class="box"><h3>Billed To</h3>
       <p><strong>${order.name}</strong></p><p>${order.line1}</p>${order.line2 ? `<p>${order.line2}</p>` : ''}

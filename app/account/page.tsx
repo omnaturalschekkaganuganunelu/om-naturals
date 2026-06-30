@@ -623,6 +623,7 @@ function AccountContent() {
   // Printable Invoice Generation
   const handleDownloadInvoice = (order: any) => {
     const trkId = getTrackingId(order.orderId);
+    const isCancelled = order.orderStatus === 'CANCELLED';
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       showToast(
@@ -675,10 +676,17 @@ function AccountContent() {
               </div>
             </div>
             <div>
-              <div class="invoice-title">INVOICE</div>
+              <div class="invoice-title">${isCancelled ? '<span style="color:#dc2626">CANCELLED</span>' : 'INVOICE'}</div>
               <div style="font-size: 12px; color: #b45309; margin-top: 4px; text-align: right;">ID: ${order.orderId}</div>
             </div>
           </div>
+          
+          ${isCancelled ? `
+          <div style="background-color: #fef2f2; border: 1px solid #fca5a5; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; color: #991b1b; font-size: 14px; font-weight: bold; text-align: center; font-family: sans-serif;">
+            ❌ THIS ORDER HAS BEEN CANCELLED
+            ${order.cancelReason ? `<br/><span style="font-size: 11px; font-weight: normal; color: #7f1d1d;">Reason: ${order.cancelReason}</span>` : ''}
+          </div>
+          ` : ''}
           
           <div class="details-grid">
             <div class="details-box">
