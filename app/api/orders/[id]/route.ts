@@ -156,13 +156,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       // 2. Re-deduct stock if un-cancelling a previously decremented order
       else if (isRestoringFromCancel) {
         for (const item of existingOrder.items) {
-          await tx.product.update({
+          const updatedProduct = await tx.product.update({
             where: { id: item.productId },
             data: { 
               stock: { decrement: item.quantity },
               salesCount: { increment: item.quantity },
             },
           });
+
+          if (updatedProduct.stock < 0) {
+            throw new Error(`Insufficient stock for product ${updatedProduct.name}`);
+          }
         }
       }
       // 3. Deduct stock if manually confirming payment for a PhonePe order
@@ -175,6 +179,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
               salesCount: { increment: item.quantity },
             },
           });
+
+          if (updatedProduct.stock < 0) {
+            throw new Error(`Insufficient stock for product ${updatedProduct.name}`);
+          }
 
           if (updatedProduct.stock < 5) {
             const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });

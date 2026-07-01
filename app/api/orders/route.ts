@@ -290,6 +290,12 @@ export async function POST(req: NextRequest) {
                 },
               });
 
+              if (updatedProduct.stock < 0) {
+                throw new Error(lang === 'en'
+                  ? `Sorry, insufficient stock for ${updatedProduct.name}`
+                  : `క్షమించండి, ${updatedProduct.name} తగినంత స్టాక్ లేదు.`);
+              }
+
               if (updatedProduct.stock < 5) {
                 const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });
                 if (admin) {

@@ -127,6 +127,10 @@ export async function GET(req: NextRequest) {
               },
             });
 
+            if (updatedProduct.stock < 0) {
+              throw new Error(`Insufficient stock for product ${updatedProduct.name}`);
+            }
+
             if (updatedProduct.stock < 5) {
               const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });
               if (admin) {
@@ -317,6 +321,10 @@ export async function POST(req: NextRequest) {
                 salesCount: { increment: item.quantity },
               },
             });
+
+            if (updatedProduct.stock < 0) {
+              throw new Error(`Insufficient stock for product ${updatedProduct.name}`);
+            }
 
             if (updatedProduct.stock < 5) {
               const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });
