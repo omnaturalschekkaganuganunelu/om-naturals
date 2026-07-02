@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
     const authorization = req.headers.get('Authorization') || req.headers.get('authorization') || '';
 
     let verifiedSuccess = false;
+    let verificationError = false;
 
     // 1. Try to validate with the SDK validateCallback first if credentials are set
     if (callbackUsername && callbackPassword && authorization) {
@@ -94,6 +95,8 @@ export async function POST(req: NextRequest) {
         // Secure Guard: Only allow fallback in development/test mock setups, NEVER in production!
         if (process.env.NODE_ENV !== 'production' && code === 'PAYMENT_SUCCESS') {
           verifiedSuccess = true;
+        } else {
+          verificationError = true;
         }
       }
     }
@@ -200,6 +203,11 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({ success: true, message: 'Payment webhook processed successfully' });
     } else {
+      if (verificationError) {
+        console.error('Webhook: Failing with 500 status due to API validation error to trigger PhonePe retry.');
+        return NextResponse.json({ error: 'Temporary status verification error. Please retry.' }, { status: 500 });
+      }
+
       // Mark payment as FAILED if it was not already completed
       const currentOrder = await prisma.order.findUnique({ where: { id: orderId } });
       if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
