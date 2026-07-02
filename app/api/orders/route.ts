@@ -112,6 +112,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: lang === 'en' ? 'Missing items or address details' : 'ఐటెమ్‌లు లేదా చిరునామా వివరాలు లేవు' }, { status: 400 });
     }
 
+    // SECURITY: COD is disabled site-wide. Only PhonePe online payments are accepted.
+    if (paymentMethod === 'COD') {
+      return NextResponse.json({
+        error: lang === 'en'
+          ? 'Cash on Delivery is not available. Please use PhonePe to complete your payment.'
+          : 'క్యాష్ ఆన్ డెలివరీ అందుబాటులో లేదు. దయచేసి PhonePe ద్వారా చెల్లింపు పూర్తి చేయండి.',
+      }, { status: 400 });
+    }
+
     // PERFORMANCE: Run user lookup and settings fetch in parallel
     let userEmail = session.user.email;
     const [currentUser, settings, couponRecord] = await Promise.all([

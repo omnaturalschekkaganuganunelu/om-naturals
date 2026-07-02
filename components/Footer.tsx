@@ -152,7 +152,7 @@ export default function Footer() {
             <div className="flex items-center space-x-1.5 bg-[#140b05] px-3 py-1 rounded-full border border-amber-955 shadow-inner">
               <ShieldCheck size={12} className="text-amber-500" />
               <span className="text-[9px] font-bold text-amber-200/50 uppercase tracking-wide">{t('footer_secure')}:</span>
-              <span className="text-[9px] font-black text-amber-400 tracking-wider">PhonePe / UPI / COD</span>
+              <span className="text-[9px] font-black text-amber-400 tracking-wider">PhonePe / UPI</span>
             </div>
           </div>
 

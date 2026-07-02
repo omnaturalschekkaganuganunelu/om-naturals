@@ -5,9 +5,7 @@ import { orderEmitter } from '@/lib/sse';
 import { sendOrderConfirmationEmail } from '@/lib/orderEmail';
 
 // GET handler: Handles user navigation back from PhonePe (browser GET instead of POST redirect)
-// PERFORMANCE: Redirects in < 100ms using a single DB read.
-// All heavy work (S2S verify, stock deduction, notifications, email) is handled
-// by the webhook at /api/payment/webhook which fires asynchronously from PhonePe.
+// Actively checks PhonePe status so abandoned/cancelled payments are resolved immediately.
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderId = searchParams.get('orderId');
@@ -25,30 +23,76 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Single lightweight DB read — select only the 2 fields we need.
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true, paymentStatus: true },
+      select: { id: true, paymentStatus: true, transactionRef: true, orderId: true, userId: true },
     });
 
     if (!order) {
       return NextResponse.redirect(`${appUrl}/order-confirmation?status=error&msg=OrderNotFound`, { status: 303 });
     }
 
+    // Already resolved by webhook — fast path
     if (order.paymentStatus === 'COMPLETED') {
-      // Webhook already fired and processed — instant success redirect.
       return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
     }
-
     if (order.paymentStatus === 'FAILED') {
-      // Webhook already marked it failed.
       return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=failed`, { status: 303 });
     }
 
-    // Payment still PENDING (webhook not yet fired or in-flight).
-    // Redirect instantly to "verifying" state — the client page will poll
-    // /api/orders/[id] every 2 seconds and auto-transition to success or failed.
-    return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=verifying`, { status: 303 });
+    // Payment still PENDING — actively check PhonePe right now
+    // Look up the merchantTransactionId from the Payment table
+    try {
+      const paymentRecord = await prisma.payment.findFirst({
+        where: { orderId },
+        orderBy: { createdAt: 'desc' },
+        select: { merchantTransactionId: true },
+      });
+
+      if (!paymentRecord?.merchantTransactionId) {
+        // No payment record yet (fire-and-forget write may not have landed) — go to verifying
+        return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=verifying`, { status: 303 });
+      }
+
+      const client = getPhonePeClient();
+      const result = await client.getOrderStatus(paymentRecord.merchantTransactionId);
+      const state = result?.state?.toUpperCase();
+
+      if (state === 'COMPLETED') {
+        // Payment actually succeeded (webhook was slow) — mark COMPLETED
+        await prisma.order.update({
+          where: { id: orderId },
+          data: { paymentStatus: 'COMPLETED', orderStatus: 'CONFIRMED' },
+        });
+        return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
+
+      } else if (state === 'FAILED' || state === 'CANCELLED' || state === 'PAYMENT_CANCELLED') {
+        // Explicitly cancelled or failed by PhonePe — mark FAILED
+        await prisma.order.update({
+          where: { id: orderId },
+          data: { paymentStatus: 'FAILED' },
+        });
+        prisma.notification.create({
+          data: {
+            title: '❌ Payment Not Completed',
+            body: `Payment for Order ${order.orderId} was not completed. Please retry or place a new order.`,
+            type: 'ORDER',
+            userId: order.userId,
+            orderId: order.id,
+          },
+        }).catch(() => {});
+        return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=failed`, { status: 303 });
+
+      } else {
+        // PENDING or unknown state — user may have paid but PhonePe still processing.
+        // DO NOT mark as failed. Go to verifying so polling + webhook can resolve it.
+        return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=verifying`, { status: 303 });
+      }
+    } catch (sdkErr) {
+      console.error('GET Callback: PhonePe status check failed:', sdkErr);
+      // SDK error — fall back to verifying so client polling can handle it
+      return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=verifying`, { status: 303 });
+    }
 
   } catch (err) {
     console.error('GET Callback: Error checking order status:', err);

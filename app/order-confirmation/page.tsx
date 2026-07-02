@@ -83,22 +83,30 @@ function OrderConfirmationContent() {
       pollAttemptsRef.current += 1;
 
       try {
-        const res = await fetch(`/api/orders/${orderId}`);
-        if (!res.ok) return;
+        // ?statusOnly=true works without session — returns only paymentStatus/orderStatus
+        const res = await fetch(`/api/orders/${orderId}?statusOnly=true`);
+
+        if (res.status === 401) {
+          // Unauthenticated even on statusOnly — should not happen, but stop polling
+          setStatus('failed');
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          return;
+        }
+
+        if (!res.ok) return; // transient error — retry next tick
         const data = await res.json();
 
         if (data.paymentStatus === 'COMPLETED') {
-          // Payment confirmed by webhook — transition to success
-          setOrder(data);
+          // Payment confirmed — load full order details then go to success
+          const fullRes = await fetch(`/api/orders/${orderId}`);
+          if (fullRes.ok) setOrder(await fullRes.json());
           setStatus('success');
           if (pollingRef.current) clearInterval(pollingRef.current);
         } else if (data.paymentStatus === 'FAILED') {
-          setOrder(data);
           setStatus('failed');
           if (pollingRef.current) clearInterval(pollingRef.current);
         } else if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
-          // Timed out — show pending state and let user check orders
-          setOrder(data);
+          // Timed out — PhonePe didn't respond in 40 seconds
           setStatus('pending');
           if (pollingRef.current) clearInterval(pollingRef.current);
         }
@@ -173,9 +181,13 @@ function OrderConfirmationContent() {
           ) : isSuccess ? (
             <CheckCircle size={56} className="text-green-600 animate-bounce" />
           ) : isPending ? (
-            <Clock size={56} className="text-amber-500 animate-pulse" />
+            <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+              <XCircle size={30} className="text-red-500" strokeWidth={1.5} />
+            </div>
           ) : (
-            <XCircle size={56} className="text-red-600 animate-bounce" />
+            <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+              <XCircle size={30} className="text-red-600" strokeWidth={1.5} />
+            </div>
           )}
         </div>
         
@@ -197,7 +209,7 @@ function OrderConfirmationContent() {
             ? (language === 'te' ? 'మాతో కొనుగోలు చేసినందుకు ధన్యవాదాలు. మీ ఆర్డర్ కన్ఫర్మ్ చేయబడింది.' : 'Thank you for shopping with us. Your order has been confirmed.')
             : isPending
             ? (language === 'te' ? 'మీ చెల్లింపు ఇంకా ప్రాసెస్ అవుతోంది. దయచేసి కొంత సేపు వేచి ఉండండి.' : 'Your payment is still being processed. Please wait a moment or check your orders.')
-            : (language === 'te' ? 'క్షమించండి, మీ ఆన్‌లైన్ చెల్లింపు పూర్తి కాలేదు. మీ ఆర్డర్ ఇంకా కన్ఫర్మ్ కాలేదు — దయచేసి మళ్ళీ పే చేయండి లేదా కొత్త ఆర్డర్ పెట్టండి.' : 'Your payment was not completed. Your order is NOT confirmed — please retry payment or place a new order.')}
+            : (language === 'te' ? 'క్షమించండి, మీ ఆన్‌లైన్ చెల్లింపు పూర్తి కాలేదు. దయచేసి మళ్ళీ పే చేయండి లేదా కొత్త ఆర్డర్ పెట్టండి.' : 'Your payment was not completed. Your order is not confirmed — please retry payment or place a new order.')}
         </p>
       </div>
 
@@ -346,28 +358,61 @@ function OrderConfirmationContent() {
         </div>
       )}
 
-      {/* PENDING payment state */}
+      {/* PENDING/TIMEOUT state — payment not confirmed after polling */}
       {isPending && (
         <div className="text-center pt-6 space-y-5 max-w-sm mx-auto">
-          <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 space-y-3">
-            <Clock size={32} className="text-amber-600 mx-auto animate-pulse" />
-            <p className="text-sm font-bold text-amber-900">
-              {language === 'te' ? 'మీ చెల్లింపు ప్రాసెస్ చేయబడుతోంది' : 'Your payment is being processed'}
+          <div className="bg-red-50 border border-red-200 rounded-3xl p-6 space-y-4">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+              <XCircle size={24} className="text-red-600" />
+            </div>
+            <p className="text-sm font-extrabold text-red-800">
+              {language === 'te' ? '⚠️ మీ ఆర్డర్ కన్ఫర్మ్ కాలేదు!' : '⚠️ Payment Not Confirmed'}
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-600 font-semibold leading-relaxed">
               {language === 'te'
-                ? 'PhonePe చెల్లింపు ఇంకా పూర్తికాలేదు. మీ ఆర్డర్ హిస్టరీ చెక్ చేయండి.'
-                : 'PhonePe payment not yet complete. Check your order history for the latest status.'}
+                ? 'PhonePe నుండి చెల్లింపు నిర్ధారణ రాలేదు. దయచేసి మళ్ళీ ప్రయత్నించండి లేదా మీ ఆర్డర్ హిస్టరీ చెక్ చేయండి.'
+                : 'Payment confirmation was not received from PhonePe. Please retry payment or check your order history.'}
             </p>
+            {orderId && order && isOnlineOrder && order.paymentStatus !== 'COMPLETED' && (
+              <>
+                {retryError && <p className="text-xs text-red-600 font-semibold">{retryError}</p>}
+                <button
+                  onClick={handleRetryPayment}
+                  disabled={retrying}
+                  className="w-full flex items-center justify-center space-x-2 bg-amber-800 hover:bg-amber-700 disabled:bg-gray-300 text-white font-bold px-8 py-3 rounded-full text-sm shadow-sm transition-all"
+                >
+                  {retrying ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin text-white" />
+                      <span>{language === 'te' ? 'ప్రాసెస్ చేస్తున్నాం...' : 'Processing...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw size={14} />
+                      <span>{language === 'te' ? 'చెల్లింపు మళ్ళీ ప్రయత్నించు' : 'Retry Payment'}</span>
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+            <Link
+              href="/account?tab=orders"
+              className="inline-block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-8 py-3 rounded-full text-sm transition-all text-center"
+            >
+              {language === 'te' ? 'నా ఆర్డర్లు చూడు' : 'View My Orders'}
+            </Link>
           </div>
-          <Link
-            href="/account?tab=orders"
-            className="inline-block bg-amber-800 hover:bg-amber-700 text-white font-bold px-8 py-3 rounded-full text-xs sm:text-sm shadow-sm"
-          >
-            {language === 'te' ? 'నా ఆర్డర్లు చూడు' : 'View My Orders'}
-          </Link>
+          <div className="pt-2 text-xs text-gray-500 font-semibold flex items-center justify-center space-x-1">
+            <HelpCircle size={14} className="text-amber-700" />
+            <span>
+              {language === 'te'
+                ? 'సహాయం కొరకు వాట్సాప్ (+91 86882 91288) సంప్రదించండి'
+                : 'Contact WhatsApp (+91 86882 91288) for support'}
+            </span>
+          </div>
         </div>
       )}
+
 
       {/* FAILED payment state */}
       {isFailed && (
@@ -375,13 +420,13 @@ function OrderConfirmationContent() {
           {/* Retry Payment for online orders with known orderId */}
           {orderId && order && isOnlineOrder && order.paymentStatus !== 'COMPLETED' && (
             <div className="bg-red-50 border border-red-200 rounded-3xl p-6 space-y-4">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto">
-                <XCircle size={24} className="text-red-600" />
+              <div className="w-11 h-11 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+                <XCircle size={22} className="text-red-600" strokeWidth={1.5} />
               </div>
               <p className="text-sm font-extrabold text-red-800">
                 {language === 'te'
-                  ? '⚠️ మీ ఆర్డర్ కన్ఫర్మ్ కాలేదు!'
-                  : '⚠️ Your Order is NOT Confirmed!'}
+                  ? 'మీ ఆర్డర్ కన్ఫర్మ్ కాలేదు'
+                  : 'Order Not Confirmed'}
               </p>
               <p className="text-xs text-gray-600 font-semibold leading-relaxed">
                 {language === 'te'
@@ -412,7 +457,7 @@ function OrderConfirmationContent() {
                 href="/products"
                 className="w-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-8 py-3 rounded-full text-sm transition-all"
               >
-                {language === 'te' ? '🛒 నూతన ఆర్డర్ పెట్టు' : '🛒 Place a New Order'}
+                {language === 'te' ? 'కొత్త ఆర్డర్ పెట్టు' : 'Place a New Order'}
               </Link>
             </div>
           )}

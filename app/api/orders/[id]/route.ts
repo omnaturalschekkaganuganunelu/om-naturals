@@ -7,12 +7,25 @@ import { orderEmitter } from '@/lib/sse';
 // GET /api/orders/[id] - Fetch single order details
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const { id } = params;
+    const { searchParams } = new URL(req.url);
+
+    // Fast unauthenticated path: used by order-confirmation polling.
+    // Returns ONLY paymentStatus — no PII. The GUID orderId is the security token.
+    if (searchParams.get('statusOnly') === 'true') {
+      const row = await prisma.order.findFirst({
+        where: { OR: [{ id }, { orderId: id }] },
+        select: { paymentStatus: true, orderStatus: true, paymentMethod: true, orderId: true },
+      });
+      if (!row) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      return NextResponse.json(row);
+    }
+
+    // Full order details require auth
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const { id } = params;
 
     const order = await prisma.order.findFirst({
       where: {
@@ -290,7 +303,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           payBody = `We have received your payment for Order ${order.orderId}. Thank you!`;
         } else if (order.paymentStatus === 'FAILED') {
           payTitle = '❌ Payment Failed';
-          payBody = `The payment for Order ${order.orderId} failed or was declined. Please try again or choose COD.`;
+          payBody = `The payment for Order ${order.orderId} failed or was declined. Please try again using PhonePe.`;
         } else if (order.paymentStatus === 'REFUNDED') {
           payTitle = '💸 Payment Refunded';
           payBody = `Your payment for Order ${order.orderId} has been successfully refunded.`;

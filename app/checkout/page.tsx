@@ -47,13 +47,12 @@ export default function CheckoutPage() {
   const [locationStatus, setLocationStatus] = useState('');
 
   // Checkout states
-  const [paymentMethod, setPaymentMethod] = useState<'PHONEPE' | 'COD'>('PHONEPE');
+  const paymentMethod = 'PHONEPE' as const;
   const [placingOrder, setPlacingOrder] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
   const [checkoutEmail, setCheckoutEmail] = useState('');
 
   // Settings values — loaded dynamically from /api/settings
-  const [codEnabled, setCodEnabled] = useState(true);
   const [gstRate, setGstRateState] = useState(5);
   const [freeShippingAbove, setFreeShippingAbove] = useState(500);
   const [shippingFee, setShippingFeeState] = useState(30);
@@ -92,7 +91,7 @@ export default function CheckoutPage() {
         }
         setLoadingAddresses(false);
 
-        if (settingsData.codEnabled !== undefined) setCodEnabled(settingsData.codEnabled);
+        // COD is disabled site-wide — only PhonePe accepted
         if (settingsData.gstRate !== undefined) setGstRateState(settingsData.gstRate);
         if (settingsData.freeShippingAbove !== undefined) setFreeShippingAbove(settingsData.freeShippingAbove);
         if (settingsData.shippingFee !== undefined) setShippingFeeState(settingsData.shippingFee);
@@ -337,7 +336,7 @@ export default function CheckoutPage() {
     <>
       <Navbar />
 
-      <main className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 py-6 sm:py-8 flex-1">
+      <main className="max-w-screen-2xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
         <div className="mb-6">
           <BackButton />
         </div>
@@ -348,7 +347,7 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* Left Side: Address Selector & Payment selection */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-7 space-y-6">
             
             {/* Delivery Address Card */}
             <div className="bg-white border border-amber-100 rounded-3xl p-5 sm:p-6 smooth-shadow space-y-4">
@@ -614,16 +613,17 @@ export default function CheckoutPage() {
               <div className="space-y-3">
                 {/* PhonePe PG integration */}
                 <div
-                  onClick={() => setPaymentMethod('PHONEPE')}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                    paymentMethod === 'PHONEPE'
-                      ? 'border-amber-600 bg-amber-50/20'
-                      : 'border-amber-100 hover:border-amber-300'
-                  }`}
+                  className="p-4 rounded-2xl border border-amber-600 bg-amber-50/20 flex items-center justify-between"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="p-2.5 bg-purple-100 text-purple-700 rounded-xl">
-                      <CreditCard size={20} />
+                    <div className="w-16 h-10 flex items-center justify-center bg-white border border-amber-100 rounded-xl overflow-hidden px-1.5 py-0.5">
+                      <Image
+                        src="/images/phonepe-pg.png"
+                        alt="PhonePe PG Logo"
+                        width={64}
+                        height={40}
+                        className="object-contain w-full h-full"
+                      />
                     </div>
                     <div className="text-xs">
                       <p className="font-black text-amber-950">{t('checkout_phonepe')}</p>
@@ -637,39 +637,14 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                {/* Cash on Delivery (COD) */}
-                {codEnabled && (
-                  <div
-                    onClick={() => setPaymentMethod('COD')}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                      paymentMethod === 'COD'
-                        ? 'border-amber-600 bg-amber-50/20'
-                        : 'border-amber-100 hover:border-amber-300'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2.5 bg-green-100 text-green-700 rounded-xl">
-                        <Truck size={20} />
-                      </div>
-                      <div className="text-xs">
-                        <p className="font-black text-amber-950">{t('checkout_cod')}</p>
-                        <p className="text-gray-400 font-semibold mt-0.5">{t('checkout_cod_sub')}</p>
-                      </div>
-                    </div>
-                    {paymentMethod === 'COD' && (
-                      <div className="bg-amber-800 text-white p-0.5 rounded-full">
-                        <Check size={12} />
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* COD disabled — PhonePe only */}
               </div>
             </div>
 
           </div>
 
           {/* Right Side: Order Items Summary & Total Summary */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-5 space-y-6">
             
             <div className="bg-white border border-amber-100 rounded-3xl p-5 sm:p-6 smooth-shadow space-y-4">
               <h3 className="font-bold text-sm text-amber-950 border-b border-amber-50 pb-2">
@@ -677,28 +652,28 @@ export default function CheckoutPage() {
               </h3>
 
               {/* Items List mini */}
-              <div className="divide-y divide-amber-50 max-h-48 overflow-y-auto no-scrollbar">
+              <div className="divide-y divide-amber-50 max-h-72 overflow-y-auto no-scrollbar">
                 {items.map((item) => {
                   const Wrapper = item.slug ? Link : 'div';
                   return (
                     <Wrapper href={item.slug ? `/products/${item.slug}` : ''} key={item.productId} className={`flex justify-between items-center py-2 text-xs ${item.slug ? 'hover:bg-amber-50/50 cursor-pointer group transition-colors px-2 -mx-2 rounded-lg' : ''}`}>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 min-w-0 flex-1">
                         <Image
                           src={item.image}
                           alt=""
-                          width={32}
-                          height={32}
-                          className="w-8 h-8 rounded-lg object-cover border border-amber-50"
+                          width={40}
+                          height={40}
+                          className="w-10 h-10 rounded-xl object-cover border border-amber-100 shrink-0"
                           onError={(e) => {
                             (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                           }}
                         />
-                        <div className={`font-semibold text-amber-950 max-w-[150px] truncate ${item.slug ? 'group-hover:text-amber-700 transition-colors' : ''}`}>
-                          <p className="truncate font-bold">{language === 'te' ? item.nameTe : item.name}</p>
-                          <p className="text-[9px] text-amber-600 font-bold">{item.quantity} x ₹{item.price}</p>
+                        <div className={`min-w-0 flex-1 ${item.slug ? 'group-hover:text-amber-700 transition-colors' : ''}`}>
+                          <p className="truncate font-bold text-xs text-amber-950">{language === 'te' ? item.nameTe : item.name}</p>
+                          <p className="text-[10px] text-amber-600 font-bold mt-0.5">{item.quantity} x ₹{item.price}</p>
                         </div>
                       </div>
-                      <span className="font-bold text-amber-950">₹{item.price * item.quantity}</span>
+                      <span className="font-bold text-amber-950 shrink-0 ml-2">₹{item.price * item.quantity}</span>
                     </Wrapper>
                   );
                 })}

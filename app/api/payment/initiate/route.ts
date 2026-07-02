@@ -76,17 +76,15 @@ export async function POST(req: NextRequest) {
       console.timeEnd('[Performance] PhonePe SDK Pay API Request');
 
       if (result && result.redirectUrl) {
-        // Create payment record in PENDING state
-        console.time('[Performance] Database Payment Log Creation');
-        await prisma.payment.create({
+        // Fire-and-forget: Create payment log (non-blocking — user goes to PhonePe immediately)
+        prisma.payment.create({
           data: {
             orderId: order.id,
             merchantTransactionId,
             amount: order.total,
             status: 'PENDING',
           },
-        });
-        console.timeEnd('[Performance] Database Payment Log Creation');
+        }).catch((e: any) => console.error('Payment log creation failed:', e));
 
         return NextResponse.json({ url: result.redirectUrl, simulated: false });
       } else {
