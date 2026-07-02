@@ -65,6 +65,17 @@ export default function CheckoutPage() {
     }
   }, [authStatus, router]);
 
+  // Handle bfcache (user hits back button from PhonePe page)
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setPlacingOrder(false);
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   useEffect(() => {
     if (authStatus === 'authenticated') {
       if (items.length === 0 || items.some(item => item.isActive === false)) {

@@ -82,6 +82,12 @@ function OrderConfirmationContent() {
     const poll = async () => {
       pollAttemptsRef.current += 1;
 
+      if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
+        setStatus('pending');
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        return;
+      }
+
       try {
         // ?statusOnly=true works without session — returns only paymentStatus/orderStatus
         const res = await fetch(`/api/orders/${orderId}?statusOnly=true`);
@@ -104,10 +110,6 @@ function OrderConfirmationContent() {
           if (pollingRef.current) clearInterval(pollingRef.current);
         } else if (data.paymentStatus === 'FAILED') {
           setStatus('failed');
-          if (pollingRef.current) clearInterval(pollingRef.current);
-        } else if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
-          // Timed out — PhonePe didn't respond in 40 seconds
-          setStatus('pending');
           if (pollingRef.current) clearInterval(pollingRef.current);
         }
       } catch (err) {

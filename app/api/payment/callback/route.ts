@@ -56,11 +56,81 @@ export async function GET(req: NextRequest) {
       const state = result?.state?.toUpperCase();
 
       if (state === 'COMPLETED') {
-        // Payment actually succeeded (webhook was slow) — mark COMPLETED
-        await prisma.order.update({
-          where: { id: orderId },
-          data: { paymentStatus: 'COMPLETED', orderStatus: 'CONFIRMED' },
+        // Payment actually succeeded (webhook was slow) — mark COMPLETED and deduct inventory safely
+        await prisma.$transaction(async (tx) => {
+          const currentOrder = await tx.order.findUnique({ 
+            where: { id: orderId },
+            include: { items: true } 
+          });
+          if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
+            await tx.order.update({
+              where: { id: orderId },
+              data: { paymentStatus: 'COMPLETED', orderStatus: 'CONFIRMED' },
+            });
+
+            await tx.payment.update({
+              where: { merchantTransactionId: paymentRecord.merchantTransactionId },
+              data: {
+                status: 'COMPLETED',
+                providerResponse: JSON.stringify(result),
+              },
+            });
+
+            await tx.notification.create({
+              data: {
+                title: '💳 Payment Successful!',
+                body: `Your payment for Order ${currentOrder.orderId} was successful and your order is confirmed.`,
+                type: 'ORDER',
+                userId: currentOrder.userId,
+                orderId: currentOrder.id,
+              },
+            });
+
+            const admins = await tx.user.findMany({ where: { role: 'ADMIN' } });
+            for (const admin of admins) {
+              await tx.notification.create({
+                data: {
+                  title: '💰 Order Paid!',
+                  body: `Payment for Order ${currentOrder.orderId} (₹${currentOrder.total}) was successful.`,
+                  type: 'ORDER',
+                  userId: admin.id,
+                  orderId: currentOrder.id,
+                },
+              });
+            }
+
+            for (const item of currentOrder.items) {
+              const updatedProduct = await tx.product.update({
+                where: { id: item.productId },
+                data: {
+                  stock: { decrement: item.quantity },
+                  salesCount: { increment: item.quantity },
+                },
+              });
+
+              if (updatedProduct.stock < 0) {
+                console.error(`Insufficient stock for product ${updatedProduct.name} after order ${currentOrder.orderId}`);
+              }
+              if (updatedProduct.stock < 5 && admins.length > 0) {
+                await tx.notification.create({
+                  data: {
+                    title: '⚠️ Low Stock Alert!',
+                    body: `Product "${updatedProduct.name}" has critically low stock (${updatedProduct.stock} left).`,
+                    type: 'INFO',
+                    userId: admins[0].id,
+                  }
+                });
+              }
+            }
+          }
         });
+
+        // Fire and forget email
+        const user = await prisma.user.findUnique({ where: { id: order.userId } });
+        if (user?.email) {
+          sendOrderConfirmationEmail(orderId, user.email, user.name || 'Customer').catch(console.error);
+        }
+
         return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
 
       } else if (state === 'FAILED' || state === 'CANCELLED' || state === 'PAYMENT_CANCELLED') {
@@ -235,7 +305,7 @@ export async function POST(req: NextRequest) {
             });
 
             if (updatedProduct.stock < 0) {
-              throw new Error(`Insufficient stock for product ${updatedProduct.name}`);
+              console.error(`Insufficient stock for product ${updatedProduct.name} after order ${order.orderId}. Stock is now ${updatedProduct.stock}`);
             }
 
             if (updatedProduct.stock < 5) {
