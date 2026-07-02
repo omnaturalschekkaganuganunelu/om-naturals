@@ -143,29 +143,38 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify status securely with PhonePe API using SDK v2
-    let verifiedSuccess = false;
+    let verifiedState: 'COMPLETED' | 'FAILED' | 'PENDING' = 'PENDING';
 
     if (code === 'PAYMENT_SUCCESS' && success) {
       try {
         const client = getPhonePeClient();
         const verifyResult = await client.getOrderStatus(merchantTransactionId);
+        const state = verifyResult?.state?.toUpperCase();
 
-        if (verifyResult && verifyResult.state === 'COMPLETED') {
-          verifiedSuccess = true;
+        if (state === 'COMPLETED') {
+          verifiedState = 'COMPLETED';
           if (verifyResult.paymentDetails && verifyResult.paymentDetails.length > 0) {
             phonePeTransactionId = verifyResult.paymentDetails[0].transactionId || phonePeTransactionId;
           }
+        } else if (state === 'FAILED' || state === 'CANCELLED' || state === 'PAYMENT_CANCELLED') {
+          verifiedState = 'FAILED';
+        } else {
+          verifiedState = 'PENDING';
         }
       } catch (err) {
         console.error('PhonePe SDK status verification failed. Falling back to callback payload.', err);
         // Secure Guard: Only allow fallback in development/test mock setups, NEVER in production!
         if (process.env.NODE_ENV !== 'production' && code === 'PAYMENT_SUCCESS') {
-          verifiedSuccess = true;
+          verifiedState = 'COMPLETED';
+        } else {
+          verifiedState = 'PENDING';
         }
       }
+    } else if (code === 'PAYMENT_ERROR' || success === false) {
+      verifiedState = 'FAILED';
     }
 
-    if (verifiedSuccess) {
+    if (verifiedState === 'COMPLETED') {
       // Update Order in Transaction
       await prisma.$transaction(async (tx) => {
         const currentOrder = await tx.order.findUnique({ where: { id: orderId } });
@@ -252,7 +261,7 @@ export async function POST(req: NextRequest) {
       });
 
       return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
-    } else {
+    } else if (verifiedState === 'FAILED') {
       await prisma.order.update({
         where: { id: orderId },
         data: { paymentStatus: 'FAILED' },
@@ -283,6 +292,10 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=failed`, { status: 303 });
+    } else {
+      // State is PENDING (user paid but PhonePe is processing, or network timeout/check fail)
+      // DO NOT mark database order as FAILED. Keep it pending and redirect to verifying screen to poll.
+      return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=verifying`, { status: 303 });
     }
   } catch (error) {
     console.error('Error handling PhonePe payment callback:', error);
