@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { revalidatePath, unstable_cache } from 'next/cache';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,14 +40,15 @@ export async function GET(req: NextRequest) {
     }
 
     if (search) {
+      // PERFORMANCE: mode: 'insensitive' allows case-insensitive search so
+      // 'olive' matches 'Olive Oil' without extra client-side filtering.
       where.OR = [
-        { name: { contains: search } },
-        { nameTe: { contains: search } },
-        { description: { contains: search } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { nameTe: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
       ];
     }
 
-    // Filter by specific product IDs (used by cart to refresh stale images)
     if (idsParam) {
       const ids = idsParam.split(',').filter(Boolean);
       if (ids.length > 0) {
@@ -62,35 +63,27 @@ export async function GET(req: NextRequest) {
     } else if (sort === 'price-desc') {
       orderBy = { price: 'desc' };
     } else if (sort === 'popular') {
-      orderBy = { stock: 'asc' }; // Mock popularity by lower stock or other criteria
+      orderBy = { salesCount: 'desc' };
     }
 
-    // Create a unique cache key based on the parameters
-    const cacheKey = `products-${JSON.stringify(where)}-${JSON.stringify(orderBy)}`;
-
-    const getProductsData = unstable_cache(
-      async (whereQuery: any, orderByQuery: any) => {
-        const products = await prisma.product.findMany({
-          where: whereQuery,
-          orderBy: orderByQuery,
-          include: {
-            category: true,
-          },
-        });
-
-        return products.map((p) => ({
-          ...p,
-          images: JSON.parse(p.images),
-          benefits: JSON.parse(p.benefits),
-          ingredients: p.ingredients ? JSON.parse(p.ingredients) : [],
-          usage: p.usage ? JSON.parse(p.usage) : [],
-        }));
+    const products = await prisma.product.findMany({
+      where,
+      orderBy,
+      include: {
+        category: {
+          select: { id: true, name: true, nameTe: true, slug: true },
+        },
       },
-      [cacheKey],
-      { revalidate: 60, tags: ['products', cacheKey] }
-    );
+    });
 
-    const formattedProducts = await getProductsData(where, orderBy);
+    const formattedProducts = products.map((p) => ({
+      ...p,
+      images: JSON.parse(p.images),
+      benefits: JSON.parse(p.benefits),
+      benefitsTe: p.benefitsTe ? JSON.parse(p.benefitsTe) : [],
+      ingredients: p.ingredients ? JSON.parse(p.ingredients) : [],
+      usage: p.usage ? JSON.parse(p.usage) : [],
+    }));
 
     return NextResponse.json(formattedProducts);
   } catch (err: any) {

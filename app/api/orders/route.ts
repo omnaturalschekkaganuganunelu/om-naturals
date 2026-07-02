@@ -4,7 +4,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { orderEmitter } from '@/lib/sse';
 import { revalidatePath } from 'next/cache';
-import { sendEmail } from '@/lib/email';
 import { sendOrderConfirmationEmail } from '@/lib/orderEmail';
 
 export const dynamic = 'force-dynamic';
@@ -101,47 +100,53 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: 'உత్తర్వు సృష్టించడానికి దయచేసి లాగిన్ చేయండి. (Please log in to place an order)' }, { status: 401 });
+      return NextResponse.json({ error: 'Please log in to place an order' }, { status: 401 });
     }
 
     const body = await req.json();
     const { items, address, couponCode, paymentMethod, notes, email, language } = body;
 
-    const lang = language || 'te'; // Default to Telugu if not provided
+    const lang = language || 'te';
 
     if (!items || items.length === 0 || !address) {
       return NextResponse.json({ error: lang === 'en' ? 'Missing items or address details' : 'ఐటెమ్‌లు లేదా చిరునామా వివరాలు లేవు' }, { status: 400 });
     }
 
-    // If they supplied an email at checkout, update their profile email if they had a placeholder
+    // PERFORMANCE: Run user lookup and settings fetch in parallel
     let userEmail = session.user.email;
-    if (email && email.trim() !== '') {
-      const currentUser = await prisma.user.findUnique({
-        where: { id: session.user.id }
-      });
-      if (currentUser && currentUser.email.endsWith('@no-email.com')) {
-        // Enforce email uniqueness
-        const emailInUse = await prisma.user.findFirst({
-          where: { email: email.trim() }
+    const [currentUser, settings, couponRecord] = await Promise.all([
+      email && email.trim() !== ''
+        ? prisma.user.findUnique({ where: { id: session.user.id } })
+        : Promise.resolve(null),
+      prisma.siteSettings.findUnique({ where: { id: 'singleton' } }),
+      couponCode
+        ? prisma.coupon.findUnique({ where: { code: couponCode.trim().toUpperCase() } })
+        : Promise.resolve(null),
+    ]);
+
+    // Update email if user has placeholder
+    if (email && email.trim() !== '' && currentUser && currentUser.email.endsWith('@no-email.com')) {
+      const emailInUse = await prisma.user.findFirst({ where: { email: email.trim() } });
+      if (!emailInUse) {
+        await prisma.user.update({
+          where: { id: session.user.id },
+          data: { email: email.trim() }
         });
-        if (!emailInUse) {
-          await prisma.user.update({
-            where: { id: session.user.id },
-            data: { email: email.trim() }
-          });
-          userEmail = email.trim();
-        }
+        userEmail = email.trim();
       }
     }
 
-    // Fetch site settings
-    const settings = await prisma.siteSettings.findUnique({
-      where: { id: 'singleton' },
-    });
     const shippingFee = settings?.shippingFee ?? 30;
     const packingFee = settings?.packingFee ?? 20;
     const freeShippingAbove = settings?.freeShippingAbove ?? 500;
     const gstRate = settings?.gstRate ?? 5;
+
+    // PERFORMANCE: Fetch all required products in a single batch query instead of N serial queries
+    const productIds = items.map((i: any) => i.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
 
     // Verify products, stock, and calculate subtotal
     let subtotal = 0;
@@ -155,9 +160,7 @@ export async function POST(req: NextRequest) {
     }[] = [];
 
     for (const cartItem of items) {
-      const product = await prisma.product.findUnique({
-        where: { id: cartItem.productId },
-      });
+      const product = productMap.get(cartItem.productId);
 
       if (!product || !product.isActive) {
         const errorMsg = lang === 'en' 
@@ -176,46 +179,35 @@ export async function POST(req: NextRequest) {
       const itemTotal = product.price * cartItem.quantity;
       subtotal += itemTotal;
 
+      const images = JSON.parse(product.images);
       itemsToCreate.push({
         productId: product.id,
         name: product.name,
         nameTe: product.nameTe,
         price: product.price,
         quantity: cartItem.quantity,
-        image: JSON.parse(product.images)[0] || '',
+        image: images[0] || '',
       });
-
-      // Note: stock deduction happens ONLY:
-      //  - For COD orders: inside the transaction below (line 261)
-      //  - For PhonePe orders: in the callback/webhook AFTER payment is confirmed
-      // We do NOT deduct stock here to avoid phantom stock reduction on failed payments.
     }
 
     // Apply Coupon if applicable
     let discount = 0;
     let validCouponCode = null;
 
-    if (couponCode) {
-      const coupon = await prisma.coupon.findUnique({
-        where: { code: couponCode.trim().toUpperCase() },
-      });
-
-      if (coupon && coupon.isActive && subtotal >= coupon.minOrderValue) {
-        // Verify expiration
-        if (!coupon.expiresAt || new Date(coupon.expiresAt) >= new Date()) {
-          validCouponCode = coupon.code;
-          if (coupon.type === 'PERCENT') {
-            discount = (subtotal * coupon.value) / 100;
-            if (coupon.maxDiscount && discount > coupon.maxDiscount) {
-              discount = coupon.maxDiscount;
-            }
-          } else {
-            discount = coupon.value;
+    if (couponRecord && couponRecord.isActive && subtotal >= couponRecord.minOrderValue) {
+      if (!couponRecord.expiresAt || new Date(couponRecord.expiresAt) >= new Date()) {
+        validCouponCode = couponRecord.code;
+        if (couponRecord.type === 'PERCENT') {
+          discount = (subtotal * couponRecord.value) / 100;
+          if (couponRecord.maxDiscount && discount > couponRecord.maxDiscount) {
+            discount = couponRecord.maxDiscount;
           }
-          
-          if (discount > subtotal) {
-            discount = subtotal;
-          }
+        } else {
+          discount = couponRecord.value;
+        }
+        
+        if (discount > subtotal) {
+          discount = subtotal;
         }
       }
     }
@@ -232,7 +224,6 @@ export async function POST(req: NextRequest) {
     while (retries > 0) {
       try {
         order = await prisma.$transaction(async (tx) => {
-          // Get the next sequential number across all orders
           const orderCount = await tx.order.count();
           const nextNum = orderCount + 1;
           const serialStr = nextNum.toString().padStart(5, '0');
@@ -267,7 +258,6 @@ export async function POST(req: NextRequest) {
               paymentMethod,
               paymentStatus: 'PENDING',
               orderStatus: 'PENDING',
-              // COD gets an immediate alphanumeric reference; PhonePe will be set on payment success
               transactionRef: paymentMethod === 'COD' ? generateCODReference() : null,
               notes: notes || `Packing: ₹${packingFee} + Shipping: ₹${shipping}`,
               items: {
@@ -279,7 +269,7 @@ export async function POST(req: NextRequest) {
             },
           });
 
-          // 2. If COD, we can immediately deduct inventory stock and increment salesCount
+          // 2. For COD, deduct inventory immediately inside the transaction
           if (paymentMethod === 'COD') {
             for (const item of itemsToCreate) {
               const updatedProduct = await tx.product.update({
@@ -314,12 +304,11 @@ export async function POST(req: NextRequest) {
 
           return newOrder;
         });
-        break; // Successfully created, break retry loop
+        break;
       } catch (err: any) {
         if (err.code === 'P2002' && (err.meta?.target?.includes('orderId') || err.message?.includes('orderId'))) {
           retries--;
           if (retries === 0) throw err;
-          // Wait a tiny bit (50ms) and retry with the updated order count
           await new Promise((resolve) => setTimeout(resolve, 50));
         } else {
           throw err;
@@ -340,26 +329,24 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Auto-notify user and admin that order was placed (Only for COD instantly; PhonePe will be notified upon payment completion)
+    // PERFORMANCE: Notifications and email are fire-and-forget for both COD and PhonePe.
+    // This allows the API to return the order immediately so the client can redirect faster.
     if (paymentMethod === 'COD') {
-      try {
-        await prisma.notification.create({
-          data: {
-            title: '🛒 Order Placed Successfully!',
-            body: `Your order ${order.orderId} for ₹${order.total} has been placed. Pay on delivery. Expected delivery in 2-3 days.`,
-            type: 'ORDER',
-            userId: session.user.id,
-            orderId: order.id,
-          },
-        });
-      } catch (notifErr) {
-        console.error('Order-placed notification failed:', notifErr);
-      }
+      // Notifications — fire-and-forget
+      prisma.notification.create({
+        data: {
+          title: '🛒 Order Placed Successfully!',
+          body: `Your order ${order.orderId} for ₹${order.total} has been placed. Pay on delivery. Expected delivery in 2-3 days.`,
+          type: 'ORDER',
+          userId: session.user.id,
+          orderId: order.id,
+        },
+      }).catch((err: any) => console.error('Order-placed notification failed:', err));
 
-      try {
-        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
-        for (const admin of admins) {
-          await prisma.notification.create({
+      // Admin notifications — fire-and-forget
+      prisma.user.findMany({ where: { role: 'ADMIN' } }).then((admins) => {
+        return Promise.all(admins.map((admin) =>
+          prisma.notification.create({
             data: {
               title: `🛒 New Order Placed!`,
               body: `Order ${order.orderId} for ₹${order.total} has been placed by ${session.user.name || 'Customer'}.`,
@@ -367,22 +354,16 @@ export async function POST(req: NextRequest) {
               userId: admin.id,
               orderId: order.id,
             },
-          });
-        }
-      } catch (adminNotifErr) {
-        console.error('Admin order-placed notification failed:', adminNotifErr);
-      }
-    }
+          })
+        ));
+      }).catch((err: any) => console.error('Admin order-placed notification failed:', err));
 
-    // Instantly invalidate the cache globally so the frontend shows accurate live stock!
-    if (paymentMethod === 'COD') {
+      // Invalidate cache — fire-and-forget
       revalidatePath('/', 'layout');
-    }
 
-    // Send Order Confirmation Email immediately ONLY for COD
-    // Prepaid orders will send this email upon successful payment in the webhook
-    if (paymentMethod === 'COD') {
-      await sendOrderConfirmationEmail(order.id, userEmail as string, session.user.name as string);
+      // Confirmation email — fire-and-forget (SMTP can take 2-5s, don't block client)
+      sendOrderConfirmationEmail(order.id, userEmail as string, session.user.name as string)
+        .catch((err: any) => console.error('COD confirmation email failed:', err));
     }
 
     return NextResponse.json({

@@ -5,6 +5,9 @@ import { orderEmitter } from '@/lib/sse';
 import { sendOrderConfirmationEmail } from '@/lib/orderEmail';
 
 // GET handler: Handles user navigation back from PhonePe (browser GET instead of POST redirect)
+// PERFORMANCE: Redirects in < 100ms using a single DB read.
+// All heavy work (S2S verify, stock deduction, notifications, email) is handled
+// by the webhook at /api/payment/webhook which fires asynchronously from PhonePe.
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderId = searchParams.get('orderId');
@@ -22,9 +25,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Single lightweight DB read — select only the 2 fields we need.
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { items: true },
+      select: { id: true, paymentStatus: true },
     });
 
     if (!order) {
@@ -32,160 +36,19 @@ export async function GET(req: NextRequest) {
     }
 
     if (order.paymentStatus === 'COMPLETED') {
-      // Payment already processed (perhaps webhook fired first)
+      // Webhook already fired and processed — instant success redirect.
       return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
     }
 
-    // Since the database status is PENDING, query PhonePe Status API server-to-server directly!
-    // This resolves the local testing issue (since webhook cannot reach localhost) and acts as a fast-track callback fallback!
-    const payment = await prisma.payment.findFirst({
-      where: { orderId: order.id },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    let verifiedSuccess = false;
-    let verifiedFailure = false;
-    let phonePeTransactionId = null;
-
-    if (payment) {
-      try {
-        const client = getPhonePeClient();
-        const verifyResult = await client.getOrderStatus(payment.merchantTransactionId);
-        
-        if (verifyResult) {
-          if (verifyResult.state === 'COMPLETED') {
-            verifiedSuccess = true;
-            if (verifyResult.paymentDetails && verifyResult.paymentDetails.length > 0) {
-              phonePeTransactionId = verifyResult.paymentDetails[0].transactionId || null;
-            }
-          } else if (verifyResult.state === 'FAILED') {
-            verifiedFailure = true;
-          }
-        }
-      } catch (err) {
-        console.error('GET Callback: Error calling PhonePe status API:', err);
-      }
-    }
-
-    if (verifiedSuccess) {
-      // Update order and payment to COMPLETED in database
-      await prisma.$transaction(async (tx) => {
-        const currentOrder = await tx.order.findUnique({ where: { id: orderId } });
-        if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
-          // Update order status
-          await tx.order.update({
-            where: { id: orderId },
-            data: {
-              paymentStatus: 'COMPLETED',
-              orderStatus: 'CONFIRMED',
-              transactionRef: phonePeTransactionId,
-            },
-          });
-
-          // Update payment record
-          if (payment) {
-            await tx.payment.update({
-              where: { id: payment.id },
-              data: {
-                status: 'COMPLETED',
-              },
-            });
-          }
-
-          // Notify customer
-          await tx.notification.create({
-            data: {
-              title: '💳 Payment Successful!',
-              body: `Your payment for Order ${order.orderId} was successful and your order is confirmed.`,
-              type: 'ORDER',
-              userId: order.userId,
-              orderId: order.id,
-            },
-          });
-
-          // Notify admins
-          const admins = await tx.user.findMany({ where: { role: 'ADMIN' } });
-          for (const admin of admins) {
-            await tx.notification.create({
-              data: {
-                title: '💰 Order Paid!',
-                body: `Payment for Order ${order.orderId} (₹${order.total}) was successful.`,
-                type: 'ORDER',
-                userId: admin.id,
-                orderId: order.id,
-              },
-            });
-          }
-
-          // Deduct stock
-          for (const item of order.items) {
-            const updatedProduct = await tx.product.update({
-              where: { id: item.productId },
-              data: {
-                stock: { decrement: item.quantity },
-                salesCount: { increment: item.quantity },
-              },
-            });
-
-            if (updatedProduct.stock < 0) {
-              throw new Error(`Insufficient stock for product ${updatedProduct.name}`);
-            }
-
-            if (updatedProduct.stock < 5) {
-              const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });
-              if (admin) {
-                await tx.notification.create({
-                  data: {
-                    title: '⚠️ Low Stock Alert!',
-                    body: `Product "${updatedProduct.name}" has critically low stock (${updatedProduct.stock} left).`,
-                    type: 'INFO',
-                    userId: admin.id,
-                  }
-                });
-              }
-            }
-          }
-        }
-      });
-
-      // Send Order Confirmation Email
-      try {
-        const orderUser = await prisma.user.findUnique({ where: { id: order.userId } });
-        if (orderUser && orderUser.email && orderUser.name) {
-          await sendOrderConfirmationEmail(order.id, orderUser.email, orderUser.name);
-        }
-      } catch (emailErr) {
-        console.error('GET Callback: Failed to send confirmation email:', emailErr);
-      }
-
-      // Broadcast SSE notification
-      orderEmitter.emit('order-update', {
-        orderId: order.id,
-        status: 'CONFIRMED',
-        updatedAt: new Date().toISOString(),
-      });
-
-      return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
-
-    } else if (verifiedFailure) {
-      // Process payment failure
-      await prisma.order.update({
-        where: { id: orderId },
-        data: { paymentStatus: 'FAILED' },
-      });
-
-      if (payment) {
-        await prisma.payment.update({
-          where: { id: payment.id },
-          data: { status: 'FAILED' },
-        });
-      }
-
+    if (order.paymentStatus === 'FAILED') {
+      // Webhook already marked it failed.
       return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=failed`, { status: 303 });
-    } else {
-      // Payment still pending — redirect to order-confirmation with pending status
-      return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=pending`, { status: 303 });
     }
+
+    // Payment still PENDING (webhook not yet fired or in-flight).
+    // Redirect instantly to "verifying" state — the client page will poll
+    // /api/orders/[id] every 2 seconds and auto-transition to success or failed.
+    return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=verifying`, { status: 303 });
 
   } catch (err) {
     console.error('GET Callback: Error checking order status:', err);
@@ -223,8 +86,8 @@ export async function POST(req: NextRequest) {
 
     const { code, success, data } = decodedJson;
     const merchantTransactionId = data?.merchantTransactionId;
-    let phonePeTransactionId = data?.transactionId || null; // PhonePe's own transaction ID
-    const paymentAmount = data?.amount ? data.amount / 100 : 0; // convert paise back to INR
+    let phonePeTransactionId = data?.transactionId || null;
+    const paymentAmount = data?.amount ? data.amount / 100 : 0;
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -235,7 +98,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(`${appUrl}/order-confirmation?status=error&msg=OrderNotFound`, { status: 303 });
     }
 
-    // Verify status securely with PhonePe API (Double check status) using SDK v2
+    // Verify status securely with PhonePe API using SDK v2
     let verifiedSuccess = false;
 
     if (code === 'PAYMENT_SUCCESS' && success) {
@@ -245,26 +108,24 @@ export async function POST(req: NextRequest) {
 
         if (verifyResult && verifyResult.state === 'COMPLETED') {
           verifiedSuccess = true;
-          // Retrieve final transaction details from PhonePe server response
           if (verifyResult.paymentDetails && verifyResult.paymentDetails.length > 0) {
             phonePeTransactionId = verifyResult.paymentDetails[0].transactionId || phonePeTransactionId;
           }
         }
       } catch (err) {
         console.error('PhonePe SDK status verification failed. Falling back to callback payload.', err);
-        // Fallback to signature check (if connection failed, trust payload in UAT sandbox)
-        if (code === 'PAYMENT_SUCCESS') {
+        // Secure Guard: Only allow fallback in development/test mock setups, NEVER in production!
+        if (process.env.NODE_ENV !== 'production' && code === 'PAYMENT_SUCCESS') {
           verifiedSuccess = true;
         }
       }
     }
 
     if (verifiedSuccess) {
-      // 1. Update Order in Transaction (Deduct stock for online payments on success)
+      // Update Order in Transaction
       await prisma.$transaction(async (tx) => {
         const currentOrder = await tx.order.findUnique({ where: { id: orderId } });
         if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
-          // Update order status and save PhonePe transaction ID
           await tx.order.update({
             where: { id: orderId },
             data: {
@@ -274,7 +135,6 @@ export async function POST(req: NextRequest) {
             },
           });
 
-          // Create payment confirmation log
           await tx.payment.upsert({
             where: { merchantTransactionId },
             update: { status: 'COMPLETED', providerResponse: JSON.stringify(decodedJson) },
@@ -287,7 +147,6 @@ export async function POST(req: NextRequest) {
             },
           });
 
-          // Notify customer
           await tx.notification.create({
             data: {
               title: '💳 Payment Successful!',
@@ -298,7 +157,6 @@ export async function POST(req: NextRequest) {
             },
           });
 
-          // Notify admins
           const admins = await tx.user.findMany({ where: { role: 'ADMIN' } });
           for (const admin of admins) {
             await tx.notification.create({
@@ -312,7 +170,6 @@ export async function POST(req: NextRequest) {
             });
           }
 
-          // Deduct inventory stock and increment salesCount (only on confirmed PhonePe payment)
           for (const item of order.items) {
             const updatedProduct = await tx.product.update({
               where: { id: item.productId },
@@ -350,16 +207,13 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date().toISOString(),
       });
 
-      // Redirect to order confirmation page to show success pop-up and clear cart
       return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
     } else {
-      // Mark payment as FAILED
       await prisma.order.update({
         where: { id: orderId },
         data: { paymentStatus: 'FAILED' },
       });
 
-      // Notify customer of payment failure
       await prisma.notification.create({
         data: {
           title: '❌ Payment Failed',

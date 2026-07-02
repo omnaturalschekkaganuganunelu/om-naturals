@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { CheckCircle, XCircle, FileText, MapPin, Calendar, HelpCircle, ArrowRight, RefreshCw, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, MapPin, Calendar, HelpCircle, ArrowRight, RefreshCw, Clock, Loader2 } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
 import confetti from 'canvas-confetti';
 import { useLanguage } from '@/context/LanguageContext';
@@ -16,19 +16,35 @@ function OrderConfirmationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = searchParams.get('orderId') || '';
-  const status = searchParams.get('status') || 'success';
+  const initialStatus = searchParams.get('status') || 'success';
   const { language, t } = useLanguage();
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState(initialStatus);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState('');
+  const [verifyingDots, setVerifyingDots] = useState('');
 
-  // Trigger Confetti on Load for Successful Payments/Orders
   const { clearCart } = useCartStore();
+  const confettiFiredRef = useRef(false);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollAttemptsRef = useRef(0);
+  const MAX_POLL_ATTEMPTS = 20; // Poll for up to 40 seconds (20 × 2s)
 
+  // Animated dots for the verifying state
   useEffect(() => {
-    if (status === 'success') {
+    if (status !== 'verifying') return;
+    const interval = setInterval(() => {
+      setVerifyingDots((d) => (d.length >= 3 ? '' : d + '.'));
+    }, 500);
+    return () => clearInterval(interval);
+  }, [status]);
+
+  // Fire confetti on success (only once)
+  useEffect(() => {
+    if (status === 'success' && !confettiFiredRef.current) {
+      confettiFiredRef.current = true;
       clearCart();
       confetti({
         particleCount: 150,
@@ -57,6 +73,48 @@ function OrderConfirmationContent() {
         setLoading(false);
       });
   }, [orderId]);
+
+  // SMART POLLING: When status is 'verifying', poll the order status API
+  // every 2 seconds until the webhook has processed the payment.
+  useEffect(() => {
+    if (status !== 'verifying' || !orderId) return;
+
+    const poll = async () => {
+      pollAttemptsRef.current += 1;
+
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.paymentStatus === 'COMPLETED') {
+          // Payment confirmed by webhook — transition to success
+          setOrder(data);
+          setStatus('success');
+          if (pollingRef.current) clearInterval(pollingRef.current);
+        } else if (data.paymentStatus === 'FAILED') {
+          setOrder(data);
+          setStatus('failed');
+          if (pollingRef.current) clearInterval(pollingRef.current);
+        } else if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
+          // Timed out — show pending state and let user check orders
+          setOrder(data);
+          setStatus('pending');
+          if (pollingRef.current) clearInterval(pollingRef.current);
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    };
+
+    // Start polling immediately, then every 2 seconds
+    poll();
+    pollingRef.current = setInterval(poll, 2000);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [status, orderId]);
 
   // Retry payment handler for failed online orders
   const handleRetryPayment = async () => {
@@ -97,6 +155,7 @@ function OrderConfirmationContent() {
 
   const isSuccess = status === 'success';
   const isPending = status === 'pending';
+  const isVerifying = status === 'verifying';
   const isFailed = status === 'failed' || status === 'error';
   const isOnlineOrder = order?.paymentMethod === 'PHONEPE';
 
@@ -106,7 +165,12 @@ function OrderConfirmationContent() {
       {/* Outcome Banner */}
       <div className="text-center space-y-3 mb-10">
         <div className="flex justify-center">
-          {isSuccess ? (
+          {isVerifying ? (
+            <div className="relative">
+              <div className="w-14 h-14 rounded-full border-4 border-amber-200 border-t-amber-700 animate-spin" />
+              <Loader2 size={24} className="absolute inset-0 m-auto text-amber-700 opacity-0" />
+            </div>
+          ) : isSuccess ? (
             <CheckCircle size={56} className="text-green-600 animate-bounce" />
           ) : isPending ? (
             <Clock size={56} className="text-amber-500 animate-pulse" />
@@ -116,20 +180,49 @@ function OrderConfirmationContent() {
         </div>
         
         <h1 className="text-2xl sm:text-3xl font-extrabold text-amber-950 font-heading">
-          {isSuccess
+          {isVerifying
+            ? (language === 'te' ? 'చెల్లింపు వెరిఫై చేస్తున్నాం' : `Verifying Payment${verifyingDots}`)
+            : isSuccess
             ? (language === 'te' ? 'ఆర్డర్ విజయవంతంగా సమర్పించబడింది!' : 'Order Placed Successfully!')
             : isPending
             ? (language === 'te' ? 'చెల్లింపు పెండింగ్లో ఉంది' : 'Payment Pending')
             : (language === 'te' ? 'చెల్లింపు విఫలమైంది' : 'Payment Failed')}
         </h1>
         <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
-          {isSuccess
+          {isVerifying
+            ? (language === 'te'
+                ? 'మీ చెల్లింపు నిర్ధారించబడుతోంది. దయచేసి వేచి ఉండండి — ఈ పేజీ ఆటోమేటిగ్గా అప్‌డేట్ అవుతుంది.'
+                : 'Your payment is being confirmed. Please wait — this page updates automatically.')
+            : isSuccess
             ? (language === 'te' ? 'మాతో కొనుగోలు చేసినందుకు ధన్యవాదాలు. మీ ఆర్డర్ కన్ఫర్మ్ చేయబడింది.' : 'Thank you for shopping with us. Your order has been confirmed.')
             : isPending
             ? (language === 'te' ? 'మీ చెల్లింపు ఇంకా ప్రాసెస్ అవుతోంది. దయచేసి కొంత సేపు వేచి ఉండండి.' : 'Your payment is still being processed. Please wait a moment or check your orders.')
             : (language === 'te' ? 'క్షమించండి, మీ ఆన్‌లైన్ చెల్లింపు పూర్తి కాలేదు. మీ ఆర్డర్ ఇంకా కన్ఫర్మ్ కాలేదు — దయచేసి మళ్ళీ పే చేయండి లేదా కొత్త ఆర్డర్ పెట్టండి.' : 'Your payment was not completed. Your order is NOT confirmed — please retry payment or place a new order.')}
         </p>
       </div>
+
+      {/* VERIFYING STATE */}
+      {isVerifying && (
+        <div className="text-center pt-2 space-y-5 max-w-sm mx-auto">
+          <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 space-y-4">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-full bg-amber-100 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-amber-600 h-full rounded-full animate-pulse" style={{ width: `${Math.min((pollAttemptsRef.current / MAX_POLL_ATTEMPTS) * 100, 95)}%`, transition: 'width 2s linear' }} />
+              </div>
+              <p className="text-xs text-amber-700 font-semibold">
+                {language === 'te'
+                  ? 'PhonePe నుండి నిర్ధారణ కోసం వేచి ఉంది...'
+                  : 'Awaiting confirmation from PhonePe...'}
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 font-semibold">
+            {language === 'te'
+              ? 'ఈ పేజీ మూయవద్దు — చెల్లింపు నిర్ధారణ అయిన వెంటనే స్వయంచాలకంగా అప్‌డేట్ అవుతుంది.'
+              : "Don't close this page — it will automatically update once your payment is confirmed."}
+          </p>
+        </div>
+      )}
 
       {isSuccess && order && (
         <div className="space-y-6">

@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import { useLanguage } from '@/context/LanguageContext';
-import { Search, Filter, ArrowUpDown, LayoutGrid } from 'lucide-react';
+import { Search, Filter, ArrowUpDown } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomSelect from '@/components/CustomSelect';
 import { useGroupedProducts } from '@/hooks/useGroupedProducts';
@@ -21,21 +21,14 @@ function ProductListingContent() {
   const initialCategory = searchParams.get('category') || '';
   const initialSearch   = searchParams.get('search')   || '';
 
-  const [products,           setProducts]           = useState<any[]>([]);
+  const [allProducts,        setAllProducts]        = useState<any[]>([]);
   const [categories,         setCategories]         = useState<any[]>([]);
   const [loading,            setLoading]            = useState(true);
-  const [isFetching,         setIsFetching]         = useState(false);
   const [category,           setCategory]           = useState(initialCategory);
   const [search,             setSearch]             = useState(initialSearch);
   const [sort,               setSort]               = useState('newest');
   const [maxPrice,           setMaxPrice]           = useState(2500);
   const [mobileFiltersOpen,  setMobileFiltersOpen]  = useState(false);
-
-  // Use a ref to store products length to avoid referencing products state directly inside the debounced search useEffect.
-  const productsLengthRef = useRef(0);
-  useEffect(() => {
-    productsLengthRef.current = products.length;
-  }, [products]);
 
   // Sync with URL params
   useEffect(() => {
@@ -51,36 +44,80 @@ function ProductListingContent() {
       .catch(console.error);
   }, []);
 
-  // Load products whenever filters change (debounced to prevent API spam)
+  // PERFORMANCE: Fetch all products once on initial mount
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (productsLengthRef.current === 0) setLoading(true);
-      else setIsFetching(true);
-      
-      const p = new URLSearchParams();
-      if (category) p.append('category', category);
-      if (search)   p.append('search',   search);
-      if (sort)     p.append('sort',     sort);
-      if (maxPrice) p.append('maxPrice', maxPrice.toString());
+    setLoading(true);
+    fetch('/api/products')
+      .then((r) => r.json())
+      .then((data) => {
+        setAllProducts(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error fetching products:', err);
+        setLoading(false);
+      });
+  }, []);
 
-      fetch(`/api/products?${p}`)
-        .then((r) => r.json())
-        .then((data) => { setProducts(data); setLoading(false); setIsFetching(false); })
-        .catch(() => { setLoading(false); setIsFetching(false); });
-    }, 400); // 400ms debounce
+  // PERFORMANCE: Instant client-side search and filtering using useMemo
+  const filteredProducts = useMemo(() => {
+    return allProducts.filter((product) => {
+      // Category match
+      if (category) {
+        if (!product.category || product.category.slug !== category) {
+          return false;
+        }
+      }
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [category, search, sort, maxPrice]);
+      // Price match
+      if (maxPrice && product.price > maxPrice) {
+        return false;
+      }
+
+      // Search match (Case-insensitive)
+      if (search) {
+        const query = search.toLowerCase().trim();
+        const nameMatch = product.name?.toLowerCase().includes(query);
+        const nameTeMatch = product.nameTe?.toLowerCase().includes(query);
+        const descMatch = product.description?.toLowerCase().includes(query);
+        if (!nameMatch && !nameTeMatch && !descMatch) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [allProducts, category, search, maxPrice]);
+
+  // PERFORMANCE: Instant client-side sorting using useMemo
+  const sortedProducts = useMemo(() => {
+    const list = [...filteredProducts];
+    if (sort === 'price-asc') {
+      list.sort((a, b) => a.price - b.price);
+    } else if (sort === 'price-desc') {
+      list.sort((a, b) => b.price - a.price);
+    } else if (sort === 'popular') {
+      list.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
+    } else {
+      // Newest
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    return list;
+  }, [filteredProducts, sort]);
 
   const clearFilters = () => {
-    setCategory(''); setSearch(''); setSort('newest'); setMaxPrice(2500);
+    setCategory('');
+    setSearch('');
+    setSort('newest');
+    setMaxPrice(2500);
     router.push('/products');
   };
 
+  // Real-time stock and status updates via Supabase
   useRealtime('Product', '*', (payload) => {
     if (payload.eventType === 'UPDATE') {
       const updated = payload.new;
-      setProducts((prev) =>
+      setAllProducts((prev) =>
         prev.map((p) => {
           if (p.id === updated.id) {
             return {
@@ -104,14 +141,14 @@ function ProductListingContent() {
         ingredients: typeof newProd.ingredients === 'string' ? JSON.parse(newProd.ingredients || '[]') : newProd.ingredients,
         usage: typeof newProd.usage === 'string' ? JSON.parse(newProd.usage || '[]') : newProd.usage,
       };
-      setProducts((prev) => [formatted, ...prev]);
+      setAllProducts((prev) => [formatted, ...prev]);
     } else if (payload.eventType === 'DELETE') {
-      setProducts((prev) => prev.filter((p) => p.id !== payload.old.id));
+      setAllProducts((prev) => prev.filter((p) => p.id !== payload.old.id));
     }
   });
 
   // Group variants client-side
-  const grouped = useGroupedProducts(products);
+  const grouped = useGroupedProducts(sortedProducts);
 
   const categoryLabel = useMemo(() => {
     if (!category) return t('products_title');
@@ -133,7 +170,7 @@ function ProductListingContent() {
             <span className="font-bold text-amber-900">&quot;{search}&quot;</span>
           </p>
         )}
-        {!loading && products.length > 0 && (
+        {!loading && sortedProducts.length > 0 && (
           <p className="text-xs text-gray-400 mt-1 font-semibold">
             {grouped.length} product{grouped.length !== 1 ? 's' : ''} found
           </p>
@@ -271,6 +308,7 @@ function ProductListingContent() {
                   { value: 'newest',     label: t('products_sort_newest') },
                   { value: 'price-asc',  label: t('products_sort_price_asc') },
                   { value: 'price-desc', label: t('products_sort_price_desc') },
+                  { value: 'popular',    label: t('products_sort_popular') },
                 ]}
                 className="w-36"
               />
@@ -359,7 +397,7 @@ function ProductListingContent() {
               </button>
             </div>
           ) : (
-            <div className={`grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 animate-fade-in-up transition-opacity duration-300 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 animate-fade-in-up">
               {grouped.map((grp) => (
                 <ProductCard key={grp.groupKey} group={grp} />
               ))}

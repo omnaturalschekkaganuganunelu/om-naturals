@@ -74,39 +74,34 @@ export default function CheckoutPage() {
     }
   }, [items, authStatus, router]);
 
-  // Load Saved Addresses and Site Settings
+  // Load Saved Addresses and Site Settings (in parallel for faster checkout load)
   useEffect(() => {
     if (authStatus !== 'authenticated') return;
 
-    // Fetch addresses
-    fetch('/api/addresses')
-      .then((res) => res.json())
-      .then((data) => {
-        setAddresses(data);
-        const defaultAddr = data.find((a: any) => a.isDefault);
+    Promise.all([
+      fetch('/api/addresses').then((r) => r.json()),
+      fetch('/api/settings').then((r) => r.json()),
+    ])
+      .then(([addressData, settingsData]) => {
+        setAddresses(addressData);
+        const defaultAddr = addressData.find((a: any) => a.isDefault);
         if (defaultAddr) {
           setSelectedAddressId(defaultAddr.id);
-        } else if (data.length > 0) {
-          setSelectedAddressId(data[0].id);
+        } else if (addressData.length > 0) {
+          setSelectedAddressId(addressData[0].id);
         }
         setLoadingAddresses(false);
+
+        if (settingsData.codEnabled !== undefined) setCodEnabled(settingsData.codEnabled);
+        if (settingsData.gstRate !== undefined) setGstRateState(settingsData.gstRate);
+        if (settingsData.freeShippingAbove !== undefined) setFreeShippingAbove(settingsData.freeShippingAbove);
+        if (settingsData.shippingFee !== undefined) setShippingFeeState(settingsData.shippingFee);
+        if (settingsData.packingFee !== undefined) setPackingFeeState(settingsData.packingFee);
       })
       .catch((err) => {
-        console.error('Error fetching addresses:', err);
+        console.error('Error loading checkout data:', err);
         setLoadingAddresses(false);
       });
-
-    // Fetch settings
-    fetch('/api/settings')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.codEnabled !== undefined) setCodEnabled(data.codEnabled);
-        if (data.gstRate !== undefined) setGstRateState(data.gstRate);
-        if (data.freeShippingAbove !== undefined) setFreeShippingAbove(data.freeShippingAbove);
-        if (data.shippingFee !== undefined) setShippingFeeState(data.shippingFee);
-        if (data.packingFee !== undefined) setPackingFeeState(data.packingFee);
-      })
-      .catch((err) => console.error('Error fetching settings:', err));
   }, [authStatus]);
 
   // Handle Form Change

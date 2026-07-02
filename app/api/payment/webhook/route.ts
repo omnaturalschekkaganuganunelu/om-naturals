@@ -91,8 +91,8 @@ export async function POST(req: NextRequest) {
         }
       } catch (err) {
         console.error('Webhook: PhonePe status API check failed. Falling back to body success code.', err);
-        // Fallback for mock/simulation modes where status check might fail
-        if (code === 'PAYMENT_SUCCESS') {
+        // Secure Guard: Only allow fallback in development/test mock setups, NEVER in production!
+        if (process.env.NODE_ENV !== 'production' && code === 'PAYMENT_SUCCESS') {
           verifiedSuccess = true;
         }
       }
@@ -177,22 +177,22 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      // Send Order Confirmation Email now that payment is confirmed
-      try {
-        const orderUser = await prisma.user.findUnique({ where: { id: order.userId } });
-        if (orderUser && orderUser.email && orderUser.name) {
-          await sendOrderConfirmationEmail(order.id, orderUser.email, orderUser.name);
-        }
-      } catch (e) {
-        console.error('Webhook: failed to send confirmation email', e);
-      }
-
-      // Broadcast SSE notification
+      // Broadcast SSE notification immediately
       orderEmitter.emit('order-update', {
         orderId: order.id,
         status: 'CONFIRMED',
         updatedAt: new Date().toISOString(),
       });
+
+      // Send email fire-and-forget — do NOT await, so PhonePe gets a fast 200 OK
+      // and doesn't retry the webhook due to slow SMTP response times.
+      prisma.user.findUnique({ where: { id: order.userId } }).then((orderUser) => {
+        if (orderUser && orderUser.email && orderUser.name) {
+          sendOrderConfirmationEmail(order.id, orderUser.email, orderUser.name).catch((e) =>
+            console.error('Webhook: failed to send confirmation email', e)
+          );
+        }
+      }).catch(console.error);
 
       return NextResponse.json({ success: true, message: 'Payment webhook processed successfully' });
     } else {
