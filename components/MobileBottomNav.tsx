@@ -2,16 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, Droplet, Droplets, ShoppingCart, User } from 'lucide-react';
-import { useCartStore } from '@/store/cartStore';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Home, Droplet, ClipboardList, User } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { t } = useLanguage();
 
-  const cartItemsCount = useCartStore((state) => state.getCartCount());
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -26,8 +25,8 @@ export default function MobileBottomNav() {
   // Determine active states
   const isHome = pathname === '/';
   const isOils = pathname === '/products';
-  const isCart = pathname === '/cart';
-  const isAccount = pathname === '/account' || pathname === '/login';
+  const isOrders = pathname === '/account' && searchParams.get('tab') === 'orders';
+  const isAccount = (pathname === '/account' && searchParams.get('tab') !== 'orders') || pathname === '/login';
 
   const items = [
     {
@@ -43,19 +42,10 @@ export default function MobileBottomNav() {
       icon: <Droplet size={20} className={isOils ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />,
     },
     {
-      label: t('nav_cart_mobile'),
-      href: '/cart',
-      active: isCart,
-      icon: (
-        <div className="relative">
-          <ShoppingCart size={20} className={isCart ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />
-          {mounted && cartItemsCount > 0 && (
-            <span className="absolute -top-2.5 -right-2.5 bg-gradient-to-br from-amber-600 to-amber-700 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border border-white shadow-sm">
-              {cartItemsCount}
-            </span>
-          )}
-        </div>
-      ),
+      label: t('nav_track_mobile'),
+      href: '/account?tab=orders',
+      active: isOrders,
+      icon: <ClipboardList size={20} className={isOrders ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />,
     },
     {
       label: t('nav_account_mobile'),

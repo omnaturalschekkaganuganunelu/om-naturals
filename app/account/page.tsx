@@ -29,6 +29,7 @@ import {
   AlertTriangle,
   Clock,
   Truck,
+  RefreshCw,
   Bell,
   CheckCheck,
   Tag
@@ -218,6 +219,9 @@ function AccountContent() {
 
   // Search query for orders
   const [searchQuery, setSearchQuery] = useState('');
+  const [trackInputId, setTrackInputId] = useState('');
+  const [trackInputError, setTrackInputError] = useState('');
+  const [trackingFromInput, setTrackingFromInput] = useState(false);
 
   // Toast notifications state
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -841,6 +845,52 @@ function AccountContent() {
     setIsTrackingOpen(true);
   };
 
+  const handleTrackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTrackInputError('');
+    const cleanId = trackInputId.trim();
+    if (!cleanId) {
+      setTrackInputError(language === 'te' ? 'దయచేసి ఆర్డర్ ఐడీని నమోదు చేయండి.' : 'Please enter an Order ID or Tracking ID.');
+      return;
+    }
+
+    setTrackingFromInput(true);
+    
+    // 1. Search locally first
+    const localFound = orders.find(
+      (o) => o.orderId === cleanId || getTrackingId(o.orderId) === cleanId || o.id === cleanId
+    );
+
+    if (localFound) {
+      setTrackingOrder(localFound);
+      setIsTrackingOpen(true);
+      setTrackingFromInput(false);
+      return;
+    }
+
+    // 2. Fetch from database if not found locally
+    try {
+      const res = await fetch(`/api/orders/${cleanId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTrackingOrder(data);
+        setIsTrackingOpen(true);
+      } else {
+        setTrackInputError(
+          language === 'te'
+            ? 'ఆర్డర్ కనుగొనబడలేదు. దయచేసి సరైన ఐడీని నమోదు చేయండి.'
+            : 'Order not found. Please verify the ID.'
+        );
+      }
+    } catch (err) {
+      setTrackInputError(
+        language === 'te' ? 'కనెక్షన్ లోపం.' : 'Failed to fetch tracking details.'
+      );
+    } finally {
+      setTrackingFromInput(false);
+    }
+  };
+
   // Expand / collapse order card
   const toggleOrderExpand = (orderId: string) => {
     setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
@@ -998,6 +1048,16 @@ function AccountContent() {
             <Package size={16} />
             <span>{t('account_my_orders')}</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('track')}
+            className={`w-full text-left text-xs font-bold py-3 px-4 rounded-2xl flex items-center space-x-2.5 transition-colors ${
+              activeTab === 'track' ? 'bg-amber-100 text-amber-900 font-extrabold' : 'text-amber-900 hover:bg-amber-50'
+            }`}
+          >
+            <Truck size={16} />
+            <span>{language === 'te' ? 'ఆర్డర్ ట్రాక్ చేయండి' : 'Track Order'}</span>
+          </button>
           
           <button
             onClick={() => setActiveTab('addresses')}
@@ -1049,6 +1109,77 @@ function AccountContent() {
               t={t}
               onOrdersChange={setOrders}
             />
+          )}
+
+          {/* TAB 1.5: TRACK ORDER SEARCH */}
+          {activeTab === 'track' && (
+            <div className="bg-white border border-amber-100 rounded-3xl p-6 sm:p-8 smooth-shadow space-y-6 animate-fade-in-up">
+              <div>
+                <h3 className="text-lg font-bold text-amber-950 font-heading flex items-center space-x-1.5 pb-2">
+                  <Truck size={18} className="text-amber-700 animate-pulse" />
+                  <span>{language === 'te' ? 'ఆర్డర్ ట్రాక్ చేయండి' : 'Track Your Order'}</span>
+                </h3>
+                <p className="text-xs text-gray-500 font-medium">
+                  {language === 'te' 
+                    ? 'మీ ఆర్డర్ యొక్క తాజా స్థితి మరియు డెలివరీ ప్రయాణాన్ని తెలుసుకోవడానికి మీ ఆర్డర్ ఐడీ లేదా ట్రాకింగ్ ఐడీని నమోదు చేయండి.'
+                    : 'Enter your Order ID or Tracking ID to check the live status and progress of your shipment.'}
+                </p>
+              </div>
+
+              <form onSubmit={handleTrackSubmit} className="max-w-md space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">
+                    {language === 'te' ? 'ఆర్డర్ లేదా ట్రాకింగ్ ఐడీ:' : 'Order ID / Tracking ID:'}
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={trackInputId}
+                      onChange={(e) => {
+                        setTrackInputId(e.target.value);
+                        setTrackInputError('');
+                      }}
+                      placeholder="e.g. Om-20260702-00017"
+                      className="flex-1 bg-[#fdfbf7] border border-amber-100 rounded-xl px-4 py-2.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/10 focus:border-amber-600 transition-all placeholder:text-gray-400"
+                    />
+                    <button
+                      type="submit"
+                      disabled={trackingFromInput}
+                      className="bg-amber-800 hover:bg-amber-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {trackingFromInput ? (
+                        <RefreshCw size={13} className="animate-spin" />
+                      ) : (
+                        <Truck size={13} />
+                      )}
+                      <span>{language === 'te' ? 'ట్రాక్ చేయి' : 'Track'}</span>
+                    </button>
+                  </div>
+                  {trackInputError && (
+                    <p className="text-[10px] font-bold text-red-600 flex items-center gap-1 mt-1 animate-fade-in-up">
+                      <Info size={11} />
+                      <span>{trackInputError}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 text-[11px] font-medium text-amber-900 leading-relaxed">
+                  <p className="font-extrabold text-amber-950 mb-1">
+                    {language === 'te' ? 'సహాయకరమైన సూచన:' : 'Where to find these IDs?'}
+                  </p>
+                  <p>
+                    {language === 'te' 
+                      ? '1. మీ ఆర్డర్ ఐడీ (ఉదా. Om-20260702-00017) మీ ఈమెయిల్ మరియు ఎస్ఎమ్ఎస్ ద్వారా పంపిన ఆర్డర్ కన్ఫర్మేషన్ లో ఉంటుంది.'
+                      : '1. The Order ID (e.g. Om-20260702-00017) can be found in the order confirmation email or SMS sent after placing the order.'}
+                  </p>
+                  <p className="mt-1">
+                    {language === 'te'
+                      ? '2. ట్రాకింగ్ ఐడీ (ఉదా. TRK-GNT-00017) "నా ఆర్డర్లు" విభాగంలో ఒక్కో ఆర్డర్ కింద కూడా కనిపిస్తుంది.'
+                      : '2. The Tracking ID (e.g. TRK-GNT-00017) is also displayed under each order inside your "My Orders" history tab.'}
+                  </p>
+                </div>
+              </form>
+            </div>
           )}
           {/* TAB 2: ADDRESSES */}
           {activeTab === 'addresses' && (
