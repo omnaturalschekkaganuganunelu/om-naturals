@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
 
     const debugInfo: any = {
       databaseUrlHost: process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).host : 'none',
+      databaseUser: process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).username : 'none',
       env: process.env.NODE_ENV,
       nodeVersion: process.version
     };

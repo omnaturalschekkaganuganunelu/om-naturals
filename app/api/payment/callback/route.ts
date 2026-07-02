@@ -36,9 +36,6 @@ export async function GET(req: NextRequest) {
     if (order.paymentStatus === 'COMPLETED') {
       return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
     }
-    if (order.paymentStatus === 'FAILED') {
-      return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=failed`, { status: 303 });
-    }
 
     // Payment still PENDING — actively check PhonePe right now
     // Look up the merchantTransactionId from the Payment table
