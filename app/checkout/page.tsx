@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import BackButton from '@/components/BackButton';
 import { useCartStore } from '@/store/cartStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { useLanguage } from '@/context/LanguageContext';
 import { MapPin, Plus, Check, ShieldCheck, CreditCard, RefreshCw, Truck, Tag, AlertCircle } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
@@ -52,11 +53,8 @@ export default function CheckoutPage() {
   const [checkoutError, setCheckoutError] = useState('');
   const [checkoutEmail, setCheckoutEmail] = useState('');
 
-  // Settings values — loaded dynamically from /api/settings
-  const [gstRate, setGstRateState] = useState(5);
-  const [freeShippingAbove, setFreeShippingAbove] = useState(500);
-  const [shippingFee, setShippingFeeState] = useState(30);
-  const [packingFee, setPackingFeeState] = useState(20);
+  // Settings values — loaded instantly from persisted cache, refreshed in background
+  const { gstRate, freeShippingAbove, shippingFee, packingFee, fetchSettings } = useSettingsStore();
 
   // Redirect if not authenticated or cart is empty
   useEffect(() => {
@@ -88,15 +86,16 @@ export default function CheckoutPage() {
   const [pendingOrder, setPendingOrder] = useState<any>(null);
   const [showPendingModal, setShowPendingModal] = useState(false);
 
-  // Load Saved Addresses and Site Settings (in parallel for faster checkout load)
+  // Load Saved Addresses and refresh settings in parallel
   useEffect(() => {
     if (authStatus !== 'authenticated') return;
 
-    Promise.all([
-      fetch('/api/addresses').then((r) => r.json()),
-      fetch('/api/settings').then((r) => r.json()),
-    ])
-      .then(([addressData, settingsData]) => {
+    // Refresh settings from cache (no-op if fetched within 5 min)
+    fetchSettings();
+
+    fetch('/api/addresses')
+      .then((r) => r.json())
+      .then((addressData) => {
         setAddresses(addressData);
         const defaultAddr = addressData.find((a: any) => a.isDefault);
         if (defaultAddr) {
@@ -105,18 +104,12 @@ export default function CheckoutPage() {
           setSelectedAddressId(addressData[0].id);
         }
         setLoadingAddresses(false);
-
-        // COD is disabled site-wide — only PhonePe accepted
-        if (settingsData.gstRate !== undefined) setGstRateState(settingsData.gstRate);
-        if (settingsData.freeShippingAbove !== undefined) setFreeShippingAbove(settingsData.freeShippingAbove);
-        if (settingsData.shippingFee !== undefined) setShippingFeeState(settingsData.shippingFee);
-        if (settingsData.packingFee !== undefined) setPackingFeeState(settingsData.packingFee);
       })
       .catch((err) => {
-        console.error('Error loading checkout data:', err);
+        console.error('Error loading addresses:', err);
         setLoadingAddresses(false);
       });
-  }, [authStatus]);
+  }, [authStatus, fetchSettings]);
 
   // Check for recent pending or paid orders to handle back gesture / tab close issues
   useEffect(() => {

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import PremiumLoader from '@/components/PremiumLoader';
+import { useSettingsStore } from '@/store/settingsStore';
 
 export default function AdminSettingsPage() {
   const router = useRouter();
@@ -94,6 +95,15 @@ export default function AdminSettingsPage() {
 
       const data = await res.json();
       if (res.ok) {
+        // Update local settingsStore cache instantly
+        useSettingsStore.setState({
+          shippingFee: parseFloat(form.shippingFee),
+          packingFee: parseFloat(form.packingFee),
+          gstRate: parseFloat(form.gstRate),
+          freeShippingAbove: parseFloat(form.freeShippingAbove),
+          lastFetched: Date.now(),
+        });
+
         setSuccessMsg(language === 'te' ? 'సెట్టింగ్‌లు విజయవంతంగా సేవ్ చేయబడ్డాయి!' : 'Settings saved successfully!');
         setTimeout(() => setSuccessMsg(''), 4000);
       } else {

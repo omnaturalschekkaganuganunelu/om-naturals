@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
+    // 1. Security Check: Completely disabled in production, and only accessible to ADMIN users in development
+    const session = await getServerSession(authOptions);
+    
+    if (process.env.NODE_ENV === 'production' || !session || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+    }
+
     const { searchParams } = new URL(req.url);
     const targetOrderId = searchParams.get('orderId');
 
@@ -45,3 +54,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

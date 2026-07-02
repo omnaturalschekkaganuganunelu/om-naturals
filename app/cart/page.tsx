@@ -8,6 +8,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import BackButton from '@/components/BackButton';
 import { useCartStore } from '@/store/cartStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { useLanguage } from '@/context/LanguageContext';
 import { Plus, Minus, Trash2, Tag, ArrowRight, ShoppingCart, Percent, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
@@ -33,11 +34,8 @@ export default function CartPage() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [total, setTotal] = useState(0);
 
-  // Site settings — fetched dynamically from /api/settings
-  const [FREE_SHIPPING_THRESHOLD, setFreeShippingThreshold] = useState(500);
-  const [SHIPPING_FEE, setShippingFee] = useState(30);
-  const [PACKING_FEE, setPackingFee] = useState(20);
-  const [GST_RATE, setGstRate] = useState(5);
+  // Site settings — loaded instantly from persisted cache, refreshed in background
+  const { shippingFee: SHIPPING_FEE, packingFee: PACKING_FEE, gstRate: GST_RATE, freeShippingAbove: FREE_SHIPPING_THRESHOLD, fetchSettings } = useSettingsStore();
 
   // Active coupons — fetched dynamically from /api/coupons/public
   const [activeCoupons, setActiveCoupons] = useState<{
@@ -85,23 +83,15 @@ export default function CartPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch settings & active coupons once on mount
+  // Fetch settings (uses cache — won't re-fetch if updated within last 5 min) & active coupons
   useEffect(() => {
-    fetch('/api/settings')
-      .then((r) => r.json())
-      .then((s) => {
-        if (s.freeShippingAbove !== undefined) setFreeShippingThreshold(s.freeShippingAbove);
-        if (s.shippingFee !== undefined) setShippingFee(s.shippingFee);
-        if (s.packingFee !== undefined) setPackingFee(s.packingFee);
-        if (s.gstRate !== undefined) setGstRate(s.gstRate);
-      })
-      .catch(() => {/* use defaults silently */});
+    fetchSettings();
 
     fetch('/api/coupons/public')
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setActiveCoupons(data); })
       .catch(() => {});
-  }, []);
+  }, [fetchSettings]);
 
   // Recompute billing summary whenever cart items, coupon, or site-settings change
   useEffect(() => {
