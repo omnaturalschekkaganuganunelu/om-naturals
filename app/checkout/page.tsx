@@ -153,6 +153,34 @@ export default function CheckoutPage() {
     checkRecentOrders();
   }, [authStatus, router, clearCart]);
 
+  // Poll pending order status in the background when the modal is open on the checkout page
+  useEffect(() => {
+    if (!showPendingModal || !pendingOrder?.id) return;
+
+    let pollInterval: NodeJS.Timeout;
+
+    const checkPendingStatus = async () => {
+      try {
+        const res = await fetch(`/api/orders/${pendingOrder.id}?statusOnly=true`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.paymentStatus === 'COMPLETED') {
+          clearCart();
+          router.push(`/order-confirmation?orderId=${pendingOrder.id}&status=success`);
+        }
+      } catch (err) {
+        console.error('Error polling pending order status:', err);
+      }
+    };
+
+    pollInterval = setInterval(checkPendingStatus, 3000);
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [showPendingModal, pendingOrder, router, clearCart]);
+
   // Handle Form Change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;

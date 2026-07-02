@@ -126,6 +126,36 @@ function OrderConfirmationContent() {
     };
   }, [status, orderId]);
 
+  // Background polling for failed or pending states to handle out-of-band payments (e.g. push notification approval)
+  useEffect(() => {
+    if ((status !== 'failed' && status !== 'pending') || !orderId) return;
+
+    let bgInterval: NodeJS.Timeout;
+
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(`/api/orders/${orderId}?statusOnly=true`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.paymentStatus === 'COMPLETED') {
+          const fullRes = await fetch(`/api/orders/${orderId}`);
+          if (fullRes.ok) setOrder(await fullRes.json());
+          setStatus('success');
+        }
+      } catch (err) {
+        console.error('Background status check error:', err);
+      }
+    };
+
+    // Check status every 5 seconds
+    bgInterval = setInterval(checkStatus, 5000);
+
+    return () => {
+      if (bgInterval) clearInterval(bgInterval);
+    };
+  }, [status, orderId]);
+
   // Retry payment handler for failed online orders
   const handleRetryPayment = async () => {
     if (!orderId) return;
@@ -451,7 +481,7 @@ function OrderConfirmationContent() {
                 ) : (
                   <>
                     <RefreshCw size={14} />
-                    <span>{language === 'te' ? 'చెల్లింపు మళ్ళీ ప్రయత్నించు' : '🔄 Retry Payment'}</span>
+                    <span>{language === 'te' ? 'చెల్లింపు మళ్ళీ ప్రయత్నించు' : ' Retry Payment'}</span>
                   </>
                 )}
               </button>

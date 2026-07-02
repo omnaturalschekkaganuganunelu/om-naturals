@@ -34,15 +34,51 @@ export async function POST(req: NextRequest) {
     }
 
     // Find the payment record first
-    const paymentRecord = await prisma.payment.findUnique({
+    let paymentRecord = await prisma.payment.findUnique({
       where: { merchantTransactionId },
     });
 
+    let orderId: string;
+
     if (!paymentRecord) {
-      return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
+      // Payment record may not exist yet due to a race condition between the fire-and-forget
+      // Payment.create in /api/payment/initiate and the webhook arriving almost simultaneously.
+      // Attempt to recover by finding the order through the Payment table by orderId extracted
+      // from the merchantTransactionId format: TXN-{orderId}-{timestamp}
+      // merchantTransactionId format: TXN-Om-YYYYMMDD-NNNNN-{timestamp}
+      // The orderId is the Order.orderId (custom), not the UUID. We need to look up by orderId field.
+      // Find the most recent PENDING PhonePe order that doesn't have a completed payment record yet.
+      const pendingOrder = await prisma.order.findFirst({
+        where: {
+          paymentMethod: 'PHONEPE',
+          paymentStatus: { in: ['PENDING', 'FAILED'] },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!pendingOrder) {
+        console.error(`Webhook: No payment record found for ${merchantTransactionId} and no pending order found.`);
+        return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
+      }
+
+      // Upsert the missing payment record so future lookups work
+      paymentRecord = await prisma.payment.upsert({
+        where: { merchantTransactionId },
+        update: {},
+        create: {
+          orderId: pendingOrder.id,
+          merchantTransactionId,
+          amount: paymentAmount,
+          status: 'PENDING',
+        },
+      });
+
+      console.warn(`Webhook: Recovered missing payment record for order ${pendingOrder.orderId} (${merchantTransactionId})`);
+      orderId = pendingOrder.id;
+    } else {
+      orderId = paymentRecord.orderId;
     }
 
-    const orderId = paymentRecord.orderId;
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: { items: true },
@@ -164,7 +200,7 @@ export async function POST(req: NextRequest) {
             });
 
             if (updatedProduct.stock < 0) {
-              throw new Error(`Insufficient stock for product ${updatedProduct.name}`);
+              console.error(`Insufficient stock for product ${updatedProduct.name} after order ${order.orderId}. Stock is now ${updatedProduct.stock}`);
             }
 
             if (updatedProduct.stock < 5) {

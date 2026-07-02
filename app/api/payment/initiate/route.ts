@@ -76,15 +76,38 @@ export async function POST(req: NextRequest) {
       console.timeEnd('[Performance] PhonePe SDK Pay API Request');
 
       if (result && result.redirectUrl) {
-        // Fire-and-forget: Create payment log (non-blocking — user goes to PhonePe immediately)
-        prisma.payment.create({
-          data: {
-            orderId: order.id,
-            merchantTransactionId,
-            amount: order.total,
-            status: 'PENDING',
-          },
-        }).catch((e: any) => console.error('Payment log creation failed:', e));
+        // CRITICAL: Await the payment record creation — do NOT fire-and-forget.
+        // If this record is missing when the PhonePe webhook fires, the entire
+        // successful payment will be dropped with a 404 error and the order will
+        // stay stuck in FAILED state permanently.
+        try {
+          await prisma.payment.create({
+            data: {
+              orderId: order.id,
+              merchantTransactionId,
+              amount: order.total,
+              status: 'PENDING',
+            },
+          });
+        } catch (e: any) {
+          // If duplicate (retry scenario), update existing record back to PENDING
+          if (e.code === 'P2002') {
+            await prisma.payment.update({
+              where: { merchantTransactionId },
+              data: { status: 'PENDING' },
+            });
+          } else {
+            console.error('Payment log creation failed:', e);
+          }
+        }
+
+        // Reset order paymentStatus to PENDING if it was previously FAILED (retry scenario)
+        if (order.paymentStatus === 'FAILED') {
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { paymentStatus: 'PENDING' },
+          });
+        }
 
         return NextResponse.json({ url: result.redirectUrl, simulated: false });
       } else {
