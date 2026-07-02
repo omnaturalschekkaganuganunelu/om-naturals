@@ -100,7 +100,11 @@ export async function POST(req: NextRequest) {
 
     if (verifiedSuccess) {
       await prisma.$transaction(async (tx) => {
-        const currentOrder = await tx.order.findUnique({ where: { id: orderId } });
+        // Acquire exclusive row lock to prevent race conditions with callback redirect
+        const lockedOrders = await tx.$queryRaw<{ id: string; paymentStatus: string }[]>`
+          SELECT id, "paymentStatus" FROM "Order" WHERE id = ${orderId} FOR UPDATE
+        `;
+        const currentOrder = lockedOrders[0];
         if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
           // Update order status and save PhonePe transaction ID
           await tx.order.update({

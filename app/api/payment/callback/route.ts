@@ -175,11 +175,14 @@ export async function POST(req: NextRequest) {
     } else if (code === 'PAYMENT_ERROR' || success === false) {
       verifiedState = 'FAILED';
     }
-
     if (verifiedState === 'COMPLETED') {
       // Update Order in Transaction
       await prisma.$transaction(async (tx) => {
-        const currentOrder = await tx.order.findUnique({ where: { id: orderId } });
+        // Acquire exclusive row lock to prevent race conditions with background webhook
+        const lockedOrders = await tx.$queryRaw<{ id: string; paymentStatus: string }[]>`
+          SELECT id, "paymentStatus" FROM "Order" WHERE id = ${orderId} FOR UPDATE
+        `;
+        const currentOrder = lockedOrders[0];
         if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
           await tx.order.update({
             where: { id: orderId },
