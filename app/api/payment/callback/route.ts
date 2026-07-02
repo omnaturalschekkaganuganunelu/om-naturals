@@ -170,6 +170,8 @@ export async function POST(req: NextRequest) {
           verifiedState = 'PENDING';
         }
       }
+    } else if (code === 'PAYMENT_PENDING') {
+      verifiedState = 'PENDING';
     } else if (code === 'PAYMENT_ERROR' || success === false) {
       verifiedState = 'FAILED';
     }
