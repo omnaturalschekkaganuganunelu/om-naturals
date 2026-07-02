@@ -29,6 +29,7 @@ function NavbarContent() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const cartItemsCount = useCartStore((state) => state.getCartCount());
+  const clearCart = useCartStore((state) => state.clearCart);
 
   useEffect(() => {
     setMounted(true);
@@ -43,6 +44,38 @@ function NavbarContent() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Background check and reconciliation of pending PhonePe payments when user opens any page
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const reconcilePendingPayment = async () => {
+      try {
+        const res = await fetch('/api/orders?includePending=true');
+        if (!res.ok) return;
+        const orders = await res.json();
+        if (!Array.isArray(orders) || orders.length === 0) return;
+
+        const latestOrder = orders[0];
+        
+        if (latestOrder.paymentStatus === 'PENDING' && latestOrder.paymentMethod === 'PHONEPE') {
+          const verifyRes = await fetch(`/api/payment/verify?orderId=${latestOrder.id}`);
+          if (!verifyRes.ok) return;
+          const verifyData = await verifyRes.json();
+
+          if (verifyData.status === 'COMPLETED') {
+            clearCart();
+            router.refresh();
+          }
+        }
+      } catch (err) {
+        console.error('Background payment reconciliation failed:', err);
+      }
+    };
+
+    const timer = setTimeout(reconcilePendingPayment, 1500);
+    return () => clearTimeout(timer);
+  }, [session, clearCart, router]);
 
   useEffect(() => {
     if (cartItemsCount > 0) {
