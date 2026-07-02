@@ -20,7 +20,8 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const date = searchParams.get('date');
 
-    let orders;
+    const includePending = searchParams.get('includePending') === 'true';
+    let orders: any;
 
     if (session.user.role === 'ADMIN') {
       const where: any = {
@@ -63,18 +64,22 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: 'desc' },
       });
     } else {
+      const where: any = {
+        userId: session.user.id,
+      };
+      if (!includePending) {
+        where.OR = [
+          { paymentMethod: { not: 'PHONEPE' } },
+          { paymentStatus: { not: 'PENDING' } }
+        ];
+      }
       orders = await prisma.order.findMany({
-        where: {
-          userId: session.user.id,
-          OR: [
-            { paymentMethod: { not: 'PHONEPE' } },
-            { paymentStatus: { not: 'PENDING' } }
-          ]
-        },
+        where,
         include: {
           items: true,
         },
         orderBy: { createdAt: 'desc' },
+        take: includePending ? 1 : undefined,
       });
     }
 

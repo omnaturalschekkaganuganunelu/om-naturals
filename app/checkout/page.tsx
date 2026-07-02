@@ -84,6 +84,10 @@ export default function CheckoutPage() {
     }
   }, [items, authStatus, router]);
 
+  // Pending order warning modal states
+  const [pendingOrder, setPendingOrder] = useState<any>(null);
+  const [showPendingModal, setShowPendingModal] = useState(false);
+
   // Load Saved Addresses and Site Settings (in parallel for faster checkout load)
   useEffect(() => {
     if (authStatus !== 'authenticated') return;
@@ -113,6 +117,41 @@ export default function CheckoutPage() {
         setLoadingAddresses(false);
       });
   }, [authStatus]);
+
+  // Check for recent pending or paid orders to handle back gesture / tab close issues
+  useEffect(() => {
+    if (authStatus !== 'authenticated') return;
+
+    const checkRecentOrders = async () => {
+      try {
+        const res = await fetch('/api/orders?includePending=true');
+        if (!res.ok) return;
+        const orders = await res.json();
+        if (orders.length === 0) return;
+
+        const latestOrder = orders[0];
+        const createdAt = new Date(latestOrder.createdAt);
+        const diffMinutes = (new Date().getTime() - createdAt.getTime()) / (1000 * 60);
+
+        // If the order was created in the last 15 minutes
+        if (diffMinutes < 15) {
+          if (latestOrder.paymentStatus === 'COMPLETED') {
+            // Already paid successfully! Clear cart and redirect to confirmation
+            clearCart();
+            router.push(`/order-confirmation?orderId=${latestOrder.id}&status=success`);
+          } else if (latestOrder.paymentStatus === 'PENDING' && latestOrder.paymentMethod === 'PHONEPE') {
+            // Pending payment. Show warning modal in case they completed it offline/app
+            setPendingOrder(latestOrder);
+            setShowPendingModal(true);
+          }
+        }
+      } catch (err) {
+        console.error('Error checking recent orders:', err);
+      }
+    };
+
+    checkRecentOrders();
+  }, [authStatus, router, clearCart]);
 
   // Handle Form Change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -761,6 +800,44 @@ export default function CheckoutPage() {
         </div>
 
       </main>
+
+      {showPendingModal && pendingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white border border-amber-100 rounded-3xl p-6 sm:p-8 max-w-md w-full smooth-shadow space-y-5 animate-scale-up">
+            <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center mx-auto">
+              <RefreshCw size={24} className="text-amber-800 animate-spin" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-base sm:text-lg font-black text-amber-950">
+                {language === 'te' ? '⚠️ పెండింగ్ చెల్లింపు కనుగొనబడింది' : '⚠️ Pending Payment Detected'}
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 font-semibold leading-relaxed">
+                {language === 'te'
+                  ? `మీరు ఇటీవల పెట్టిన ఆర్డర్ #${pendingOrder.orderId} (₹${pendingOrder.total}) కోసం చెల్లింపు పెండింగ్‌లో ఉంది. మీరు ఇప్పటికే చెల్లించారా?`
+                  : `We detected a pending payment of ₹${pendingOrder.total} for your recent order #${pendingOrder.orderId}. If you completed the payment on your PhonePe app, please verify it now.`}
+              </p>
+            </div>
+            <div className="space-y-2.5 pt-2">
+              <button
+                onClick={() => {
+                  router.push(`/order-confirmation?orderId=${pendingOrder.id}&status=verifying`);
+                }}
+                className="w-full py-3 bg-amber-800 hover:bg-amber-700 text-white font-extrabold text-xs sm:text-sm rounded-full shadow hover:shadow-lg transition-all flex items-center justify-center space-x-2"
+              >
+                <span>{language === 'te' ? 'చెల్లింపును ధృవీకరించు' : '✅ Verify / Complete Payment'}</span>
+              </button>
+              <button
+                onClick={() => {
+                  setShowPendingModal(false);
+                }}
+                className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs sm:text-sm rounded-full transition-all"
+              >
+                {language === 'te' ? 'కొత్త ఆర్డర్ పెట్టు' : 'Place a New Order Instead'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </>
