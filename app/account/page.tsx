@@ -104,6 +104,7 @@ function AccountContent() {
   // Navigation tab from URL or default
   const defaultTab = searchParams.get('tab') || 'profile';
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
 
@@ -1037,64 +1038,122 @@ function AccountContent() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 sm:gap-6 lg:gap-8 items-start">
         
-        {/* Navigation Sidebar Tabs */}
-        <aside className="bg-white border border-amber-100 rounded-3xl p-4 smooth-shadow flex flex-col space-y-1">
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`w-full text-left text-xs font-bold py-3 px-4 rounded-2xl flex items-center space-x-2.5 transition-colors ${
-              activeTab === 'orders' ? 'bg-amber-100 text-amber-900 font-extrabold' : 'text-amber-900 hover:bg-amber-50'
-            }`}
-          >
-            <Package size={16} />
-            <span>{t('account_my_orders')}</span>
-          </button>
+        {/* Navigation Tabs - Responsive Dropdown on Mobile, Sidebar on Desktop */}
+        <aside className="relative lg:col-span-1 z-20">
+          {/* Mobile Dropdown Trigger */}
+          <div className="lg:hidden mb-4">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="w-full bg-white border border-amber-100 rounded-2xl p-4 smooth-shadow flex items-center justify-between text-xs font-black text-amber-950 hover:bg-amber-50/25 transition-all duration-200"
+            >
+              <div className="flex items-center space-x-2.5">
+                <div className="text-amber-800">
+                  {activeTab === 'orders' ? <Package size={16} /> :
+                   activeTab === 'track' ? <Truck size={16} /> :
+                   activeTab === 'addresses' ? <MapPin size={16} /> :
+                   activeTab === 'notifications' ? <Bell size={16} /> :
+                   <User size={16} />}
+                </div>
+                <span>
+                  {activeTab === 'orders' ? t('account_my_orders') :
+                   activeTab === 'track' ? (language === 'te' ? 'ఆర్డర్ ట్రాక్ చేయండి' : 'Track Order') :
+                   activeTab === 'addresses' ? t('account_my_addresses') :
+                   activeTab === 'notifications' ? (language === 'te' ? 'నోటిఫికేషన్లు' : 'Notifications') :
+                   t('account_my_profile')}
+                </span>
+                {activeTab === 'notifications' && notifUnreadCount > 0 && (
+                  <span className="bg-red-500 text-white text-[9px] font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 animate-pulse ml-1.5">
+                    {notifUnreadCount > 9 ? '9+' : notifUnreadCount}
+                  </span>
+                )}
+              </div>
+              <ChevronDown 
+                size={16} 
+                className={`text-amber-800 transition-transform duration-300 ${isMenuOpen ? 'rotate-180' : ''}`} 
+              />
+            </button>
 
-          <button
-            onClick={() => setActiveTab('track')}
-            className={`w-full text-left text-xs font-bold py-3 px-4 rounded-2xl flex items-center space-x-2.5 transition-colors ${
-              activeTab === 'track' ? 'bg-amber-100 text-amber-900 font-extrabold' : 'text-amber-900 hover:bg-amber-50'
-            }`}
-          >
-            <Truck size={16} />
-            <span>{language === 'te' ? 'ఆర్డర్ ట్రాక్ చేయండి' : 'Track Order'}</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('addresses')}
-            className={`w-full text-left text-xs font-bold py-3 px-4 rounded-2xl flex items-center space-x-2.5 transition-colors ${
-              activeTab === 'addresses' ? 'bg-amber-100 text-amber-900 font-extrabold' : 'text-amber-900 hover:bg-amber-50'
-            }`}
-          >
-            <MapPin size={16} />
-            <span>{t('account_my_addresses')}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('notifications')}
-            className={`w-full text-left text-xs font-bold py-3 px-4 rounded-2xl flex items-center justify-between transition-colors ${
-              activeTab === 'notifications' ? 'bg-amber-100 text-amber-900 font-extrabold' : 'text-amber-900 hover:bg-amber-50'
-            }`}
-          >
-            <div className="flex items-center space-x-2.5">
-              <Bell size={16} />
-              <span>{language === 'te' ? 'నోటిఫికేషన్లు' : 'Notifications'}</span>
-            </div>
-            {notifUnreadCount > 0 && (
-              <span className="bg-red-500 text-white text-[9px] font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 animate-pulse">
-                {notifUnreadCount > 9 ? '9+' : notifUnreadCount}
-              </span>
+            {/* Mobile Dropdown Menu Options */}
+            {isMenuOpen && (
+              <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-amber-100 rounded-2xl p-2 smooth-shadow-lg flex flex-col space-y-1 animate-fade-in-up mt-1 z-30">
+                {[
+                  { id: 'orders', label: t('account_my_orders'), icon: <Package size={16} /> },
+                  { id: 'track', label: language === 'te' ? 'ఆర్డర్ ట్రాక్ చేయండి' : 'Track Order', icon: <Truck size={16} /> },
+                  { id: 'addresses', label: t('account_my_addresses'), icon: <MapPin size={16} /> },
+                  { 
+                    id: 'notifications', 
+                    label: language === 'te' ? 'నోటిఫికేషన్లు' : 'Notifications', 
+                    icon: <Bell size={16} />,
+                    badge: notifUnreadCount > 0 ? (notifUnreadCount > 9 ? '9+' : notifUnreadCount) : null 
+                  },
+                  { id: 'profile', label: t('account_my_profile'), icon: <User size={16} /> }
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      setIsMenuOpen(false);
+                    }}
+                    className={`w-full text-left text-xs font-bold py-3 px-4 rounded-xl flex items-center justify-between transition-all duration-200 ${
+                      activeTab === item.id 
+                        ? 'bg-amber-100 text-amber-900 font-extrabold' 
+                        : 'text-amber-900/80 hover:bg-amber-50/50 hover:text-amber-900'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2.5">
+                      <div className={activeTab === item.id ? 'text-amber-800' : 'text-amber-900/60'}>
+                        {item.icon}
+                      </div>
+                      <span>{item.label}</span>
+                    </div>
+                    {item.badge && (
+                      <span className="bg-red-500 text-white text-[9px] font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             )}
-          </button>
+          </div>
 
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`w-full text-left text-xs font-bold py-3 px-4 rounded-2xl flex items-center space-x-2.5 transition-colors ${
-              activeTab === 'profile' ? 'bg-amber-100 text-amber-900 font-extrabold' : 'text-amber-900 hover:bg-amber-50'
-            }`}
-          >
-            <User size={16} />
-            <span>{t('account_my_profile')}</span>
-          </button>
+          {/* Desktop Sidebar Menu (Always Visible on Desktop) */}
+          <div className="hidden lg:flex flex-col bg-white border border-amber-100 rounded-3xl p-4 smooth-shadow space-y-1">
+            {[
+              { id: 'orders', label: t('account_my_orders'), icon: <Package size={16} /> },
+              { id: 'track', label: language === 'te' ? 'ఆర్డర్ ట్రాక్ చేయండి' : 'Track Order', icon: <Truck size={16} /> },
+              { id: 'addresses', label: t('account_my_addresses'), icon: <MapPin size={16} /> },
+              { 
+                id: 'notifications', 
+                label: language === 'te' ? 'నోటిఫికేషన్లు' : 'Notifications', 
+                icon: <Bell size={16} />,
+                badge: notifUnreadCount > 0 ? (notifUnreadCount > 9 ? '9+' : notifUnreadCount) : null 
+              },
+              { id: 'profile', label: t('account_my_profile'), icon: <User size={16} /> }
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full text-left text-xs font-bold py-3 px-4 rounded-2xl flex items-center justify-between transition-colors duration-200 ${
+                  activeTab === item.id 
+                    ? 'bg-amber-100 text-amber-900 font-extrabold' 
+                    : 'text-amber-900 hover:bg-amber-50'
+                }`}
+              >
+                <div className="flex items-center space-x-2.5">
+                  <div className={activeTab === item.id ? 'text-amber-800' : 'text-amber-950'}>
+                    {item.icon}
+                  </div>
+                  <span>{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span className="bg-red-500 text-white text-[9px] font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </aside>
 
         {/* Dynamic Detail Card Content */}
