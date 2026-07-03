@@ -239,7 +239,13 @@ function NavbarContent() {
             >
               {language === 'te' ? 'శుద్ధి చేసిన నూనెలు' : 'Refined & Filtered Oils'}
             </Link>
-            <Link href="/account?tab=orders" className={navLinkClass('/account?tab=orders')}>{t('nav_track')}</Link>
+            {session?.user?.role === 'ADMIN' ? (
+              <Link href="/admin/dashboard" className={navLinkClass('/admin/dashboard')}>
+                {language === 'te' ? 'డ్యాష్‌బోర్డ్' : 'Dashboard'}
+              </Link>
+            ) : (
+              <Link href="/account?tab=orders" className={navLinkClass('/account?tab=orders')}>{t('nav_track')}</Link>
+            )}
           </nav>
 
           {/* Actions — let text wrap, and reduce gaps on tiny screens */}
@@ -480,7 +486,9 @@ function NavbarContent() {
             { href: '/', label: t('nav_home_mobile') },
             { href: '/products?category=cold-pressed', label: language === 'te' ? 'గానుగ నూనెలు' : 'Cold Pressed Oils' },
             { href: '/products?category=refined-filtered', label: language === 'te' ? 'శుద్ధి చేసిన నూనెలు' : 'Refined & Filtered Oils' },
-            { href: '/account?tab=orders', label: t('nav_track_mobile') },
+            session?.user?.role === 'ADMIN'
+              ? { href: '/admin/dashboard', label: language === 'te' ? 'డ్యాష్‌బోర్డ్' : 'Dashboard' }
+              : { href: '/account?tab=orders', label: t('nav_track_mobile') },
           ].map(({ href, label }, idx) => (
             <Link
               key={href}

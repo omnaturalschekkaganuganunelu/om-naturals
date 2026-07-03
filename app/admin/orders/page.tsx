@@ -278,7 +278,7 @@ export default function AdminOrdersPage() {
                 <div className="w-px h-12 bg-amber-700/50"></div>
                 <div className="text-center">
                   <p className="text-xs text-amber-200/80 font-bold uppercase tracking-wider mb-1">Revenue</p>
-                  <p className="text-3xl font-black">₹{filteredOrders.reduce((acc, ord) => ord.orderStatus !== 'CANCELLED' ? acc + ord.total : acc, 0)}</p>
+                  <p className="text-3xl font-black">₹{filteredOrders.reduce((acc, ord) => ord.orderStatus !== 'CANCELLED' ? acc + ord.total : acc, 0).toFixed(2)}</p>
                 </div>
               </div>
             )}
@@ -302,7 +302,7 @@ export default function AdminOrdersPage() {
                         {/* Row 1: Order ID + Total */}
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <span className="font-mono font-bold text-amber-800 text-xs">{ord.orderId}</span>
-                          <span className="font-black text-amber-950 text-sm">₹{ord.total}</span>
+                          <span className="font-black text-amber-950 text-sm">₹{Number(ord.total).toFixed(2)}</span>
                         </div>
                         {/* Row 2: Customer + Date */}
                         <div className="flex items-center justify-between mb-2">
@@ -345,7 +345,7 @@ export default function AdminOrdersPage() {
                               {ord.items.map((it: any) => (
                                 <div key={it.id} className="flex justify-between text-xs font-semibold border-b border-amber-50 pb-1">
                                   <span className="text-gray-700">{language === 'te' ? it.nameTe : it.name} &times;{it.quantity}</span>
-                                  <span className="font-bold text-amber-950">₹{it.price * it.quantity}</span>
+                                  <span className="font-bold text-amber-950">₹{Number(it.price * it.quantity).toFixed(2)}</span>
                                 </div>
                               ))}
                             </div>
@@ -545,7 +545,7 @@ export default function AdminOrdersPage() {
                                   : (language === 'te' ? 'పెండింగ్' : 'PENDING')}
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 text-right font-black">₹{ord.total}</td>
+                            <td className="py-3.5 px-4 text-right font-black">₹{Number(ord.total).toFixed(2)}</td>
                             <td className="py-3.5 px-4 text-center">
                               <button
                                 onClick={() => toggleOrderExpand(ord.id)}
@@ -570,9 +570,9 @@ export default function AdminOrdersPage() {
                                       {ord.items.map((it: any) => (
                                         <div key={it.id} className="flex justify-between border-b border-amber-50 pb-1 font-bold">
                                           <span>
-                                            {language === 'te' ? it.nameTe : it.name} ({it.quantity} x ₹{it.price})
+                                            {language === 'te' ? it.nameTe : it.name} ({it.quantity} x ₹{Number(it.price).toFixed(2)})
                                           </span>
-                                          <span>₹{it.price * it.quantity}</span>
+                                          <span>₹{Number(it.price * it.quantity).toFixed(2)}</span>
                                         </div>
                                       ))}
                                     </div>

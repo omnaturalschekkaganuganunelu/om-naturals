@@ -3,13 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Home, Droplet, ClipboardList, User } from 'lucide-react';
+import { Home, Droplet, ClipboardList, User, LayoutDashboard } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { t } = useLanguage();
+  const { data: session } = useSession();
+  const { t, language } = useLanguage();
 
   const [mounted, setMounted] = useState(false);
 
@@ -28,6 +30,8 @@ export default function MobileBottomNav() {
   const isOrders = pathname === '/account' && searchParams.get('tab') === 'orders';
   const isAccount = (pathname === '/account' && searchParams.get('tab') !== 'orders') || pathname === '/login';
 
+  const isAdmin = session?.user?.role === 'ADMIN';
+
   const items = [
     {
       label: t('nav_home_mobile'),
@@ -42,10 +46,14 @@ export default function MobileBottomNav() {
       icon: <Droplet size={20} className={isOils ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />,
     },
     {
-      label: t('nav_track_mobile'),
-      href: '/account?tab=orders',
-      active: isOrders,
-      icon: <ClipboardList size={20} className={isOrders ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />,
+      label: isAdmin ? (language === 'te' ? 'డ్యాష్‌బోర్డ్' : 'Dashboard') : t('nav_track_mobile'),
+      href: isAdmin ? '/admin/dashboard' : '/account?tab=orders',
+      active: isAdmin ? pathname.startsWith('/admin') : isOrders,
+      icon: isAdmin ? (
+        <LayoutDashboard size={20} className={pathname.startsWith('/admin') ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />
+      ) : (
+        <ClipboardList size={20} className={isOrders ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />
+      ),
     },
     {
       label: t('nav_account_mobile'),

@@ -250,11 +250,11 @@ export default function AdminCouponsPage() {
                             </span>
                           </td>
                           <td className="py-4 px-4 text-center font-black text-gray-900">
-                            {c.type === 'PERCENT' ? `${c.value}%` : `₹${c.value}`}
+                            {c.type === 'PERCENT' ? `${c.value}%` : `₹${Number(c.value).toFixed(2)}`}
                           </td>
-                          <td className="py-4 px-4 text-center font-bold text-gray-600">₹{c.minOrderValue}</td>
+                          <td className="py-4 px-4 text-center font-bold text-gray-600">₹{Number(c.minOrderValue).toFixed(2)}</td>
                           <td className="py-4 px-4 text-center font-bold text-gray-600">
-                            {c.maxDiscount ? `₹${c.maxDiscount}` : <span className="text-gray-300">—</span>}
+                            {c.maxDiscount ? `₹${Number(c.maxDiscount).toFixed(2)}` : <span className="text-gray-300">—</span>}
                           </td>
                           <td className="py-4 px-4 text-center">
                             {c.expiresAt ? (
@@ -346,15 +346,15 @@ export default function AdminCouponsPage() {
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">Value</p>
-                        <p className="font-black text-gray-900 mt-0.5">{c.type === 'PERCENT' ? `${c.value}%` : `₹${c.value}`}</p>
+                        <p className="font-black text-gray-900 mt-0.5">{c.type === 'PERCENT' ? `${c.value}%` : `₹${Number(c.value).toFixed(2)}`}</p>
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">Min Order</p>
-                        <p className="font-bold text-gray-700 mt-0.5">₹{c.minOrderValue}</p>
+                        <p className="font-bold text-gray-700 mt-0.5">₹{Number(c.minOrderValue).toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide">Max Cap</p>
-                        <p className="font-bold text-gray-700 mt-0.5">{c.maxDiscount ? `₹${c.maxDiscount}` : '—'}</p>
+                        <p className="font-bold text-gray-700 mt-0.5">{c.maxDiscount ? `₹${Number(c.maxDiscount).toFixed(2)}` : '—'}</p>
                       </div>
                       {c.expiresAt && (
                         <div className="col-span-2">

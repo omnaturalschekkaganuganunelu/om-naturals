@@ -556,8 +556,8 @@ export default function AdminProductsPage() {
                               <p className="font-extrabold text-amber-950 text-xs leading-snug">{key}</p>
                               <p className="text-[10px] text-gray-400 font-medium mt-0.5">
                                 {isMulti
-                                  ? `${groupVariants.length} ${language === 'te' ? 'పరిమాణాలు' : 'sizes'} · ₹${Math.min(...groupVariants.map((v) => v.price))} – ₹${Math.max(...groupVariants.map((v) => v.price))}`
-                                  : `${first.weight} ${first.unit} · ₹${first.price}`}
+                                  ? `${groupVariants.length} ${language === 'te' ? 'పరిమాణాలు' : 'sizes'} · ₹${Math.min(...groupVariants.map((v) => v.price)).toFixed(2)} – ₹${Math.max(...groupVariants.map((v) => v.price)).toFixed(2)}`
+                                  : `${first.weight} ${first.unit} · ₹${Number(first.price).toFixed(2)}`}
                               </p>
                             </div>
                             {isMulti && (
@@ -666,7 +666,7 @@ export default function AdminProductsPage() {
                                         : (language === 'te' ? 'ఇన్‌యాక్టివ్' : 'Inactive'))}
                                     </button>
                                   </div>
-                                  <p className="text-[10px] text-gray-400">SKU: {v.sku} · ₹{v.price}</p>
+                                  <p className="text-[10px] text-gray-400">SKU: {v.sku} · ₹{Number(v.price).toFixed(2)}</p>
                                   <div className="flex gap-2.5 mt-1.5 flex-wrap">
                                     <span className="text-[9px] font-bold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100">
                                       {language === 'te' ? 'చేర్చబడింది' : 'Added'}: {v.stock + v.salesCount}

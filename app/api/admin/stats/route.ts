@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       },
       select: { total: true },
     });
-    const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
+    const totalRevenue = parseFloat(paidOrders.reduce((sum, order) => sum + order.total, 0).toFixed(2));
 
     // 3. Low Stock Alerts (Stock < 5)
     const lowStockProducts = await prisma.product.findMany({
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
         return orderTime >= d.getTime() && orderTime < nextDay.getTime();
       });
 
-      const dayRevenue = dayOrders.reduce((sum, order) => sum + order.total, 0);
+      const dayRevenue = parseFloat(dayOrders.reduce((sum, order) => sum + order.total, 0).toFixed(2));
       const dayName = d.toLocaleDateString('te-IN', { weekday: 'short', timeZone: 'Asia/Kolkata' }); // Or standard short name
       const dayDate = `${d.getDate()}/${d.getMonth() + 1}`;
 

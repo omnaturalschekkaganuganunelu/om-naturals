@@ -93,7 +93,7 @@ export default function AdminDashboardPage() {
                 {language === 'te' ? 'ఆర్డర్ ID' : 'Order ID'}: {newOrderAlert.orderId}
               </p>
               <p className="text-amber-200 text-[10px] truncate">
-                ₹{newOrderAlert.total} • {newOrderAlert.name}
+                ₹{Number(newOrderAlert.total).toFixed(2)} • {newOrderAlert.name}
               </p>
             </div>
             <button onClick={() => setNewOrderAlert(null)} className="text-white/80 hover:text-white font-bold text-xs shrink-0 pl-1">
@@ -136,7 +136,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="text-xs min-w-0">
                   <span className="text-gray-400 font-bold text-[10px] sm:text-xs">{t('admin_dashboard_revenue')}</span>
-                  <p className="text-sm sm:text-lg font-black text-amber-950 mt-0.5 truncate">₹{stats.totalRevenue}</p>
+                  <p className="text-sm sm:text-lg font-black text-amber-950 mt-0.5 truncate">₹{Number(stats.totalRevenue).toFixed(2)}</p>
                 </div>
               </div>
 
@@ -186,7 +186,7 @@ export default function AdminDashboardPage() {
                       <div key={day.date} className="flex-1 flex flex-col items-center justify-end h-full group relative">
                         {/* Hover Tooltip — above bar, won't clip because of pt-10 */}
                         <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 bg-amber-900 text-white text-[9px] font-bold py-1 px-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap pointer-events-none">
-                          ₹{day.revenue}<br/>{day.orders} {language === 'te' ? 'ఆర్డర్లు' : 'orders'}
+                          ₹{Number(day.revenue).toFixed(2)}<br/>{day.orders} {language === 'te' ? 'ఆర్డర్లు' : 'orders'}
                         </div>
                         {/* Bar */}
                         <div
@@ -258,7 +258,7 @@ export default function AdminDashboardPage() {
                   <div key={ord.id} className="p-4 hover:bg-amber-50/20 cursor-pointer" onClick={() => router.push('/admin/orders')}>
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <span className="font-mono font-bold text-amber-800 text-xs">{ord.orderId}</span>
-                      <span className="font-bold text-xs text-amber-950">₹{ord.total}</span>
+                      <span className="font-bold text-xs text-amber-950">₹{Number(ord.total).toFixed(2)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
@@ -318,7 +318,7 @@ export default function AdminDashboardPage() {
                             {ord.orderStatus}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-right font-bold">₹{ord.total}</td>
+                        <td className="py-3 px-4 text-right font-bold">₹{Number(ord.total).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
