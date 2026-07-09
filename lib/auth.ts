@@ -26,9 +26,9 @@ export const authOptions: NextAuthOptions = {
 
         const systemAdminEmail = process.env.GMAIL_USER || 'omnaturalschekkaganuganunelu@gmail.com';
         const isSystemAdmin = credentials.email === systemAdminEmail;
-        const isStoreAdmin = credentials.email === 'admin@nunebazaar.com';
+        const isSecondAdmin = credentials.email === 'satvikramanujam@gmail.com';
         
-        if (isSystemAdmin || isStoreAdmin) {
+        if (isSystemAdmin || isSecondAdmin) {
           if (credentials.password !== 'Om@2026') {
             throw new Error('Invalid admin credentials');
           }
