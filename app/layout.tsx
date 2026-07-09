@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://www.om-naturals.com'),
   title: 'OM Natural Chekka Ganuga Oils | 100% Pure Traditional Wood Pressed Cooking Oils',
   description: 'Buy 100% pure cold pressed groundnut, coconut, sesame, almond (badam), and mustard oils online. Authentic wood-pressed edible oils delivered across AP & TS.',
-  keywords: 'Chekka Ganuga Oils, Wood Pressed Oils, Groundnut Oil, Sesame Oil, Coconut Oil, Almond Oil, Badam Nune, Mustard Oil, Hyderabad edible oils, pure cooking oil AP TS',
+  keywords: 'Chekka Ganuga Oils Guntur, Wood Pressed Oils near me, Groundnut Oil Guntur, Sesame Oil Guntur, Coconut Oil Guntur, cold pressed oil online Guntur, Gorantla wood pressed oils, edible oils online Guntur, pure cooking oil AP TS',
   authors: [{ name: 'OM Natural Chekka Ganuga Oils Team' }],
   icons: {
     icon: [

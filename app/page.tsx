@@ -42,8 +42,50 @@ const getHomeData = unstable_cache(
 export default async function HomePage() {
   const { categories, products } = await getHomeData();
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "OM Natural Chekka Ganuga Nunelu",
+    "image": "https://www.om-naturals.com/images/hero_cooking_oils.png",
+    "@id": "https://www.om-naturals.com/#localbusiness",
+    "url": "https://www.om-naturals.com",
+    "telephone": "+918688291288",
+    "priceRange": "₹₹",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "D.No. 126-137, Sri Lakshmi Narasimha Nagar, 5th Line, Inner Ring Road, Gorantla",
+      "addressLocality": "Guntur",
+      "addressRegion": "Andhra Pradesh",
+      "postalCode": "522034",
+      "addressCountry": "IN"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 16.3312015,
+      "longitude": 80.4072242
+    },
+    "openingHoursSpecification": {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+      ],
+      "opens": "09:00",
+      "closes": "20:00"
+    }
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navbar />
       <HomePageClient categories={categories} products={products as any} />
       <Footer />

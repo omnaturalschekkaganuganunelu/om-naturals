@@ -187,6 +187,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
     const { redirect } = await import('next/navigation');
     redirect(`/products/${data.product.slug}`);
   }
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.om-naturals.com';
 
   // Generate Schema.org Product Structured Data (JSON-LD)
   const jsonLd = {
@@ -196,8 +197,13 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
     image: data.product.images,
     description: data.product.description,
     sku: data.product.sku,
+    brand: {
+      '@type': 'Brand',
+      name: 'OM Naturals',
+    },
     offers: {
       '@type': 'Offer',
+      url: `${baseUrl}/products/${data.product.slug}`,
       priceCurrency: 'INR',
       price: data.product.price,
       itemCondition: 'https://schema.org/NewCondition',
@@ -205,11 +211,40 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
     },
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: baseUrl,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Products',
+        item: `${baseUrl}/products`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: data.product.name,
+        item: `${baseUrl}/products/${data.product.slug}`,
+      },
+    ],
+  };
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <Navbar />
       <main className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 py-8 flex-1 w-full min-w-0 overflow-x-hidden">
