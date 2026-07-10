@@ -3,13 +3,11 @@ import { prisma } from '@/lib/db';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import HomePageClient from '@/app/HomePageClient';
-import { unstable_cache } from 'next/cache';
 
-export const revalidate = 600; // Cache for 10 minutes to save Neon compute
+export const dynamic = 'force-dynamic';
 
-const getHomeData = unstable_cache(
-  async () => {
-    try {
+async function getHomeData() {
+  try {
     const categories = await prisma.category.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
@@ -34,10 +32,7 @@ const getHomeData = unstable_cache(
     console.error('Error loading home data:', err);
     return { categories: [], products: [] };
   }
-},
-['home-data-v2'],
-{ revalidate: 600, tags: ['categories', 'products'] }
-);
+}
 
 export default async function HomePage() {
   const { categories, products } = await getHomeData();
