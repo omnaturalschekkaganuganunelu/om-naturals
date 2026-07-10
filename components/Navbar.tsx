@@ -49,6 +49,11 @@ function NavbarContent() {
   useEffect(() => {
     if (!session?.user) return;
 
+    // Prevent duplicate background queries during navigation/mounts in the same session
+    if (typeof window !== 'undefined' && sessionStorage.getItem('nune_payment_checked')) {
+      return;
+    }
+
     const reconcilePendingPayment = async () => {
       try {
         const res = await fetch('/api/orders?includePending=true');
@@ -68,6 +73,9 @@ function NavbarContent() {
             router.refresh();
           }
         }
+
+        // Set flag to skip further checks in this session
+        sessionStorage.setItem('nune_payment_checked', 'true');
       } catch (err) {
         console.error('Background payment reconciliation failed:', err);
       }

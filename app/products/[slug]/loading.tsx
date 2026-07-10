@@ -1,11 +1,21 @@
 import React from 'react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 
 export default function Loading() {
   return (
     <>
-      <Navbar />
+      {/* Static Skeleton Header */}
+      <header className="sticky top-0 z-40 w-full bg-white border-b border-amber-50 h-16 flex items-center px-4 sm:px-8 justify-between animate-pulse">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-amber-100"></div>
+          <div className="h-4 bg-amber-100 rounded w-24"></div>
+        </div>
+        <div className="hidden md:flex flex-1 max-w-md mx-8 h-10 bg-amber-50 rounded-full"></div>
+        <div className="flex items-center gap-4">
+          <div className="w-6 h-6 rounded-full bg-amber-50"></div>
+          <div className="w-16 h-8 rounded-lg bg-amber-800/10"></div>
+        </div>
+      </header>
+
       <main className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 py-8 flex-1 w-full min-w-0 overflow-x-hidden">
         <div className="animate-pulse space-y-6">
           {/* Breadcrumb Skeleton */}
@@ -41,7 +51,28 @@ export default function Loading() {
           </div>
         </div>
       </main>
-      <Footer />
+
+      {/* Static Skeleton Footer */}
+      <footer className="w-full bg-[#1c0d02] h-48 mt-auto flex items-center justify-center animate-pulse">
+        <div className="max-w-screen-2xl w-full px-4 sm:px-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="space-y-2">
+            <div className="h-4 bg-amber-950 rounded w-2/3"></div>
+            <div className="h-3 bg-amber-950/40 rounded w-full"></div>
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 bg-amber-950 rounded w-1/2"></div>
+            <div className="h-3 bg-amber-950/40 rounded w-2/3"></div>
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 bg-amber-950 rounded w-2/3"></div>
+            <div className="h-3 bg-amber-950/40 rounded w-full"></div>
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 bg-amber-950 rounded w-1/3"></div>
+            <div className="h-3 bg-amber-950/40 rounded w-1/2"></div>
+          </div>
+        </div>
+      </footer>
     </>
   );
 }

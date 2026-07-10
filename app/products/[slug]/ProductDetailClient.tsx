@@ -606,20 +606,37 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
                       )}
                     </div>
                     <div className="grid grid-cols-2 gap-2.5">
-                      <button onClick={() => { if (hasVariants) setModalOpen(true); else handleAddToCart(false); }}
-                        className={`flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm transition-all border-2 ${
-                          added || inCart ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-amber-800 text-amber-800 hover:bg-amber-50'
-                        }`}>
-                        {added || inCart
-                          ? <><Check size={15} strokeWidth={3} />{language === 'te' ? 'చేర్చారు' : 'Added'}</>
-                          : <><ShoppingCart size={15} />{t('misc_add_to_cart')}</>
-                        }
-                      </button>
-                      <button onClick={() => { if (hasVariants) setModalOpen(true); else handleAddToCart(true); }}
-                        className="flex items-center justify-center gap-2 py-3 bg-amber-800 hover:bg-amber-700 active:scale-[0.98] text-white rounded-xl font-black text-sm shadow-lg shadow-amber-800/20 transition-all">
-                        <ShoppingBag size={15} />
-                        {t('misc_buy_now')}
-                      </button>
+                      {inCart ? (
+                        <>
+                          <button onClick={() => router.push('/cart')}
+                            className="flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm transition-all border-2 bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700">
+                            <ShoppingCart size={15} />
+                            {language === 'te' ? `కార్ట్‌లో ఉంది (${cartQty})` : `In Cart (${cartQty})`}
+                          </button>
+                          <button onClick={() => router.push('/checkout')}
+                            className="flex items-center justify-center gap-2 py-3 bg-amber-800 hover:bg-amber-700 active:scale-[0.98] text-white rounded-xl font-black text-sm shadow-lg shadow-amber-800/20 transition-all">
+                            <ShoppingBag size={15} />
+                            {t('misc_buy_now')}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => handleAddToCart(false)}
+                            className={`flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm transition-all border-2 ${
+                              added ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-amber-800 text-amber-800 hover:bg-amber-50'
+                            }`}>
+                            {added
+                              ? <><Check size={15} strokeWidth={3} />{language === 'te' ? 'చేర్చారు' : 'Added'}</>
+                              : <><ShoppingCart size={15} />{t('misc_add_to_cart')}</>
+                            }
+                          </button>
+                          <button onClick={() => handleAddToCart(true)}
+                            className="flex items-center justify-center gap-2 py-3 bg-amber-800 hover:bg-amber-700 active:scale-[0.98] text-white rounded-xl font-black text-sm shadow-lg shadow-amber-800/20 transition-all">
+                            <ShoppingBag size={15} />
+                            {t('misc_buy_now')}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
@@ -753,12 +770,12 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
               </>
             ) : (
               <>
-                <button onClick={() => { if (hasVariants) setModalOpen(true); else handleAddToCart(false); }}
+                <button onClick={() => handleAddToCart(false)}
                   className="flex-1 flex items-center justify-center gap-1.5 h-11 border-2 border-amber-800 text-amber-800 bg-white hover:bg-amber-50 active:bg-amber-100 rounded-xl font-black text-xs sm:text-sm transition-all">
                   <ShoppingCart size={15} />
                   <span>{t('misc_add_to_cart')}</span>
                 </button>
-                <button onClick={() => { if (hasVariants) setModalOpen(true); else handleAddToCart(true); }}
+                <button onClick={() => handleAddToCart(true)}
                   className="flex-1 flex items-center justify-center gap-1.5 h-11 bg-amber-800 hover:bg-amber-700 text-white rounded-xl font-black text-xs sm:text-sm shadow-lg shadow-amber-800/20 active:scale-95 transition-all">
                   <ShoppingBag size={15} />
                   <span>{t('misc_buy_now')}</span>

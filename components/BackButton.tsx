@@ -11,12 +11,18 @@ interface BackButtonProps {
   className?: string;
 }
 
-export default function BackButton({ label, fallbackRoute = '/', className = '' }: BackButtonProps) {
+export default function BackButton({ label, fallbackRoute = '/products', className = '' }: BackButtonProps) {
   const router = useRouter();
   const { language } = useLanguage();
 
   const handleBack = () => {
-    if (window.history.length > 2) {
+    // Check if the user came from an internal page within the same domain
+    const hasInternalReferrer = 
+      typeof document !== 'undefined' && 
+      document.referrer && 
+      document.referrer.includes(window.location.host);
+
+    if (hasInternalReferrer) {
       router.back();
     } else {
       router.push(fallbackRoute);
