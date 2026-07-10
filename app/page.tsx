@@ -35,7 +35,7 @@ const getHomeData = unstable_cache(
     return { categories: [], products: [] };
   }
 },
-['home-data'],
+['home-data-v2'],
 { revalidate: 600, tags: ['categories', 'products'] }
 );
 

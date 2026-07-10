@@ -40,7 +40,7 @@ const getCatalogData = unstable_cache(
       return { categories: [], products: [] };
     }
   },
-  ['catalog-data'],
+  ['catalog-data-v2'],
   { revalidate: 600, tags: ['categories', 'products'] }
 );
 
