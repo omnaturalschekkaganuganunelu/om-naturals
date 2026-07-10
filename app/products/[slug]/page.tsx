@@ -11,6 +11,21 @@ import { unstable_cache } from 'next/cache';
 
 export const revalidate = 600; // Cache for 10 minutes to save Neon compute
 
+export async function generateStaticParams() {
+  try {
+    const products = await prisma.product.findMany({
+      where: { isActive: true },
+      select: { slug: true },
+    });
+    return products.map((p) => ({
+      slug: p.slug,
+    }));
+  } catch (err) {
+    console.error('Error generating static params:', err);
+    return [];
+  }
+}
+
 const getProductData = unstable_cache(
   async (slug: string) => {
     try {
@@ -139,13 +154,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       }
     } catch (e) {}
 
-    const titleStr = `${product.name} (${product.nameTe}) | OM Natural Chekka Ganuga Oils`;
-    const descStr = `Buy 100% pure traditional wood pressed ${product.name.toLowerCase()} (${product.nameTe}) online. ${product.description.slice(0, 120)}... Free delivery above ₹500 across AP & TS.`;
+    const cleanName = product.name.split('(')[0].trim();
+    const titleStr = `${cleanName} (${product.nameTe}) | OM Natural Chekka Ganuga Oils`;
+    const descStr = `Buy 100% pure traditional wood pressed ${cleanName.toLowerCase()} (${product.nameTe}) online. ${product.description.slice(0, 120)}... Free delivery above ₹500 across AP & TS.`;
 
     return {
       title: titleStr,
       description: descStr,
-      keywords: `${product.name}, ${product.nameTe}, wood pressed oil, cold pressed ${product.name.toLowerCase()}, chekka ganuga nune, organic cooking oil, OM Natural Oils`,
+      keywords: `${cleanName}, ${product.nameTe}, wood pressed oil, cold pressed ${cleanName.toLowerCase()}, chekka ganuga nune, organic cooking oil, OM Natural Oils`,
       openGraph: {
         title: titleStr,
         description: descStr,
@@ -154,7 +170,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
             url: imageUrl,
             width: 800,
             height: 800,
-            alt: product.name,
+            alt: cleanName,
           },
         ],
         type: 'website',

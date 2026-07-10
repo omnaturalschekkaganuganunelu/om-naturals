@@ -59,10 +59,11 @@ export default function ProductCard({ group }: ProductCardProps) {
   const outOfStock = representative.stock <= 0;
   const discountPercent = minMrp > minPrice ? Math.round(((minMrp - minPrice) / minMrp) * 100) : 0;
 
+  const cleanNameEn = groupKey.split('(')[0].trim();
   const displayName =
     language === 'te'
       ? extractBaseNameTe(representative.nameTe || representative.name)
-      : groupKey;
+      : cleanNameEn;
 
   // For single variant: direct cart qty
   const singleCartEntry = isSingleVariant ? items.find((i) => i.productId === representative.id) : null;

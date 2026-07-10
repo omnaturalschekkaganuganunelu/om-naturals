@@ -15,19 +15,27 @@ const LanguageContext = createContext<LanguageContextType>({
   t: (key) => translations.en[key] ?? key,
 });
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('en');
+export function LanguageProvider({
+  children,
+  initialLanguage = 'en',
+}: {
+  children: React.ReactNode;
+  initialLanguage?: Language;
+}) {
+  const [language, setLanguageState] = useState<Language>(initialLanguage);
 
   useEffect(() => {
     const saved = localStorage.getItem('nune-bazaar-lang') as Language | null;
-    if (saved === 'en' || saved === 'te') {
+    if (saved && saved !== language && (saved === 'en' || saved === 'te')) {
       setLanguageState(saved);
     }
-  }, []);
+  }, [language]);
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem('nune-bazaar-lang', lang);
+    // Write cookie for server-side lookup
+    document.cookie = `nune-lang=${lang}; path=/; max-age=31536000; SameSite=Lax`;
   }, []);
 
   const t = useCallback(

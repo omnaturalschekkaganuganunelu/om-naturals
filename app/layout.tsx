@@ -68,16 +68,21 @@ export const viewport: Viewport = {
 };
 
 import NextTopLoader from 'nextjs-toploader';
+import { cookies } from 'next/headers';
+import { Language } from '@/lib/translations';
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = cookies();
+  const initialLang = (cookieStore.get('nune-lang')?.value as Language) || 'en';
+
   return (
-    <html lang="en" className={`overflow-x-clip max-w-full ${inter.variable} ${outfit.variable}`}>
+    <html lang={initialLang} className={`overflow-x-clip max-w-full ${inter.variable} ${outfit.variable}`}>
       <body className="antialiased min-h-screen flex flex-col bg-[#fdfbf7] overflow-x-clip">
-        <Providers>
+        <Providers initialLanguage={initialLang}>
           <NextTopLoader
             color="#b45309"
             initialPosition={0.08}

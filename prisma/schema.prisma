@@ -39,6 +39,8 @@ model Address {
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Category {
@@ -81,6 +83,8 @@ model Product {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([categoryId])
 }
 
 model Coupon {
@@ -125,6 +129,8 @@ model Order {
   payments      Payment[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+
+  @@index([userId])
 }
 
 model OrderItem {
@@ -137,6 +143,8 @@ model OrderItem {
   price     Float
   quantity  Int
   image     String
+
+  @@index([orderId])
 }
 
 model Payment {
@@ -148,6 +156,8 @@ model Payment {
   status                String   // "PENDING", "COMPLETED", "FAILED"
   providerResponse      String?  // JSON text
   createdAt             DateTime @default(now())
+
+  @@index([orderId])
 }
 
 model Banner {
@@ -183,4 +193,6 @@ model Notification {
   isRead    Boolean  @default(false)
   orderId   String?
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
