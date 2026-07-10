@@ -12,54 +12,57 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 1. Basic Counts
-    const productsCount = await prisma.product.count();
-    const customersCount = await prisma.user.count({ where: { role: 'CUSTOMER' } });
-    const ordersCount = await prisma.order.count();
-
-    // 2. Revenue (All non-cancelled orders)
-    const paidOrders = await prisma.order.findMany({
-      where: {
-        NOT: { orderStatus: 'CANCELLED' },
-      },
-      select: { total: true },
-    });
-    const totalRevenue = parseFloat(paidOrders.reduce((sum, order) => sum + order.total, 0).toFixed(2));
-
-    // 3. Low Stock Alerts (Stock < 5)
-    const lowStockProducts = await prisma.product.findMany({
-      where: {
-        stock: { lt: 5 },
-      },
-      include: { category: true },
-    });
-
-    // 4. Recent Orders
-    const recentOrders = await prisma.order.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: {
-          select: { name: true, email: true },
-        },
-      },
-    });
-
-    // 5. Last 7 Days Revenue Trend
-    const last7DaysData = [];
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    const trendOrders = await prisma.order.findMany({
-      where: {
-        createdAt: {
-          gte: sevenDaysAgo,
+    // Run all database count and fetch operations in parallel
+    const [
+      productsCount,
+      customersCount,
+      ordersCount,
+      paidOrders,
+      lowStockProducts,
+      recentOrders,
+      trendOrders
+    ] = await Promise.all([
+      prisma.product.count(),
+      prisma.user.count({ where: { role: 'CUSTOMER' } }),
+      prisma.order.count(),
+      prisma.order.findMany({
+        where: {
+          NOT: { orderStatus: 'CANCELLED' },
         },
-        NOT: { orderStatus: 'CANCELLED' },
-      },
-      select: { total: true, createdAt: true },
-    });
+        select: { total: true },
+      }),
+      prisma.product.findMany({
+        where: {
+          stock: { lt: 5 },
+        },
+        include: { category: true },
+      }),
+      prisma.order.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { name: true, email: true },
+          },
+        },
+      }),
+      prisma.order.findMany({
+        where: {
+          createdAt: {
+            gte: sevenDaysAgo,
+          },
+          NOT: { orderStatus: 'CANCELLED' },
+        },
+        select: { total: true, createdAt: true },
+      })
+    ]);
+
+    const totalRevenue = parseFloat(paidOrders.reduce((sum, order) => sum + order.total, 0).toFixed(2));
+    const last7DaysData = [];
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
