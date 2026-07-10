@@ -346,20 +346,25 @@ export async function POST(req: NextRequest) {
     // PERFORMANCE: Notifications and email are fire-and-forget for both COD and PhonePe.
     // This allows the API to return the order immediately so the client can redirect faster.
     if (paymentMethod === 'COD') {
-      // Notifications — fire-and-forget
-      prisma.notification.create({
-        data: {
-          title: '🛒 Order Placed Successfully!',
-          body: `Your order ${order.orderId} for ₹${order.total} has been placed. Pay on delivery. Expected delivery in 2-3 days.`,
-          type: 'ORDER',
-          userId: session.user.id,
-          orderId: order.id,
-        },
-      }).catch((err: any) => console.error('Order-placed notification failed:', err));
+      // Notifications (awaited to ensure delivery in serverless environment)
+      try {
+        await prisma.notification.create({
+          data: {
+            title: '🛒 Order Placed Successfully!',
+            body: `Your order ${order.orderId} for ₹${order.total} has been placed. Pay on delivery. Expected delivery in 2-3 days.`,
+            type: 'ORDER',
+            userId: session.user.id,
+            orderId: order.id,
+          },
+        });
+      } catch (err: any) {
+        console.error('Order-placed notification failed:', err);
+      }
 
-      // Admin notifications — fire-and-forget
-      prisma.user.findMany({ where: { role: 'ADMIN' } }).then((admins) => {
-        return Promise.all(admins.map((admin) =>
+      // Admin notifications (awaited to ensure delivery in serverless environment)
+      try {
+        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
+        await Promise.all(admins.map((admin) =>
           prisma.notification.create({
             data: {
               title: `🛒 New Order Placed!`,
@@ -370,14 +375,19 @@ export async function POST(req: NextRequest) {
             },
           })
         ));
-      }).catch((err: any) => console.error('Admin order-placed notification failed:', err));
+      } catch (err: any) {
+        console.error('Admin order-placed notification failed:', err);
+      }
 
-      // Invalidate cache — fire-and-forget
+      // Invalidate cache
       revalidatePath('/', 'layout');
 
-      // Confirmation email — fire-and-forget (SMTP can take 2-5s, don't block client)
-      sendOrderConfirmationEmail(order.id, userEmail as string, session.user.name as string)
-        .catch((err: any) => console.error('COD confirmation email failed:', err));
+      // Confirmation email (awaited to ensure delivery in serverless environment)
+      try {
+        await sendOrderConfirmationEmail(order.id, userEmail as string, session.user.name as string);
+      } catch (err: any) {
+        console.error('COD confirmation email failed:', err);
+      }
     }
 
     return NextResponse.json({

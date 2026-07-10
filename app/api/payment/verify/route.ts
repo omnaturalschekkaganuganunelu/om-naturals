@@ -148,10 +148,10 @@ export async function GET(req: NextRequest) {
           updatedAt: new Date().toISOString(),
         });
 
-        // Send email (fire and forget)
+        // Send email (awaited to ensure delivery in serverless environment)
         const user = await prisma.user.findUnique({ where: { id: order.userId } });
         if (user?.email) {
-          sendOrderConfirmationEmail(orderId, user.email, user.name || 'Customer').catch(console.error);
+          await sendOrderConfirmationEmail(orderId, user.email, user.name || 'Customer').catch(console.error);
         }
 
         return NextResponse.json({ status: 'COMPLETED', orderStatus: 'CONFIRMED' });

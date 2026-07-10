@@ -227,15 +227,15 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date().toISOString(),
       });
 
-      // Send email fire-and-forget — do NOT await, so PhonePe gets a fast 200 OK
-      // and doesn't retry the webhook due to slow SMTP response times.
-      prisma.user.findUnique({ where: { id: order.userId } }).then((orderUser) => {
+      // Send email (awaited to ensure delivery in serverless environment)
+      try {
+        const orderUser = await prisma.user.findUnique({ where: { id: order.userId } });
         if (orderUser && orderUser.email && orderUser.name) {
-          sendOrderConfirmationEmail(order.id, orderUser.email, orderUser.name).catch((e) =>
-            console.error('Webhook: failed to send confirmation email', e)
-          );
+          await sendOrderConfirmationEmail(order.id, orderUser.email, orderUser.name);
         }
-      }).catch(console.error);
+      } catch (e) {
+        console.error('Webhook: failed to send confirmation email', e);
+      }
 
       return NextResponse.json({ success: true, message: 'Payment webhook processed successfully' });
     } else {

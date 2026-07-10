@@ -125,10 +125,10 @@ export async function GET(req: NextRequest) {
           }
         });
 
-        // Fire and forget email
+        // Send email (awaited to ensure delivery in serverless environment)
         const user = await prisma.user.findUnique({ where: { id: order.userId } });
         if (user?.email) {
-          sendOrderConfirmationEmail(orderId, user.email, user.name || 'Customer').catch(console.error);
+          await sendOrderConfirmationEmail(orderId, user.email, user.name || 'Customer').catch(console.error);
         }
 
         return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
           where: { id: orderId },
           data: { paymentStatus: 'FAILED' },
         });
-        prisma.notification.create({
+        await prisma.notification.create({
           data: {
             title: '❌ Payment Not Completed',
             body: `Payment for Order ${order.orderId} was not completed. Please retry or place a new order.`,
