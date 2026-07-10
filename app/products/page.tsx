@@ -1,5 +1,7 @@
 import React from 'react';
 import { prisma } from '@/lib/db';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import ProductListingClient from './ProductListingClient';
 import { unstable_cache } from 'next/cache';
 
@@ -46,9 +48,13 @@ export default async function ProductListingPage() {
   const { categories, products } = await getCatalogData();
 
   return (
-    <ProductListingClient
-      initialProducts={products}
-      initialCategories={categories}
-    />
+    <>
+      <Navbar />
+      <ProductListingClient
+        initialProducts={products}
+        initialCategories={categories}
+      />
+      <Footer />
+    </>
   );
 }
