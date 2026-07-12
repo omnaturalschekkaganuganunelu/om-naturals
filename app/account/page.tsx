@@ -929,7 +929,7 @@ function AccountContent() {
 
   const getEstimatedArrival = (createdAtStr: string) => {
     const d = new Date(createdAtStr);
-    d.setDate(d.getDate() + 3); // 3 days expected delivery
+    d.setDate(d.getDate() + 5); // 5 days expected delivery
     return formatDate(d.toISOString());
   };
 

@@ -116,7 +116,7 @@ export default function ProductCard({ group }: ProductCardProps) {
               alt={representative.name}
               fill
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-              className="object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-out"
+              className="object-contain p-4 group-hover:scale-[1.04] transition-transform duration-500 ease-out"
               onError={() => setImgError(true)}
             />
           </Link>
@@ -215,7 +215,7 @@ export default function ProductCard({ group }: ProductCardProps) {
         <div className="p-2.5 sm:p-3 flex flex-col flex-1 font-sans">
 
           <p className="text-[9px] sm:text-[10px] font-black text-amber-700 uppercase tracking-wider mb-1">
-            ⚡ {language === 'te' ? '15 నిమిషాలు' : '15 MINS'}
+            ⚡ {language === 'te' ? '5 రోజుల్లో డెలివరీ' : 'Delivered in 5 Days'}
           </p>
 
           <Link href={`/products/${representative.slug}`}>

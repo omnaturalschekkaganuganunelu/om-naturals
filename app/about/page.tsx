@@ -28,52 +28,53 @@ export default function AboutPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center mb-20">
-          <div className="relative h-[300px] sm:h-[400px] rounded-3xl overflow-hidden shadow-2xl border-4 border-white group">
+          <div className="relative h-[300px] sm:h-[400px] rounded-3xl overflow-hidden shadow-xl border border-amber-100/50 bg-[#fbf9f4] group">
             {/* Animated Slider */}
             <div className="w-full h-full relative">
-              <div className="absolute inset-0 transition-opacity duration-1000 animate-fade-slide">
-                <Image src="https://res.cloudinary.com/dftcaaum2/image/upload/v1782238180/cojbx1woteneyhoumhv5.jpg" alt="Groundnut Oil" fill className="object-cover transform group-hover:scale-110 transition-transform duration-[10000ms]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-amber-950/90 via-amber-950/20 to-transparent"></div>
-                <div className="absolute bottom-6 left-6 right-6">
-                  <h2 className="text-2xl font-black text-white font-heading drop-shadow-lg">
+              <div className="absolute inset-0 transition-opacity duration-1000 animate-fade-slide flex flex-col justify-between p-6">
+                <div className="relative w-full h-[70%]">
+                  <Image src="https://res.cloudinary.com/dftcaaum2/image/upload/v1783839130/izjekuxbtb3fe97inkc0.png" alt="Groundnut Oil" fill className="object-contain transform group-hover:scale-105 transition-transform duration-[10000ms]" />
+                </div>
+                <div className="mt-2 text-center">
+                  <h2 className="text-xl font-extrabold text-amber-950 font-heading">
                     {isTe ? 'స్వచ్ఛమైన వేరుశెనగ నూనె' : 'Pure Groundnut Oil'}
                   </h2>
                 </div>
               </div>
 
-              <div className="absolute inset-0 opacity-0 transition-opacity duration-1000 animate-fade-slide-4">
-                <Image src="https://res.cloudinary.com/dftcaaum2/image/upload/v1782238188/anxys6btekuo9frfqjhc.jpg" alt="Sesame Oil" fill className="object-cover transform group-hover:scale-110 transition-transform duration-[10000ms]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-amber-950/90 via-amber-950/20 to-transparent"></div>
-                <div className="absolute bottom-6 left-6 right-6">
-                  <h2 className="text-2xl font-black text-white font-heading drop-shadow-lg">
+              <div className="absolute inset-0 opacity-0 transition-opacity duration-1000 animate-fade-slide-4 flex flex-col justify-between p-6">
+                <div className="relative w-full h-[70%]">
+                  <Image src="https://res.cloudinary.com/dftcaaum2/image/upload/v1783839130/izjekuxbtb3fe97inkc0.png" alt="Sesame Oil" fill className="object-contain transform group-hover:scale-105 transition-transform duration-[10000ms]" />
+                </div>
+                <div className="mt-2 text-center">
+                  <h2 className="text-xl font-extrabold text-amber-950 font-heading">
                     {isTe ? 'స్వచ్ఛమైన నువ్వుల నూనె' : 'Pure Sesame Oil'}
                   </h2>
                 </div>
               </div>
 
-              <div className="absolute inset-0 opacity-0 transition-opacity duration-1000 animate-fade-slide-8">
-                <Image src="https://res.cloudinary.com/dftcaaum2/image/upload/v1782238178/gkpir09dnxp5mxpqes2j.jpg" alt="Coconut Oil" fill className="object-cover transform group-hover:scale-110 transition-transform duration-[10000ms]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-amber-950/90 via-amber-950/20 to-transparent"></div>
-                <div className="absolute bottom-6 left-6 right-6">
-                  <h2 className="text-2xl font-black text-white font-heading drop-shadow-lg">
+              <div className="absolute inset-0 opacity-0 transition-opacity duration-1000 animate-fade-slide-8 flex flex-col justify-between p-6">
+                <div className="relative w-full h-[70%]">
+                  <Image src="https://res.cloudinary.com/dftcaaum2/image/upload/v1783839130/izjekuxbtb3fe97inkc0.png" alt="Coconut Oil" fill className="object-contain transform group-hover:scale-105 transition-transform duration-[10000ms]" />
+                </div>
+                <div className="mt-2 text-center">
+                  <h2 className="text-xl font-extrabold text-amber-950 font-heading">
                     {isTe ? 'స్వచ్ఛమైన కొబ్బరి నూనె' : 'Pure Coconut Oil'}
                   </h2>
                 </div>
               </div>
 
-              <div className="absolute inset-0 opacity-0 transition-opacity duration-1000 animate-fade-slide-12">
-                <Image src="https://res.cloudinary.com/dftcaaum2/image/upload/v1782238177/nnenzvc66v5ozyhiytfp.jpg" alt="Almond Oil" fill className="object-cover transform group-hover:scale-110 transition-transform duration-[10000ms]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-amber-950/90 via-amber-950/20 to-transparent"></div>
-                <div className="absolute bottom-6 left-6 right-6">
-                  <h2 className="text-2xl font-black text-white font-heading drop-shadow-lg">
+              <div className="absolute inset-0 opacity-0 transition-opacity duration-1000 animate-fade-slide-12 flex flex-col justify-between p-6">
+                <div className="relative w-full h-[70%]">
+                  <Image src="https://res.cloudinary.com/dftcaaum2/image/upload/v1783839140/pulvlbyuoyk9gtgp0wn7.png" alt="Almond Oil" fill className="object-contain transform group-hover:scale-105 transition-transform duration-[10000ms]" />
+                </div>
+                <div className="mt-2 text-center">
+                  <h2 className="text-xl font-extrabold text-amber-950 font-heading">
                     {isTe ? 'ప్రీమియం బాదం నూనె' : 'Premium Almond Oil'}
                   </h2>
                 </div>
               </div>
             </div>
-            
-            {/* Overlay Gradient for entire container just in case */}
-            <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-black/10 rounded-3xl"></div>
           </div>
           
           <div className="space-y-6">

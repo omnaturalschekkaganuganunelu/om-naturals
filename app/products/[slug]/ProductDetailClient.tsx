@@ -97,7 +97,7 @@ function RelatedCard({ rel, language }: { rel: any; language: string }) {
         className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer flex flex-col w-full min-w-0"
         onClick={() => router.push(`/products/${rel.slug}`)}
       >
-        <div className="relative aspect-square bg-amber-50/40 overflow-hidden flex-shrink-0">
+        <div className="relative aspect-square bg-white overflow-hidden flex-shrink-0">
           {discount > 0 && (
             <div className="absolute top-2 left-2 z-10 bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
               {discount}% OFF
@@ -113,7 +113,7 @@ function RelatedCard({ rel, language }: { rel: any; language: string }) {
             alt={displayName}
             fill
             sizes="(max-width: 768px) 50vw, 33vw"
-            className="object-cover group-hover:scale-[1.04] transition-transform duration-400"
+            className="object-contain p-3 group-hover:scale-[1.04] transition-transform duration-400"
             onError={() => setImgErr(true)}
           />
           {!outOfStock && (
@@ -162,23 +162,46 @@ function ImageViewer({ images, displayName }: { images: string[]; displayName: s
   const [showZoom, setShowZoom] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [naturalAspect, setNaturalAspect] = useState(1);
   const mainRef = useRef<HTMLDivElement>(null);
   const ZOOM_FACTOR = 2.5;
 
   const activeImage = images[activeIdx] || FALLBACK_IMG;
 
-  // Reset when images change (variant switch)
   useEffect(() => {
     setActiveIdx(0);
     setShowZoom(false);
   }, [images]);
 
+  const lensW = 120;
+  const lensH = 120;
+  const halfLensW = lensW / 2;
+  const halfLensH = lensH / 2;
+
+  const mainW = mainRef.current?.clientWidth || 400;
+  const mainH = mainRef.current?.clientHeight || 400;
+
+  const isVertical = naturalAspect < 1;
+  const imgW = isVertical ? (mainH * naturalAspect) : mainW;
+  const imgH = isVertical ? mainH : (mainW / naturalAspect);
+  const offsetX = isVertical ? ((mainW - imgW) / 2) : 0;
+  const offsetY = isVertical ? 0 : ((mainH - imgH) / 2);
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = mainRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const x = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
-    const y = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
-    setLensPos({ x, y });
+    const cursorX = e.clientX - rect.left;
+    const cursorY = e.clientY - rect.top;
+    
+    const minX = offsetX + halfLensW;
+    const maxX = offsetX + imgW - halfLensW;
+    const minY = offsetY + halfLensH;
+    const maxY = offsetY + imgH - halfLensH;
+    
+    const lensX = maxX > minX ? Math.min(Math.max(cursorX, minX), maxX) : (offsetX + imgW / 2);
+    const lensY = maxY > minY ? Math.min(Math.max(cursorY, minY), maxY) : (offsetY + imgH / 2);
+    
+    setLensPos({ x: lensX, y: lensY });
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -190,10 +213,10 @@ function ImageViewer({ images, displayName }: { images: string[]; displayName: s
     const touchEnd = e.changedTouches[0].clientX;
     const diff = touchStart - touchEnd;
     
-    if (diff > 50) { // swipe left (next)
+    if (diff > 50) {
       setActiveIdx((prev) => (prev + 1) % images.length);
       setShowZoom(false);
-    } else if (diff < -50) { // swipe right (prev)
+    } else if (diff < -50) {
       setActiveIdx((prev) => (prev - 1 + images.length) % images.length);
       setShowZoom(false);
     }
@@ -210,26 +233,15 @@ function ImageViewer({ images, displayName }: { images: string[]; displayName: s
     }
   };
 
-  // Lens size in pixels (the square on the main image that gets zoomed)
-  const lensW = 120;
-  const lensH = 120;
+  const leftPos = lensPos.x - halfLensW;
+  const topPos = lensPos.y - halfLensH;
 
-  // Clamp lens so it doesn't go outside the image
-  const mainW = mainRef.current?.clientWidth || 400;
-  const mainH = mainRef.current?.clientHeight || 400;
-  const clampedLensX = Math.min(Math.max(lensPos.x - lensW / 2, 0), mainW - lensW);
-  const clampedLensY = Math.min(Math.max(lensPos.y - lensH / 2, 0), mainH - lensH);
-
-  // Background position for zoomed panel
-  const bgX = -(clampedLensX * ZOOM_FACTOR);
-  const bgY = -(clampedLensY * ZOOM_FACTOR);
+  const bgX = -((lensPos.x - offsetX - halfLensW) * ZOOM_FACTOR);
+  const bgY = -((lensPos.y - offsetY - halfLensH) * ZOOM_FACTOR);
 
   return (
     <>
-      {/* Always stacked: main image on top, thumbnails below */}
       <div className="flex flex-col w-full">
-
-        {/* ── Main Image + Zoom Panel ── */}
         <div className="relative w-full">
           <div
             ref={mainRef}
@@ -249,19 +261,21 @@ function ImageViewer({ images, displayName }: { images: string[]; displayName: s
               fill
               priority
               sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover"
+              className="object-contain p-4 transition-transform duration-500 ease-out"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                setNaturalAspect(img.naturalWidth / img.naturalHeight);
+              }}
               onError={(e) => { (e.currentTarget as HTMLImageElement).srcset = FALLBACK_IMG; }}
             />
 
-            {/* Lens overlay (desktop only) */}
             {showZoom && (
               <div
                 className="hidden md:block absolute border-2 border-amber-400 bg-amber-100/20 pointer-events-none z-10"
-                style={{ width: lensW, height: lensH, left: clampedLensX, top: clampedLensY }}
+                style={{ width: lensW, height: lensH, left: leftPos, top: topPos }}
               />
             )}
 
-            {/* Zoom hint */}
             {!showZoom && (
               <div className="absolute bottom-3 left-3 z-10 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 pointer-events-none">
                 <ZoomIn size={11} />
@@ -269,7 +283,6 @@ function ImageViewer({ images, displayName }: { images: string[]; displayName: s
               </div>
             )}
 
-            {/* Full view button on mobile */}
             <button
               className="md:hidden absolute bottom-3 right-3 z-10 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5"
               onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
@@ -279,14 +292,13 @@ function ImageViewer({ images, displayName }: { images: string[]; displayName: s
             </button>
           </div>
 
-          {/* Amazon-style Zoom Panel (desktop only) — floats to right */}
           {showZoom && (
             <div
               className="hidden md:block absolute top-0 left-[calc(100%+12px)] z-50 w-[380px] h-[380px] border border-amber-200 rounded-2xl overflow-hidden shadow-2xl bg-white"
               style={{
                 backgroundImage: `url(${activeImage})`,
                 backgroundRepeat: 'no-repeat',
-                backgroundSize: `${mainW * ZOOM_FACTOR}px ${mainH * ZOOM_FACTOR}px`,
+                backgroundSize: `${imgW * ZOOM_FACTOR}px ${imgH * ZOOM_FACTOR}px`,
                 backgroundPosition: `${bgX}px ${bgY}px`,
               }}
             />
@@ -415,8 +427,24 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
   }, [outOfStock, addItem, product, quantity, router]);
 
   const handleIncrement = () => {
-    if (inCart) { if (cartQty < product.stock) updateQuantity(product.id, cartQty + 1); }
-    else { if (quantity < product.stock) setQuantity((q) => q + 1); }
+    if (inCart) { 
+      if (cartQty < product.stock) updateQuantity(product.id, cartQty + 1); 
+    }
+    else { 
+      if (quantity < product.stock) {
+        setQuantity((q) => q + 1);
+        addItem({
+          productId: product.id,
+          slug: product.slug,
+          name: product.name,
+          nameTe: product.nameTe,
+          price: product.price, mrp: product.mrp, quantity: quantity + 1,
+          image: product.images[0] || FALLBACK_IMG,
+          weight: product.weight, unit: product.unit, stock: product.stock,
+          variantLabel: formatVariantLabel(product),
+        });
+      }
+    }
   };
   const handleDecrement = () => {
     if (inCart) { cartQty === 1 ? removeItem(product.id) : updateQuantity(product.id, cartQty - 1); }

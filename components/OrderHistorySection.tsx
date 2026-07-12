@@ -83,7 +83,7 @@ function fmt(dateStr: string, opts: Intl.DateTimeFormatOptions, locale = 'en-IN'
 
 function getETA(createdAt: string, language: string) {
   const d = new Date(createdAt);
-  d.setDate(d.getDate() + 3);
+  d.setDate(d.getDate() + 5);
   return d.toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' });
 }
 

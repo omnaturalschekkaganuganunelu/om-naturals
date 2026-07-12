@@ -153,7 +153,7 @@ export default function VariantSelectorModal({
                     alt={variant.name}
                     width={64}
                     height={64}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain p-1"
                     onError={() => setImgErrors((prev) => ({ ...prev, [variant.id]: true }))}
                   />
                 </div>

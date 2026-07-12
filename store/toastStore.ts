@@ -1,30 +1,33 @@
 import { create } from 'zustand';
 
-export interface ToastItem {
+export type ToastType = 'success' | 'error' | 'info' | 'cart';
+
+export interface Toast {
   id: string;
-  message: string;
-  type: 'success' | 'error' | 'info';
   title?: string;
+  message: string;
+  type: ToastType;
+  duration?: number;
 }
 
-interface ToastState {
-  toasts: ToastItem[];
-  showToast: (message: string, type?: 'success' | 'error' | 'info', title?: string) => void;
+interface ToastStore {
+  toasts: Toast[];
+  showToast: (message: string, type: ToastType, title?: string, duration?: number) => void;
   removeToast: (id: string) => void;
 }
 
-export const useToastStore = create<ToastState>((set) => ({
+export const useToastStore = create<ToastStore>((set) => ({
   toasts: [],
-  showToast: (message, type = 'success', title) => {
-    const id = Math.random().toString(36).substring(7);
+  showToast: (message, type, title, duration = 3000) => {
+    const id = Math.random().toString(36).substring(2, 9);
     set((state) => ({
-      toasts: [...state.toasts, { id, message, type, title }],
+      toasts: [...state.toasts, { id, message, type, title, duration }],
     }));
     setTimeout(() => {
       set((state) => ({
         toasts: state.toasts.filter((t) => t.id !== id),
       }));
-    }, 4000);
+    }, duration);
   },
   removeToast: (id) =>
     set((state) => ({

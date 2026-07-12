@@ -12,6 +12,8 @@ import { useLanguage } from '@/context/LanguageContext';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomSelect from '@/components/CustomSelect';
 import { extractBaseName } from '@/hooks/useGroupedProducts';
+import { extractBaseNameTe } from '@/components/ProductCard';
+import { useToastStore } from '@/store/toastStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VariantForm {
@@ -43,9 +45,38 @@ const EMPTY_VARIANT = (): VariantForm => ({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AdminProductsPage() {
+  const generateSlug = (name: string, weight: string, unit: string) => {
+    const base = name.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, "-");
+    if (!weight) return base;
+    const wLabel = unit === "Litre" ? (weight + "l") : (weight + unit.slice(0, 2).toLowerCase());
+    return base + "-" + wLabel;
+  };
+
+  const generateSKU = (name: string, weight: string, unit: string) => {
+    const cleanName = name.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const prefix = cleanName.substring(0, 8) || "PROD";
+    const wLabel = unit === "Litre" ? (weight + "L") : (weight + unit.slice(0, 2).toUpperCase());
+    return ("OIL-" + prefix + "-" + wLabel).replace(/--+/g, "-");
+  };
+
+  const translateUnit = (u: string) => {
+    if (language !== 'te') return u;
+    switch (u.toLowerCase()) {
+      case 'litre': return 'లీటర్';
+      case 'liter': return 'లీటర్';
+      case 'ml': return 'మి.లీ.';
+      case 'gram': return 'గ్రామ్స్';
+      case 'g': return 'గ్రామ్స్';
+      case 'kg': return 'కేజీ';
+      case 'piece': return 'పీస్';
+      case 'pack': return 'ప్యాక్';
+      default: return u;
+    }
+  };
   const router = useRouter();
   const { data: session, status: authStatus } = useSession();
   const { t, language } = useLanguage();
+  const showToast = useToastStore((s) => s.showToast);
 
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -82,7 +113,13 @@ export default function AdminProductsPage() {
     stock: string;
     imageUrls: string[];
     description: string;
+    descriptionTe: string;
     benefits: string;
+    benefitsTe: string;
+    ingredients: string;
+    ingredientsTe: string;
+    usage: string;
+    usageTe: string;
     isActive: boolean;
   }>({
     name: '',
@@ -97,7 +134,13 @@ export default function AdminProductsPage() {
     stock: '',
     imageUrls: [],
     description: '',
+    descriptionTe: '',
     benefits: '',
+    benefitsTe: '',
+    ingredients: '',
+    ingredientsTe: '',
+    usage: '',
+    usageTe: '',
     isActive: true,
   });
 
@@ -147,6 +190,47 @@ export default function AdminProductsPage() {
     } finally {
       setUploadingSingle(false);
       setUploadingVariantIndex(null);
+    }
+  };
+
+  const [dragActiveSingle, setDragActiveSingle] = useState(false);
+  const [dragActiveVariantIndex, setDragActiveVariantIndex] = useState<number | null>(null);
+
+  const handleDragSingle = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActiveSingle(true);
+    } else if (e.type === "dragleave") {
+      setDragActiveSingle(false);
+    }
+  };
+
+  const handleDropSingle = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActiveSingle(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleUploadImages(e.dataTransfer.files, false);
+    }
+  };
+
+  const handleDragVariant = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActiveVariantIndex(idx);
+    } else if (e.type === "dragleave") {
+      setDragActiveVariantIndex(null);
+    }
+  };
+
+  const handleDropVariant = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActiveVariantIndex(null);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleUploadImages(e.dataTransfer.files, true, idx);
     }
   };
 
@@ -234,7 +318,12 @@ export default function AdminProductsPage() {
       name: '', nameTe: '', slug: '',
       categoryId: categories[0]?.id || '',
       weight: '', unit: 'Litre', price: '', mrp: '',
-      sku: '', stock: '', imageUrls: [], description: '', benefits: '', isActive: true,
+      sku: '', stock: '', imageUrls: [],
+      description: '', descriptionTe: '',
+      benefits: '', benefitsTe: '',
+      ingredients: '', ingredientsTe: '',
+      usage: '', usageTe: '',
+      isActive: true,
     });
     setVariants([EMPTY_VARIANT(), EMPTY_VARIANT()]);
     setShowModal(true);
@@ -246,6 +335,7 @@ export default function AdminProductsPage() {
     setEditingProduct(p);
     setModalMode('single');
     setFormError('');
+    const joinArr = (v: any) => Array.isArray(v) ? v.join('\n') : (v || '');
     setSingleForm({
       id: p.id,
       name: p.name,
@@ -259,9 +349,46 @@ export default function AdminProductsPage() {
       sku: p.sku,
       stock: p.stock.toString(),
       imageUrls: p.images || [],
-      description: p.description,
-      benefits: Array.isArray(p.benefits) ? p.benefits.join(', ') : p.benefits,
+      description: p.description || '',
+      descriptionTe: p.descriptionTe || '',
+      benefits: joinArr(p.benefits),
+      benefitsTe: joinArr(p.benefitsTe),
+      ingredients: joinArr(p.ingredients),
+      ingredientsTe: joinArr(p.ingredientsTe),
+      usage: joinArr(p.usage),
+      usageTe: joinArr(p.usageTe),
       isActive: p.isActive !== undefined ? p.isActive : true,
+    });
+    setShowModal(true);
+  };
+
+  const handleOpenAddSize = (p: any) => {
+    setEditingProduct(null);
+    setModalMode('single');
+    setFormError('');
+    const baseName = extractBaseName(p.name);
+    const joinArr = (v: any) => Array.isArray(v) ? v.join('\n') : (v || '');
+    setSingleForm({
+      name: baseName + ' ',
+      nameTe: p.nameTe ? p.nameTe + ' ' : '',
+      slug: makeSlug(baseName) + '-',
+      categoryId: p.categoryId,
+      weight: '',
+      unit: 'Litre',
+      price: '',
+      mrp: '',
+      sku: '',
+      stock: '',
+      imageUrls: [],
+      description: p.description || '',
+      descriptionTe: p.descriptionTe || '',
+      benefits: joinArr(p.benefits),
+      benefitsTe: joinArr(p.benefitsTe),
+      ingredients: joinArr(p.ingredients),
+      ingredientsTe: joinArr(p.ingredientsTe),
+      usage: joinArr(p.usage),
+      usageTe: joinArr(p.usageTe),
+      isActive: true,
     });
     setShowModal(true);
   };
@@ -273,11 +400,13 @@ export default function AdminProductsPage() {
       setFormError(language === 'te' ? 'దయచేసి అన్ని అవసరమైన వివరాలు నింపండి.' : 'Please fill in all required fields.');
       return false;
     }
+    const splitLines = (s: string) => s.split('\n').map(l => l.trim()).filter(Boolean);
     const payload = {
       name,
       nameTe: nameTe || name,
       slug,
       description,
+      descriptionTe: singleForm.descriptionTe || '',
       images: singleForm.imageUrls,
       price: parseFloat(price),
       mrp: singleForm.mrp ? parseFloat(singleForm.mrp) : parseFloat(price),
@@ -286,7 +415,12 @@ export default function AdminProductsPage() {
       unit: singleForm.unit,
       weight: parseFloat(weight),
       categoryId,
-      benefits: singleForm.benefits.split(',').map((s) => s.trim()).filter(Boolean),
+      benefits: splitLines(singleForm.benefits),
+      benefitsTe: splitLines(singleForm.benefitsTe),
+      ingredients: splitLines(singleForm.ingredients),
+      ingredientsTe: splitLines(singleForm.ingredientsTe),
+      usage: splitLines(singleForm.usage),
+      usageTe: splitLines(singleForm.usageTe),
       isActive: singleForm.isActive,
     };
     const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
@@ -364,6 +498,21 @@ export default function AdminProductsPage() {
       if (ok) {
         loadData(false);
         setShowModal(false);
+        if (modalMode === 'single') {
+          showToast(
+            editingProduct
+              ? (language === 'te' ? 'ఉత్పత్తి విజయవంతంగా నవీకరించబడింది!' : 'Product updated successfully!')
+              : (language === 'te' ? 'కొత్త ఉత్పత్తి జోడించబడింది!' : 'Product added successfully!'),
+            'success',
+            language === 'te' ? 'విజయం' : 'Success'
+          );
+        } else {
+          showToast(
+            language === 'te' ? 'బహుళ పరిమాణాలు జోడించబడ్డాయి!' : 'Multiple sizes added successfully!',
+            'success',
+            language === 'te' ? 'విజయం' : 'Success'
+          );
+        }
       }
     } catch {
       setFormError('Server connection error.');
@@ -376,7 +525,14 @@ export default function AdminProductsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm(language === 'te' ? 'ఈ ఉత్పత్తిని తొలగించాలా?' : 'Delete this product?')) return;
     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-    if (res.ok) loadData(false);
+    if (res.ok) {
+      loadData(false);
+      showToast(
+        language === 'te' ? 'ఉత్పత్తి విజయవంతంగా తొలగించబడింది.' : 'Product deleted successfully.',
+        'success',
+        language === 'te' ? 'తొలగించబడింది' : 'Deleted'
+      );
+    }
   };
 
   // ─── Toggle Active ────────────────────────────────────────────────────────
@@ -400,8 +556,17 @@ export default function AdminProductsPage() {
       
       if (allOk) {
         loadData(false);
+        showToast(
+          language === 'te' ? 'ఉత్పత్తి సక్రియ స్థితి మార్చబడింది!' : 'Product visibility status updated!',
+          'success',
+          language === 'te' ? 'విజయం' : 'Success'
+        );
       } else {
-        alert(language === 'te' ? 'స్థితి మార్చడంలో లోపం జరిగింది.' : 'Failed to update active status.');
+        showToast(
+          language === 'te' ? 'స్థితి మార్చడంలో లోపం జరిగింది.' : 'Failed to update active status.',
+          'error',
+          language === 'te' ? 'లోపం' : 'Error'
+        );
       }
     } catch (err) {
       console.error('Error toggling active status:', err);
@@ -412,7 +577,19 @@ export default function AdminProductsPage() {
 
   // ─── Variant helpers ──────────────────────────────────────────────────────
   const updateVariant = (idx: number, field: keyof VariantForm, value: string) => {
-    setVariants((prev) => prev.map((v, i) => i === idx ? { ...v, [field]: value } : v));
+    setVariants((prev) => prev.map((v, i) => {
+      if (i !== idx) return v;
+      const updated = { ...v, [field]: value };
+      if (field === "weight" || field === "unit") {
+        const cleanName = singleForm.name.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const prefix = cleanName.substring(0, 8) || "PROD";
+        const wVal = updated.weight || "0";
+        const uVal = updated.unit || "Litre";
+        const wLabel = uVal === "Litre" ? (wVal + "L") : (wVal + uVal.slice(0, 2).toUpperCase());
+        updated.sku = ("OIL-" + prefix + "-" + wLabel).replace(/--+/g, "-");
+      }
+      return updated;
+    }));
   };
 
   const addVariant = () => setVariants((prev) => [...prev, EMPTY_VARIANT()]);
@@ -478,15 +655,15 @@ export default function AdminProductsPage() {
             {/* Search and Filters Container */}
             <div className="flex flex-col sm:flex-row gap-3">
               {/* Search */}
-              <div className="bg-white border border-amber-100 p-4 rounded-3xl shadow-sm flex-1 flex items-center relative">
+              <div className="bg-amber-50/10 border border-amber-100/70 py-2.5 px-4 rounded-2xl shadow-sm flex-1 flex items-center gap-2.5 transition-all duration-300 focus-within:border-amber-500/80 focus-within:bg-white focus-within:ring-4 focus-within:ring-amber-500/10">
+                <Search size={16} className="text-amber-800/60 flex-shrink-0" />
                 <input
                   type="text"
                   placeholder={t('admin_products_placeholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-transparent text-xs font-semibold text-amber-950 placeholder-gray-400 border-none focus:outline-none pr-10"
+                  className="w-full bg-transparent text-xs font-bold text-amber-950 placeholder-amber-900/40 border-none outline-none focus:outline-none focus:ring-0 focus:!border-transparent focus:!shadow-none p-0"
                 />
-                <Search size={18} className="absolute right-6 text-gray-400" />
               </div>
 
               {/* Filters */}
@@ -547,17 +724,17 @@ export default function AdminProductsPage() {
                               alt=""
                               width={48}
                               height={48}
-                              className="w-12 h-12 rounded-xl object-cover border border-amber-50 flex-shrink-0"
+                              className="w-12 h-12 rounded-xl object-contain p-1 bg-amber-50/20 border border-amber-100 flex-shrink-0"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                               }}
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="font-extrabold text-amber-950 text-xs leading-snug">{key}</p>
+                              <p className="font-extrabold text-amber-950 text-xs leading-snug">{language === 'te' ? extractBaseNameTe(first.nameTe || first.name) : key}</p>
                               <p className="text-[10px] text-gray-400 font-medium mt-0.5">
                                 {isMulti
                                   ? `${groupVariants.length} ${language === 'te' ? 'పరిమాణాలు' : 'sizes'} · ₹${Math.min(...groupVariants.map((v) => v.price)).toFixed(2)} – ₹${Math.max(...groupVariants.map((v) => v.price)).toFixed(2)}`
-                                  : `${first.weight} ${first.unit} · ₹${Number(first.price).toFixed(2)}`}
+                                  : `${first.weight} ${translateUnit(first.unit)} · ₹${Number(first.price).toFixed(2)}`}
                               </p>
                             </div>
                             {isMulti && (
@@ -571,8 +748,8 @@ export default function AdminProductsPage() {
                             )}
                           </div>
 
-                          {/* Bottom row: Stock badges + Actions (always visible on mobile) */}
-                          <div className="flex items-center justify-between mt-2.5 pl-15">
+                          {/* Bottom row: Stock badges + Actions (responsive column/row layout) */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-3 gap-3 sm:pl-16">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-[9px] font-black bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">
                                 {language === 'te' ? 'జోడించినవి' : 'Added'}: {groupVariants.reduce((s, v) => s + v.stock + v.salesCount, 0)}
@@ -611,19 +788,32 @@ export default function AdminProductsPage() {
                                 </span>
                               )}
                             </div>
-                            {!isMulti && (
-                              <div className="flex items-center gap-2">
+                            {isMulti ? (
+                              <button
+                                onClick={() => handleOpenAddSize(first)}
+                                className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl border border-blue-100 text-xs font-black transition-all active:scale-98"
+                              >
+                                <Plus size={13} className="stroke-[3]" /> Add Size
+                              </button>
+                            ) : (
+                              <div className="grid grid-cols-3 sm:flex items-center gap-2 w-full sm:w-auto">
+                                <button
+                                  onClick={() => handleOpenAddSize(first)}
+                                  className="flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl border border-blue-100 text-xs font-black transition-all"
+                                >
+                                  <Plus size={12} className="stroke-[3]" /> Size
+                                </button>
                                 <button
                                   onClick={() => handleOpenEdit(first)}
-                                  className="flex items-center gap-1 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg border border-amber-100 text-[10px] font-bold transition-colors"
+                                  className="flex items-center justify-center gap-1 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl border border-amber-100 text-xs font-black transition-all"
                                 >
-                                  <Edit3 size={11} /> Edit
+                                  <Edit3 size={12} /> Edit
                                 </button>
                                 <button
                                   onClick={() => handleDelete(first.id)}
-                                  className="flex items-center gap-1 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-100 text-[10px] font-bold transition-colors"
+                                  className="flex items-center justify-center gap-1 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl border border-red-100 text-xs font-black transition-all"
                                 >
-                                  <Trash2 size={11} /> Delete
+                                  <Trash2 size={12} /> Delete
                                 </button>
                               </div>
                             )}
@@ -640,14 +830,14 @@ export default function AdminProductsPage() {
                                   alt=""
                                   width={36}
                                   height={36}
-                                  className="w-9 h-9 rounded-lg object-cover border border-amber-100 flex-shrink-0"
+                                  className="w-9 h-9 rounded-lg object-contain p-0.5 bg-amber-50/10 border border-amber-100 flex-shrink-0"
                                   onError={(e) => {
                                     (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                                   }}
                                 />
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
-                                    <p className="text-[11px] font-bold text-amber-900">{v.weight} {v.unit}</p>
+                                    <p className="text-[11px] font-bold text-amber-900">{v.weight} {translateUnit(v.unit)}</p>
                                     <button
                                       type="button"
                                       disabled={togglingId === v.id}
@@ -711,8 +901,8 @@ export default function AdminProductsPage() {
 
       {/* ─── Add / Edit Modal ─────────────────────────────────────────────── */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50">
-          <div className="w-full sm:max-w-2xl bg-white shadow-2xl border border-amber-100 flex flex-col rounded-t-3xl sm:rounded-3xl" style={{maxHeight: '92dvh'}}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-[200] pt-16 sm:pt-0">
+          <form onSubmit={handleFormSubmit} className="w-full sm:max-w-2xl bg-white shadow-2xl border border-amber-100 flex flex-col rounded-t-3xl sm:rounded-3xl" style={{maxHeight: 'calc(100dvh - 72px)', maxWidth: '42rem'}}>
 
             {/* Modal Header - sticky */}
             <div className="sticky top-0 z-10 bg-white flex justify-between items-center px-6 pt-6 pb-4 border-b border-gray-100 rounded-t-3xl">
@@ -732,14 +922,13 @@ export default function AdminProductsPage() {
                   </p>
                 )}
               </div>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 p-1">
+              <button type="button" onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 p-1">
                 <X size={20} />
               </button>
             </div>
 
             {/* Modal Body - scrollable */}
-            <div className="overflow-y-auto flex-1">
-            <form onSubmit={handleFormSubmit} className="p-6 space-y-5">
+            <div className="overflow-y-auto flex-1 p-6 space-y-5">
 
               {/* ── SINGLE PRODUCT FORM ──────────────────────────────── */}
               {modalMode === 'single' && (
@@ -753,12 +942,12 @@ export default function AdminProductsPage() {
                         className={inputCls}
                         value={singleForm.name}
                         onChange={(e) => {
-                          const v = e.target.value;
-                          setSingleForm((p) => ({
-                            ...p,
-                            name: v,
-                            slug: !editingProduct ? makeSlug(v) : p.slug,
-                          }));
+                          const val = e.target.value;
+                          setSingleForm((p) => {
+                            const newSlug = generateSlug(val, p.weight, p.unit);
+                            const newSku = generateSKU(val, p.weight, p.unit);
+                            return { ...p, name: val, slug: newSlug, sku: newSku };
+                          });
                         }}
                         placeholder="e.g. Groundnut Oil 1L"
                       />
@@ -778,13 +967,12 @@ export default function AdminProductsPage() {
                   {/* Row 2: Slug + Category */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelCls}>{t('admin_products_form_slug')} *</label>
+                      <label className={labelCls}>Slug (Auto-generated)</label>
                       <input
                         type="text"
-                        className={`${inputCls} font-mono`}
+                        disabled
+                        className={`${inputCls} font-mono bg-gray-100 text-gray-500 font-medium border-amber-100/50 cursor-not-allowed`}
                         value={singleForm.slug}
-                        onChange={(e) => setSingleForm((p) => ({ ...p, slug: e.target.value }))}
-                        placeholder="groundnut-oil-1l"
                       />
                     </div>
                     <div>
@@ -800,16 +988,28 @@ export default function AdminProductsPage() {
                     </div>
                   </div>
 
-                  {/* Description */}
-                  <div>
-                    <label className={labelCls}>{t('admin_products_form_desc')} *</label>
-                    <textarea
-                      rows={3}
-                      className={inputCls}
-                      value={singleForm.description}
-                      onChange={(e) => setSingleForm((p) => ({ ...p, description: e.target.value }))}
-                      placeholder={language === 'te' ? 'ఉత్పత్తి వివరాలు...' : 'Product detailed description...'}
-                    />
+                  {/* Description EN + TE */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelCls}>{t('admin_products_form_desc')} (English) *</label>
+                      <textarea
+                        rows={4}
+                        className={inputCls}
+                        value={singleForm.description}
+                        onChange={(e) => setSingleForm((p) => ({ ...p, description: e.target.value }))}
+                        placeholder="Product detailed description in English..."
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>వివరణ (తెలుగు)</label>
+                      <textarea
+                        rows={4}
+                        className={inputCls}
+                        value={singleForm.descriptionTe}
+                        onChange={(e) => setSingleForm((p) => ({ ...p, descriptionTe: e.target.value }))}
+                        placeholder="తెలుగులో వివరణ..."
+                      />
+                    </div>
                   </div>
 
                   {/* Image URL */}
@@ -819,13 +1019,25 @@ export default function AdminProductsPage() {
                       {t('admin_products_form_image')}
                     </label>
                     <div className="flex flex-col gap-2">
-                      <label className="bg-amber-50 hover:bg-amber-100 border-2 border-dashed border-amber-200 text-amber-900 font-bold text-xs p-4 rounded-xl cursor-pointer select-none flex flex-col items-center justify-center transition-colors w-full">
+                      <label 
+                        onDragEnter={handleDragSingle}
+                        onDragOver={handleDragSingle}
+                        onDragLeave={handleDragSingle}
+                        onDrop={handleDropSingle}
+                        className={`border-2 border-dashed rounded-xl cursor-pointer select-none flex flex-col items-center justify-center transition-all w-full p-4 ${
+                          dragActiveSingle 
+                            ? 'border-amber-600 bg-amber-100/40 text-amber-955 scale-[1.01] ring-4 ring-amber-500/10' 
+                            : 'border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs'
+                        }`}
+                      >
                         {uploadingSingle ? (
                           <div className="w-5 h-5 border-2 border-amber-900/30 border-t-amber-900 rounded-full animate-spin mb-1" />
                         ) : (
-                          <ImageIcon size={20} className="mb-2 text-amber-500 opacity-60" />
+                          <ImageIcon size={20} className="mb-2 text-amber-500 opacity-60 animate-bounce" />
                         )}
-                        {language === 'te' ? 'చిత్రాలను ఎంచుకోండి' : 'Select Images'}
+                        {dragActiveSingle 
+                          ? (language === 'te' ? 'చిత్రాలను ఇక్కడ వదిలివేయండి' : 'Drop images here')
+                          : (language === 'te' ? 'చిత్రాలను ఎంచుకోండి లేదా ఇక్కడ లాగండి' : 'Select Images or Drag & Drop')}
                         <input
                           type="file"
                           accept="image/*"
@@ -845,7 +1057,7 @@ export default function AdminProductsPage() {
                                 src={url || '/images/logo-512.png'} 
                                 alt="" 
                                 fill 
-                                className="object-cover" 
+                                className="object-contain p-1 bg-white" 
                                 onError={(e) => {
                                   (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                                 }}
@@ -869,13 +1081,26 @@ export default function AdminProductsPage() {
                     <div>
                       <label className={labelCls}>{t('admin_products_form_weight')} *</label>
                       <input type="number" step="0.1" className={inputCls} value={singleForm.weight}
-                        onChange={(e) => setSingleForm((p) => ({ ...p, weight: e.target.value }))}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSingleForm((p) => {
+                            const newSlug = generateSlug(p.name, val, p.unit);
+                            const newSku = generateSKU(p.name, val, p.unit);
+                            return { ...p, weight: val, slug: newSlug, sku: newSku };
+                          });
+                        }}
                         placeholder="1.0" />
                     </div>
                     <div>
                       <label className={labelCls}>{t('admin_products_form_unit')} *</label>
                       <CustomSelect value={singleForm.unit}
-                        onChange={(val) => setSingleForm((p) => ({ ...p, unit: val }))}
+                        onChange={(val) => {
+                          setSingleForm((p) => {
+                            const newSlug = generateSlug(p.name, p.weight, val);
+                            const newSku = generateSKU(p.name, p.weight, val);
+                            return { ...p, unit: val, slug: newSlug, sku: newSku };
+                          });
+                        }}
                         options={unitOptions} />
                     </div>
                     <div>
@@ -895,10 +1120,8 @@ export default function AdminProductsPage() {
                   {/* SKU + Stock */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className={labelCls}>{t('admin_products_form_sku')} *</label>
-                      <input type="text" className={`${inputCls} font-mono`} value={singleForm.sku}
-                        onChange={(e) => setSingleForm((p) => ({ ...p, sku: e.target.value }))}
-                        placeholder="OIL-GND-1L" />
+                      <label className={labelCls}>SKU Code (Auto-generated)</label>
+                      <input type="text" disabled className={`${inputCls} font-mono bg-gray-100 text-gray-500 font-bold border-amber-100/50 cursor-not-allowed`} value={singleForm.sku} />
                     </div>
                     <div>
                       <label className={labelCls}>{t('admin_products_form_stock')} *</label>
@@ -908,12 +1131,52 @@ export default function AdminProductsPage() {
                     </div>
                   </div>
 
-                  {/* Benefits */}
-                  <div>
-                    <label className={labelCls}>{t('admin_products_form_benefits')}</label>
-                    <input type="text" className={inputCls} value={singleForm.benefits}
-                      onChange={(e) => setSingleForm((p) => ({ ...p, benefits: e.target.value }))}
-                      placeholder={language === 'te' ? 'ఉదా: 100% ప్యూర్, విటమిన్ E కలదు' : 'e.g. 100% Pure, Wood Pressed, Contains Vitamin E'} />
+                  {/* Benefits EN + TE */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelCls}>Health Benefits (English — one per line)</label>
+                      <textarea rows={4} className={inputCls} value={singleForm.benefits}
+                        onChange={(e) => setSingleForm((p) => ({ ...p, benefits: e.target.value }))}
+                        placeholder={"Rich in Vitamin E\nBoosts Immunity\nGreat for Heart Health"} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>ఆరోగ్య ప్రయోజనాలు (తెలుగు — ఒక్కో వరుస)</label>
+                      <textarea rows={4} className={inputCls} value={singleForm.benefitsTe}
+                        onChange={(e) => setSingleForm((p) => ({ ...p, benefitsTe: e.target.value }))}
+                        placeholder={"విటమిన్ E అధికం\nరోగనిరోధక శక్తి పెంచుతుంది"} />
+                    </div>
+                  </div>
+
+                  {/* Ingredients EN + TE */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelCls}>Ingredients (English — one per line)</label>
+                      <textarea rows={3} className={inputCls} value={singleForm.ingredients}
+                        onChange={(e) => setSingleForm((p) => ({ ...p, ingredients: e.target.value }))}
+                        placeholder={"100% Cold Pressed Mustard Seeds\nNo additives or preservatives"} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>పదార్థాలు (తెలుగు — ఒక్కో వరుస)</label>
+                      <textarea rows={3} className={inputCls} value={singleForm.ingredientsTe}
+                        onChange={(e) => setSingleForm((p) => ({ ...p, ingredientsTe: e.target.value }))}
+                        placeholder={"100% కోల్డ్ ప్రెస్డ్ ఆవ గింజలు\nసంకలనాలు లేవు"} />
+                    </div>
+                  </div>
+
+                  {/* Usage EN + TE */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelCls}>How to Use (English — one per line)</label>
+                      <textarea rows={4} className={inputCls} value={singleForm.usage}
+                        onChange={(e) => setSingleForm((p) => ({ ...p, usage: e.target.value }))}
+                        placeholder={"Use for cooking and frying\nApply to hair for conditioning"} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>ఎలా ఉపయోగించాలి (తెలుగు — ఒక్కో వరుస)</label>
+                      <textarea rows={4} className={inputCls} value={singleForm.usageTe}
+                        onChange={(e) => setSingleForm((p) => ({ ...p, usageTe: e.target.value }))}
+                        placeholder={"వంటకు మరియు వేయించడానికి వినియోగించండి\nజుట్టుకు అప్లయ్ చేయండి"} />
+                    </div>
                   </div>
 
                   {/* Status Toggle (isActive) */}
@@ -956,8 +1219,17 @@ export default function AdminProductsPage() {
                           className={inputCls}
                           value={sharedName}
                           onChange={(e) => {
-                            setSharedName(e.target.value);
-                            setSharedSlugBase(makeSlug(e.target.value));
+                            const val = e.target.value;
+                            setSharedName(val);
+                            setSharedSlugBase(makeSlug(val));
+                            setVariants((prev) => prev.map((v) => {
+                              const cleanName = val.toUpperCase().replace(/[^A-Z0-9]/g, "");
+                              const prefix = cleanName.substring(0, 8) || "PROD";
+                              const wVal = v.weight || "0";
+                              const uVal = v.unit || "Litre";
+                              const wLabel = uVal === "Litre" ? (wVal + "L") : (wVal + uVal.slice(0, 2).toUpperCase());
+                              return { ...v, sku: ("OIL-" + prefix + "-" + wLabel).replace(/--+/g, "-") };
+                            }));
                           }}
                           placeholder="e.g. Extra Virgin Olive Oil"
                         />
@@ -1051,13 +1323,25 @@ export default function AdminProductsPage() {
                             {language === 'te' ? 'చిత్రం URL' : 'Images'}
                           </label>
                           <div className="flex flex-col gap-2">
-                            <label className="bg-amber-50 hover:bg-amber-100 border-2 border-dashed border-amber-200 text-amber-900 font-bold text-[10px] p-3 rounded-xl cursor-pointer select-none flex flex-col items-center justify-center transition-colors w-full">
+                            <label 
+                              onDragEnter={(e) => handleDragVariant(e, idx)}
+                              onDragOver={(e) => handleDragVariant(e, idx)}
+                              onDragLeave={(e) => handleDragVariant(e, idx)}
+                              onDrop={(e) => handleDropVariant(e, idx)}
+                              className={`border-2 border-dashed rounded-xl cursor-pointer select-none flex flex-col items-center justify-center transition-all w-full p-3 ${
+                                dragActiveVariantIndex === idx 
+                                  ? 'border-amber-600 bg-amber-100/40 scale-[1.01] ring-4 ring-amber-500/10' 
+                                  : 'border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[10px]'
+                              }`}
+                            >
                               {uploadingVariantIndex === idx ? (
                                 <div className="w-4 h-4 border-2 border-amber-900/30 border-t-amber-900 rounded-full animate-spin mb-1" />
                               ) : (
                                 <ImageIcon size={16} className="mb-1 text-amber-500 opacity-60" />
                               )}
-                              {language === 'te' ? 'చిత్రాలను ఎంచుకోండి' : 'Select Images'}
+                              {dragActiveVariantIndex === idx 
+                                ? (language === 'te' ? 'ఇక్కడ వదిలివేయండి' : 'Drop here')
+                                : (language === 'te' ? 'చిత్రాలను ఎంచుకోండి లేదా లాగండి' : 'Select or Drag & Drop')}
                               <input
                                 type="file"
                                 accept="image/*"
@@ -1077,7 +1361,7 @@ export default function AdminProductsPage() {
                                       src={url || '/images/logo-512.png'} 
                                       alt="" 
                                       fill 
-                                      className="object-cover" 
+                                      className="object-contain p-1 bg-white" 
                                       onError={(e) => {
                                         (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                                       }}
@@ -1132,11 +1416,10 @@ export default function AdminProductsPage() {
                         {/* SKU + Stock */}
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className={labelCls}>{language === 'te' ? 'SKU *' : 'SKU Code *'}</label>
-                            <input type="text" className={`${inputCls} font-mono`}
+                            <label className={labelCls}>{language === 'te' ? 'SKU (ఆటో)' : 'SKU (Auto-generated)'}</label>
+                            <input type="text" disabled className={`${inputCls} font-mono bg-gray-100 text-gray-500 font-bold border-amber-100/50 cursor-not-allowed`}
                               value={v.sku}
-                              onChange={(e) => updateVariant(idx, 'sku', e.target.value)}
-                              placeholder={`${sharedSlugBase ? sharedSlugBase.toUpperCase().slice(0, 6) : 'OIL'}-${v.weight || '1'}${v.unit.slice(0, 1).toUpperCase()}`} />
+                              placeholder="OIL-SKU" />
                           </div>
                           <div>
                             <label className={labelCls}>{language === 'te' ? 'స్టాక్ *' : 'Stock *'}</label>
@@ -1171,7 +1454,10 @@ export default function AdminProductsPage() {
                 </>
               )}
 
-              {/* Error */}
+            </div>
+
+            {/* Stuck Footer for Actions */}
+            <div className="p-6 border-t border-gray-100 bg-white rounded-b-3xl space-y-4 flex-shrink-0">
               {formError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 font-bold text-xs flex items-center gap-2">
                   <AlertCircle size={14} />
@@ -1179,8 +1465,7 @@ export default function AdminProductsPage() {
                 </div>
               )}
 
-              {/* Submit */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3">
                 <button
                   type="submit"
                   disabled={saving}
@@ -1202,9 +1487,8 @@ export default function AdminProductsPage() {
                   {language === 'te' ? 'రద్దు' : 'Cancel'}
                 </button>
               </div>
-            </form>
             </div>
-          </div>
+          </form>
         </div>
       )}
 

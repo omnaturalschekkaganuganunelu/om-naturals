@@ -351,7 +351,7 @@ export async function POST(req: NextRequest) {
         await prisma.notification.create({
           data: {
             title: '🛒 Order Placed Successfully!',
-            body: `Your order ${order.orderId} for ₹${order.total} has been placed. Pay on delivery. Expected delivery in 2-3 days.`,
+            body: `Your order ${order.orderId} for ₹${order.total} has been placed. Pay on delivery. Expected delivery in 5 days.`,
             type: 'ORDER',
             userId: session.user.id,
             orderId: order.id,

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useToastStore } from '@/store/toastStore';
 
 export interface CartItem {
   productId: string;
@@ -67,12 +68,32 @@ export const useCartStore = create<CartState>()(
         }
         // Clear coupon when cart changes
         set({ coupon: null });
+
+        // Trigger premium cart toast
+        const isTe = typeof document !== 'undefined' && document.cookie.includes('nune-lang=te');
+        const pName = isTe ? item.nameTe : item.name;
+        useToastStore.getState().showToast(
+          isTe ? `${pName} కార్ట్‌కు జోడించబడింది!` : `${pName} added to cart!`,
+          'cart',
+          isTe ? 'కార్ట్' : 'Cart'
+        );
       },
       removeItem: (productId) => {
+        const removedItem = get().items.find((i) => i.productId === productId);
         set({
           items: get().items.filter((i) => i.productId !== productId),
           coupon: null,
         });
+
+        if (removedItem) {
+          const isTe = typeof document !== 'undefined' && document.cookie.includes('nune-lang=te');
+          const pName = isTe ? removedItem.nameTe : removedItem.name;
+          useToastStore.getState().showToast(
+            isTe ? `${pName} కార్ట్ నుండి తొలగించబడింది.` : `${pName} removed from cart.`,
+            'info',
+            isTe ? 'కార్ట్' : 'Cart'
+          );
+        }
       },
       updateQuantity: (productId, quantity) => {
         if (quantity <= 0) {

@@ -9,6 +9,7 @@ import BackButton from '@/components/BackButton';
 import { useCartStore } from '@/store/cartStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToastStore } from '@/store/toastStore';
 import { MapPin, Plus, Check, ShieldCheck, CreditCard, RefreshCw, Truck, Tag, AlertCircle } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomSelect from '@/components/CustomSelect';
@@ -19,6 +20,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { t, language } = useLanguage();
   const { data: session, status: authStatus } = useSession();
+  const showToast = useToastStore((s) => s.showToast);
 
   // Zustand cart values
   const { items, coupon, getCartTotal, clearCart, updateQuantity, removeItem } = useCartStore();
@@ -378,6 +380,11 @@ export default function CheckoutPage() {
         } else {
           // COD ORDER SUCCESS
           clearCart();
+          showToast(
+            language === 'te' ? 'ఆర్డర్ విజయవంతంగా ఉంచబడింది!' : 'Order placed successfully!',
+            'success',
+            language === 'te' ? 'విజయం' : 'Success'
+          );
           router.push(`/account?tab=orders`);
         }
       } else {

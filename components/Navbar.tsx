@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -23,6 +23,37 @@ function NavbarContent() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [animateCart, setAnimateCart] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/categories')
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCategories(data.filter((c) => c.isActive));
+        }
+      })
+      .catch((err) => console.error('Failed to load categories in navbar:', err));
+  }, []);
+
+  const navLinks = useMemo(() => {
+    const links = [
+      { href: '/', label: t('nav_home') }
+    ];
+    categories.forEach((cat) => {
+      links.push({
+        href: `/products?category=${cat.slug}`,
+        label: language === 'te' ? cat.nameTe : cat.name
+      });
+    });
+    if (categories.length === 1) {
+      links.push({
+        href: '/about',
+        label: language === 'te' ? 'మా గురించి' : 'About Us'
+      });
+    }
+    return links;
+  }, [categories, language, t]);
   const [scrolled, setScrolled] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
@@ -234,19 +265,11 @@ function NavbarContent() {
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-2 lg:gap-3.5 flex-shrink-0">
-            <Link href="/" className={navLinkClass('/')}>{t('nav_home')}</Link>
-            <Link 
-              href="/products?category=cold-pressed" 
-              className={navLinkClass('/products?category=cold-pressed')}
-            >
-              {language === 'te' ? 'గానుగ నూనెలు' : 'Cold Pressed Oils'}
-            </Link>
-            <Link 
-              href="/products?category=refined-filtered" 
-              className={navLinkClass('/products?category=refined-filtered')}
-            >
-              {language === 'te' ? 'శుద్ధి చేసిన నూనెలు' : 'Refined & Filtered Oils'}
-            </Link>
+            {navLinks.map(({ href, label }) => (
+              <Link key={href} href={href} className={navLinkClass(href)}>
+                {label}
+              </Link>
+            ))}
             {session?.user?.role === 'ADMIN' ? (
               <Link href="/admin/dashboard" className={navLinkClass('/admin/dashboard')}>
                 {language === 'te' ? 'డ్యాష్‌బోర్డ్' : 'Dashboard'}
@@ -491,9 +514,7 @@ function NavbarContent() {
 
         <div className="flex flex-col space-y-1 pt-1">
           {[
-            { href: '/', label: t('nav_home_mobile') },
-            { href: '/products?category=cold-pressed', label: language === 'te' ? 'గానుగ నూనెలు' : 'Cold Pressed Oils' },
-            { href: '/products?category=refined-filtered', label: language === 'te' ? 'శుద్ధి చేసిన నూనెలు' : 'Refined & Filtered Oils' },
+            ...navLinks,
             session?.user?.role === 'ADMIN'
               ? { href: '/admin/dashboard', label: language === 'te' ? 'డ్యాష్‌బోర్డ్' : 'Dashboard' }
               : { href: '/account?tab=orders', label: t('nav_track_mobile') },

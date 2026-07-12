@@ -7,28 +7,11 @@ import Footer from '@/components/Footer';
 import BackButton from '@/components/BackButton';
 import ProductDetailClient from './ProductDetailClient';
 import { extractBaseName } from '@/hooks/useGroupedProducts';
-import { unstable_cache } from 'next/cache';
 
-export const revalidate = 600; // Cache for 10 minutes to save Neon compute
+export const dynamic = 'force-dynamic';
 
-export async function generateStaticParams() {
+const getProductData = async (slug: string) => {
   try {
-    const products = await prisma.product.findMany({
-      where: { isActive: true },
-      select: { slug: true },
-    });
-    return products.map((p) => ({
-      slug: p.slug,
-    }));
-  } catch (err) {
-    console.error('Error generating static params:', err);
-    return [];
-  }
-}
-
-const getProductData = unstable_cache(
-  async (slug: string) => {
-    try {
     let product = await prisma.product.findUnique({
       where: { slug },
       include: { category: true },
@@ -122,10 +105,7 @@ const getProductData = unstable_cache(
     console.error('Error fetching product detail data:', err);
     return null;
   }
-},
-['product-detail'],
-{ revalidate: 60, tags: ['products'] }
-);
+};
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   try {

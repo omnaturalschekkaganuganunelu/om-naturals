@@ -10,6 +10,7 @@ import PremiumLoader from '@/components/PremiumLoader';
 import confetti from 'canvas-confetti';
 import { useLanguage } from '@/context/LanguageContext';
 import { useCartStore } from '@/store/cartStore';
+import { useToastStore } from '@/store/toastStore';
 import Image from 'next/image';
 
 function OrderConfirmationContent() {
@@ -18,6 +19,7 @@ function OrderConfirmationContent() {
   const orderId = searchParams.get('orderId') || '';
   const initialStatus = searchParams.get('status') || 'success';
   const { language, t } = useLanguage();
+  const showToast = useToastStore((s) => s.showToast);
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,11 @@ function OrderConfirmationContent() {
     if (status === 'success' && !confettiFiredRef.current) {
       confettiFiredRef.current = true;
       clearCart();
+      showToast(
+        language === 'te' ? 'ఆర్డర్ విజయవంతంగా పూర్తయింది!' : 'Order placed successfully!',
+        'success',
+        language === 'te' ? 'విజయం' : 'Success'
+      );
       confetti({
         particleCount: 150,
         spread: 80,
@@ -53,7 +60,7 @@ function OrderConfirmationContent() {
         colors: ['#b45309', '#f59e0b', '#10b981', '#3b82f6'],
       });
     }
-  }, [status, clearCart]);
+  }, [status, clearCart, language, showToast]);
 
   // Load Order Details
   useEffect(() => {

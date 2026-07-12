@@ -11,14 +11,12 @@ import { useLanguage } from '@/context/LanguageContext';
 import Image from 'next/image';
 
 const FALLBACK_PRODUCT_IMAGES = [
-  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238180/cojbx1woteneyhoumhv5.jpg',
-  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238178/gkpir09dnxp5mxpqes2j.jpg',
-  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238177/nnenzvc66v5ozyhiytfp.jpg',
-  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238181/vljsmlizd3a1hunt1cs6.jpg',
-  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238188/anxys6btekuo9frfqjhc.jpg',
-  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238192/r7l4zdvnldxnyh1bl19g.jpg',
-  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238191/yxruvtuczqn1uc3xh3qu.jpg',
-  'https://res.cloudinary.com/dftcaaum2/image/upload/v1782238190/skx6wfnrdw3kgt0dnmp4.jpg',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1783839130/izjekuxbtb3fe97inkc0.png',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1783839142/zyte7iympqrl6vxy7mac.png',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1783839140/pulvlbyuoyk9gtgp0wn7.png',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1783839144/sghw9ra92vsdgehp7zib.png',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1783839147/clrp6gzz7o54fzgyluzb.png',
+  'https://res.cloudinary.com/dftcaaum2/image/upload/v1783839145/cscy5w87cgll6p8nvh4q.png',
 ];
 
 function LoginContent() {
