@@ -67,27 +67,39 @@ function ProductListingContent({ initialProducts, initialCategories }: ProductLi
     });
   }, [allProducts, category, search, maxPrice]);
 
-  // PERFORMANCE: Instant client-side sorting using useMemo
-  const sortedProducts = useMemo(() => {
-    const list = [...filteredProducts];
+  // Group variants client-side FIRST based on filtered results
+  const groupedProductsUnsorted = useGroupedProducts(filteredProducts);
+
+  // PERFORMANCE: Instant client-side sorting on the GROUPS using useMemo
+  const sortedGrouped = useMemo(() => {
+    const list = [...groupedProductsUnsorted];
     if (sort === 'price-asc') {
-      list.sort((a, b) => a.price - b.price);
+      list.sort((a, b) => a.minPrice - b.minPrice);
     } else if (sort === 'price-desc') {
-      list.sort((a, b) => b.price - a.price);
+      list.sort((a, b) => b.minPrice - a.minPrice);
     } else if (sort === 'popular') {
-      list.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
+      list.sort((a, b) => {
+        const aSales = a.variants.reduce((acc, v) => acc + (v.salesCount || 0), 0);
+        const bSales = b.variants.reduce((acc, v) => acc + (v.salesCount || 0), 0);
+        return bSales - aSales;
+      });
     } else {
       // Newest
-      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      list.sort((a, b) => {
+        const aDate = new Date(a.representative.createdAt || 0).getTime();
+        const bDate = new Date(b.representative.createdAt || 0).getTime();
+        return bDate - aDate;
+      });
     }
     return list;
-  }, [filteredProducts, sort]);
+  }, [groupedProductsUnsorted, sort]);
 
   const clearFilters = () => {
     setCategory('');
     setSearch('');
     setSort('newest');
     setMaxPrice(2500);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     router.push('/products');
   };
 
@@ -125,9 +137,6 @@ function ProductListingContent({ initialProducts, initialCategories }: ProductLi
     }
   });
 
-  // Group variants client-side
-  const grouped = useGroupedProducts(sortedProducts);
-
   const categoryLabel = useMemo(() => {
     if (!category) return t('products_title');
     const cat = categories.find((c) => c.slug === category);
@@ -148,9 +157,9 @@ function ProductListingContent({ initialProducts, initialCategories }: ProductLi
             <span className="font-bold text-amber-900">&quot;{search}&quot;</span>
           </p>
         )}
-        {sortedProducts.length > 0 && (
+        {sortedGrouped.length > 0 && (
           <p className="text-xs text-gray-400 mt-1 font-semibold">
-            {grouped.length} product{grouped.length !== 1 ? 's' : ''} found
+            {sortedGrouped.length} product{sortedGrouped.length !== 1 ? 's' : ''} found
           </p>
         )}
       </div>
@@ -204,7 +213,10 @@ function ProductListingContent({ initialProducts, initialCategories }: ProductLi
             </label>
             <div className="space-y-1.5">
               <button
-                onClick={() => setCategory('')}
+                onClick={() => {
+                  setCategory('');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
                 className={`w-full text-left text-xs px-3 py-2 rounded-xl font-semibold transition-colors ${
                   category === ''
                     ? 'bg-amber-800 text-white font-bold'
@@ -216,7 +228,10 @@ function ProductListingContent({ initialProducts, initialCategories }: ProductLi
               {categories.map((cat) => (
                 <button
                   key={cat.id}
-                  onClick={() => setCategory(cat.slug)}
+                  onClick={() => {
+                    setCategory(cat.slug);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   className={`w-full text-left text-xs px-3 py-2 rounded-xl font-semibold transition-colors ${
                     category === cat.slug
                       ? 'bg-amber-800 text-white font-bold'
@@ -238,7 +253,10 @@ function ProductListingContent({ initialProducts, initialCategories }: ProductLi
               type="range" min="0" max="2500" step="50"
               id="products-price-range"
               value={maxPrice}
-              onChange={(e) => setMaxPrice(parseInt(e.target.value))}
+              onChange={(e) => {
+                setMaxPrice(parseInt(e.target.value));
+                // Optional: window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               className="w-full accent-amber-800 cursor-pointer h-1.5 bg-amber-100 rounded-full"
             />
             <div className="flex justify-between text-[11px] text-gray-500 font-bold">
@@ -255,6 +273,7 @@ function ProductListingContent({ initialProducts, initialCategories }: ProductLi
             <CustomSelect
               value={sort}
               onChange={setSort}
+              openUpward={true}
               options={[
                 { value: 'newest',     label: t('products_sort_newest') },
                 { value: 'price-asc',  label: t('products_sort_price_asc') },
@@ -359,7 +378,7 @@ function ProductListingContent({ initialProducts, initialCategories }: ProductLi
             </div>
           )}
 
-          {grouped.length === 0 ? (
+          {sortedGrouped.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 bg-white border border-amber-100 rounded-2xl p-6">
               <Search size={48} className="text-amber-300 stroke-1" />
               <h3 className="font-bold text-amber-955 text-sm sm:text-base">{t('products_not_found')}</h3>
@@ -373,11 +392,12 @@ function ProductListingContent({ initialProducts, initialCategories }: ProductLi
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 animate-fade-in-up">
-              {grouped.map((grp) => (
+              {sortedGrouped.map((grp) => (
                 <ProductCard key={grp.groupKey} group={grp} />
               ))}
             </div>
           )}
+
 
         </section>
       </div>

@@ -37,23 +37,12 @@ function NavbarContent() {
   }, []);
 
   const navLinks = useMemo(() => {
-    const links = [
-      { href: '/', label: t('nav_home') }
+    return [
+      { href: '/', label: t('nav_home') },
+      { href: '/products', label: language === 'te' ? 'ఉత్పత్తులు' : 'Products' },
+      { href: '/about', label: language === 'te' ? 'మా గురించి' : 'About Us' }
     ];
-    categories.forEach((cat) => {
-      links.push({
-        href: `/products?category=${cat.slug}`,
-        label: language === 'te' ? cat.nameTe : cat.name
-      });
-    });
-    if (categories.length === 1) {
-      links.push({
-        href: '/about',
-        label: language === 'te' ? 'మా గురించి' : 'About Us'
-      });
-    }
-    return links;
-  }, [categories, language, t]);
+  }, [language, t]);
   const [scrolled, setScrolled] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);

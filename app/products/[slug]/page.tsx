@@ -171,21 +171,25 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
-export default async function ProductDetailPage({ params }: { params: { slug: string } }) {
-  const data = await getProductData(params.slug);
+import { Suspense } from 'react';
+import LoadingSkeleton from './loading';
+
+// Wrapper component that fetches data and renders the client component
+async function ProductDetailWrapper({ slug }: { slug: string }) {
+  const data = await getProductData(slug);
 
   if (!data) {
     notFound();
   }
 
   // If the user arrived via ID instead of slug, gently redirect to the clean URL
-  if (params.slug !== data.product.slug) {
+  if (slug !== data.product.slug) {
     const { redirect } = await import('next/navigation');
     redirect(`/products/${data.product.slug}`);
   }
+
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.om-naturals.com';
 
-  // Generate Schema.org Product Structured Data (JSON-LD)
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -242,16 +246,26 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+      <ProductDetailClient
+        product={data.product}
+        relatedProducts={data.relatedProducts}
+        siblings={data.siblings}
+      />
+    </>
+  );
+}
+
+export default function ProductDetailPage({ params }: { params: { slug: string } }) {
+  return (
+    <>
       <Navbar />
       <main className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 py-8 flex-1 w-full min-w-0 overflow-x-hidden">
         <div className="mb-4">
           <BackButton />
         </div>
-        <ProductDetailClient
-          product={data.product}
-          relatedProducts={data.relatedProducts}
-          siblings={data.siblings}
-        />
+        <Suspense fallback={<LoadingSkeleton />}>
+          <ProductDetailWrapper slug={params.slug} />
+        </Suspense>
       </main>
       <Footer />
     </>

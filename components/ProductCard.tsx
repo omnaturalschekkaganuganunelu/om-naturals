@@ -115,6 +115,7 @@ export default function ProductCard({ group }: ProductCardProps) {
               src={imageUrl}
               alt={representative.name}
               fill
+              quality={95}
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
               className="object-contain p-4 group-hover:scale-[1.04] transition-transform duration-500 ease-out"
               onError={() => setImgError(true)}

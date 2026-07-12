@@ -112,6 +112,7 @@ function RelatedCard({ rel, language }: { rel: any; language: string }) {
             src={imgSrc}
             alt={displayName}
             fill
+            quality={90}
             sizes="(max-width: 768px) 50vw, 33vw"
             className="object-contain p-3 group-hover:scale-[1.04] transition-transform duration-400"
             onError={() => setImgErr(true)}
@@ -260,6 +261,7 @@ function ImageViewer({ images, displayName }: { images: string[]; displayName: s
               alt={displayName}
               fill
               priority
+              quality={95}
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-contain p-4 transition-transform duration-500 ease-out"
               onLoad={(e) => {
@@ -318,7 +320,7 @@ function ImageViewer({ images, displayName }: { images: string[]; displayName: s
                     : 'border-gray-200 hover:border-amber-400 opacity-70 hover:opacity-100'
                 }`}
               >
-                <Image src={img} alt="" fill sizes="64px" className="object-cover"
+                <Image src={img} alt="" fill sizes="64px" quality={90} className="object-contain p-0.5"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).srcset = FALLBACK_IMG; }} />
               </button>
             ))}
