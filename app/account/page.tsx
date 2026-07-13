@@ -3,8 +3,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { useLanguage } from '@/context/LanguageContext';
 import { useCartStore } from '@/store/cartStore';
 import { 
@@ -2020,11 +2018,9 @@ function AccountContent() {
 export default function AccountPage() {
   return (
     <>
-      <Navbar />
-      <Suspense fallback={<PremiumLoader fullScreen={false} />}>
+            <Suspense fallback={<PremiumLoader fullScreen={false} />}>
         <AccountContent />
       </Suspense>
-      <Footer />
-    </>
+          </>
   );
 }

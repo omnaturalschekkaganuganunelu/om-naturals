@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { Mail, Phone, MapPin, Clock, Send } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -12,8 +10,7 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#fdfbf7]">
-      <Navbar />
-      
+            
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 flex-1 w-full">
         <div className="text-center mb-12">
           <h1 className="text-3xl sm:text-5xl font-black text-amber-950 font-heading mb-4">
@@ -134,7 +131,6 @@ export default function ContactPage() {
         </div>
       </main>
 
-      <Footer />
-    </div>
+          </div>
   );
 }

@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import {
   Plus, Edit3, Trash2, Search, X, AlertCircle,
@@ -147,8 +145,7 @@ export default function AdminCouponsPage() {
 
   return (
     <>
-      <Navbar />
-
+      
       <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1">
         <div className="flex flex-col lg:flex-row gap-0 sm:gap-8 items-start">
           <AdminSidebar />
@@ -398,8 +395,7 @@ export default function AdminCouponsPage() {
         </div>
       </main>
 
-      <Footer />
-
+      
       {/* ── Add / Edit Modal ── */}
       {showModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>

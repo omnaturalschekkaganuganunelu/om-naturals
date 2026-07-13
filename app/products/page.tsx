@@ -1,10 +1,8 @@
 import React from 'react';
 import { prisma } from '@/lib/db';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import ProductListingClient from './ProductListingClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 86400; // 24 hours - relies on on-demand admin revalidatePath for updates
 
 async function getCatalogData() {
   try {
@@ -43,13 +41,9 @@ export default async function ProductListingPage() {
   const { categories, products } = await getCatalogData();
 
   return (
-    <>
-      <Navbar />
-      <ProductListingClient
-        initialProducts={products}
-        initialCategories={categories}
-      />
-      <Footer />
-    </>
+    <ProductListingClient
+      initialProducts={products}
+      initialCategories={categories}
+    />
   );
 }

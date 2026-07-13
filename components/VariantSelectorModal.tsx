@@ -8,6 +8,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
 import type { RawProduct } from '@/hooks/useGroupedProducts';
 import { extractBaseNameTe, formatVariantLabel } from '@/components/ProductCard';
+import { getOptimizedImageUrl } from '@/lib/imageOptimizer';
 
 interface VariantSelectorModalProps {
   isOpen: boolean;
@@ -69,7 +70,7 @@ export default function VariantSelectorModal({
       price: variant.price,
       mrp: variant.mrp,
       quantity: 1,
-      image: variant.images?.[0] || FALLBACK_IMAGE,
+      image: getOptimizedImageUrl(variant.images?.[0]),
       weight: variant.weight,
       unit: variant.unit,
       stock: variant.stock,
@@ -138,7 +139,7 @@ export default function VariantSelectorModal({
               : 0;
             const outOfStock = variant.stock <= 0;
             const label = formatVariantLabel(variant);
-            const imgSrc = imgErrors[variant.id] ? FALLBACK_IMAGE : (variant.images?.[0] || FALLBACK_IMAGE);
+            const imgSrc = imgErrors[variant.id] ? FALLBACK_IMAGE : getOptimizedImageUrl(variant.images?.[0]);
             const isJustAdded = justAdded[variant.id];
 
             return (

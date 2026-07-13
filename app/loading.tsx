@@ -2,5 +2,5 @@ import React from 'react';
 import PremiumLoader from '@/components/PremiumLoader';
 
 export default function RootLoading() {
-  return <PremiumLoader fullScreen={true} />;
+  return <PremiumLoader fullScreen={false} />;
 }

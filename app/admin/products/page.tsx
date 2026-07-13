@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { Plus, Edit3, Trash2, Search, Package, Layers, Image as ImageIcon, ChevronDown, ChevronUp, X, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
@@ -619,8 +617,7 @@ export default function AdminProductsPage() {
 
   return (
     <>
-      <Navbar />
-      <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1">
+            <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1">
         <div className="flex flex-col lg:flex-row gap-0 sm:gap-8 items-start">
           <AdminSidebar />
 
@@ -1492,7 +1489,6 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      <Footer />
-    </>
+          </>
   );
 }

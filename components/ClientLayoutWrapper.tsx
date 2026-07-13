@@ -12,8 +12,8 @@ interface ClientLayoutWrapperProps {
 export default function ClientLayoutWrapper({ children }: ClientLayoutWrapperProps) {
   const pathname = usePathname();
 
-  // Hide Navbar/Footer on Simulated Payment Gateway page
-  const hideLayout = pathname.startsWith('/checkout/simulated-pg');
+  // Hide Navbar/Footer on Simulated Payment Gateway page and Admin Login page
+  const hideLayout = pathname.startsWith('/checkout/simulated-pg') || pathname === '/admin/login';
 
   return (
     <>

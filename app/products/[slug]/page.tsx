@@ -2,13 +2,11 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import type { Metadata } from 'next';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import BackButton from '@/components/BackButton';
 import ProductDetailClient from './ProductDetailClient';
 import { extractBaseName } from '@/hooks/useGroupedProducts';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 86400; // 24 hours - relies on on-demand admin revalidatePath for updates
 
 const getProductData = async (slug: string) => {
   try {
@@ -257,17 +255,13 @@ async function ProductDetailWrapper({ slug }: { slug: string }) {
 
 export default function ProductDetailPage({ params }: { params: { slug: string } }) {
   return (
-    <>
-      <Navbar />
-      <main className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 py-8 flex-1 w-full min-w-0 overflow-x-hidden">
-        <div className="mb-4">
-          <BackButton />
-        </div>
-        <Suspense fallback={<LoadingSkeleton />}>
-          <ProductDetailWrapper slug={params.slug} />
-        </Suspense>
-      </main>
-      <Footer />
-    </>
+    <main className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 py-8 flex-1 w-full min-w-0 overflow-x-hidden">
+      <div className="mb-4">
+        <BackButton />
+      </div>
+      <Suspense fallback={<LoadingSkeleton />}>
+        <ProductDetailWrapper slug={params.slug} />
+      </Suspense>
+    </main>
   );
 }

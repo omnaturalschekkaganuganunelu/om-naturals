@@ -1,10 +1,8 @@
 import React from 'react';
 import { prisma } from '@/lib/db';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import HomePageClient from '@/app/HomePageClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 86400; // 24 hours - relies on on-demand admin revalidatePath for updates
 
 async function getHomeData() {
   try {
@@ -81,9 +79,7 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Navbar />
       <HomePageClient categories={categories} products={products as any} />
-      <Footer />
     </>
   );
 }

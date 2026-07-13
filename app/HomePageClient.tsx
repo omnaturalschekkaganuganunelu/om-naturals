@@ -9,6 +9,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useGroupedProducts } from '@/hooks/useGroupedProducts';
 
 import { useRealtime } from '@/hooks/useRealtime';
+import { getOptimizedImageUrl } from '@/lib/imageOptimizer';
 
 const FALLBACK_IMAGE = '/images/logo-512.png';
 
@@ -18,8 +19,8 @@ function HomePageProductGrid({ products }: { products: any[] }) {
   const grouped = useGroupedProducts(products);
   return (
     <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-      {grouped.map((grp) => (
-        <ProductCard key={grp.groupKey} group={grp} />
+      {grouped.map((grp, idx) => (
+        <ProductCard key={grp.groupKey} group={grp} priority={idx < 4} />
       ))}
     </div>
   );
@@ -290,7 +291,7 @@ function CategoryCard({ cat, language }: { cat: Category; language: string }) {
 
   // If DB image is unsplash or missing, use local image
   const isExternalOrBroken = !cat.image || cat.image.includes('unsplash') || imgError;
-  const imgSrc = isExternalOrBroken ? localImage : cat.image;
+  const imgSrc = isExternalOrBroken ? localImage : getOptimizedImageUrl(cat.image);
 
   const catName = language === 'te' ? (cat.nameTe || cat.name) : cat.name;
   const catDesc = cat.description || '';

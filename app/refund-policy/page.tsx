@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -12,8 +10,7 @@ export default function RefundPolicyPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#fdfbf7]">
-      <Navbar />
-      
+            
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 flex-1 w-full">
         <div className="bg-white border border-amber-100 rounded-3xl p-6 sm:p-8 smooth-shadow text-xs sm:text-sm leading-relaxed text-gray-700 font-medium overflow-hidden">
           <div className="flex items-center space-x-2 border-b border-amber-50 pb-3 mb-6">
@@ -112,7 +109,6 @@ export default function RefundPolicyPage() {
         </div>
       </main>
 
-      <Footer />
-    </div>
+          </div>
   );
 }

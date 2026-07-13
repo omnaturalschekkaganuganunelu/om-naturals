@@ -3,8 +3,6 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { CheckCircle, XCircle, FileText, MapPin, Calendar, HelpCircle, ArrowRight, RefreshCw, Clock, Loader2 } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
 import confetti from 'canvas-confetti';
@@ -526,11 +524,9 @@ function OrderConfirmationContent() {
 export default function OrderConfirmationPage() {
   return (
     <>
-      <Navbar />
-      <Suspense fallback={<PremiumLoader fullScreen={false} />}>
+            <Suspense fallback={<PremiumLoader fullScreen={false} />}>
         <OrderConfirmationContent />
       </Suspense>
-      <Footer />
-    </>
+          </>
   );
 }

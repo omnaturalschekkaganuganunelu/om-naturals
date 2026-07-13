@@ -3,8 +3,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { User, Mail, Lock, Phone, AlertCircle, RefreshCw, KeyRound, CheckCircle2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
 import { useLanguage } from '@/context/LanguageContext';
@@ -855,11 +853,9 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <Suspense fallback={<PremiumLoader fullScreen={true} />}>
+            <Suspense fallback={<PremiumLoader fullScreen={true} />}>
         <LoginContent />
       </Suspense>
-      <Footer />
-    </div>
+          </div>
   );
 }

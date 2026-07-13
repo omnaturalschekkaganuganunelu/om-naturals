@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { Bell, Send, Tag, Info, Package, Trash2, Users, User, Sparkles, Clock } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
@@ -151,8 +149,7 @@ export default function AdminNotificationsPage() {
 
   return (
     <>
-      <Navbar />
-      <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1 overflow-x-hidden">
+            <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1 overflow-x-hidden">
         <div className="flex flex-col lg:flex-row gap-0 sm:gap-8 items-start">
           <AdminSidebar />
 
@@ -383,7 +380,6 @@ export default function AdminNotificationsPage() {
           </section>
         </div>
       </main>
-      <Footer />
-    </>
+          </>
   );
 }

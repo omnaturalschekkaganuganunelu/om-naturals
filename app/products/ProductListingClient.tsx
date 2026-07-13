@@ -392,8 +392,8 @@ function ProductListingContent({ initialProducts, initialCategories }: ProductLi
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 animate-fade-in-up">
-              {sortedGrouped.map((grp) => (
-                <ProductCard key={grp.groupKey} group={grp} />
+              {sortedGrouped.map((grp, idx) => (
+                <ProductCard key={grp.groupKey} group={grp} priority={idx < 4} />
               ))}
             </div>
           )}

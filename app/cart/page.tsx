@@ -4,8 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import BackButton from '@/components/BackButton';
 import { useCartStore } from '@/store/cartStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -196,8 +194,7 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-[#fcf9f4] flex flex-col">
-        <Navbar />
-        <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 mb-4 pt-4">
+                <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 mb-4 pt-4">
           <BackButton />
         </div>
         <div className="max-w-xl mx-auto text-center py-24 px-4 sm:px-6 flex-1 flex flex-col justify-center items-center space-y-4">
@@ -219,15 +216,13 @@ export default function CartPage() {
             </Link>
           </div>
         </div>
-        <Footer />
-      </div>
+              </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#fcf9f4] flex flex-col">
-      <Navbar />
-
+      
       <main className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 py-6 sm:py-8 flex-1 w-full">
         <div className="mb-6">
           <BackButton />
@@ -519,7 +514,6 @@ export default function CartPage() {
 
       </main>
 
-      <Footer />
-    </div>
+          </div>
   );
 }

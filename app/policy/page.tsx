@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { ShieldCheck, Truck, RotateCcw, Lock } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
 import { useLanguage } from '@/context/LanguageContext';
@@ -214,11 +212,9 @@ function PolicyContent() {
 export default function PolicyPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#fdfbf7]">
-      <Navbar />
-      <Suspense fallback={<div className="flex-1 flex justify-center items-center"><PremiumLoader /></div>}>
+            <Suspense fallback={<div className="flex-1 flex justify-center items-center"><PremiumLoader /></div>}>
         <PolicyContent />
       </Suspense>
-      <Footer />
-    </div>
+          </div>
   );
 }

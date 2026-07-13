@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { useLanguage } from '@/context/LanguageContext';
 import { 
   Search, 
@@ -540,11 +538,9 @@ function TrackOrderContent() {
 export default function TrackOrderPage() {
   return (
     <>
-      <Navbar />
-      <Suspense fallback={<PremiumLoader fullScreen={false} />}>
+            <Suspense fallback={<PremiumLoader fullScreen={false} />}>
         <TrackOrderContent />
       </Suspense>
-      <Footer />
-    </>
+          </>
   );
 }

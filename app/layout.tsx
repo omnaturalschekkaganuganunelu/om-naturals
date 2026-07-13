@@ -70,6 +70,7 @@ export const viewport: Viewport = {
 import NextTopLoader from 'nextjs-toploader';
 import { cookies } from 'next/headers';
 import { Language } from '@/lib/translations';
+import ClientLayoutWrapper from '@/components/ClientLayoutWrapper';
 
 export default function RootLayout({
   children,
@@ -81,6 +82,10 @@ export default function RootLayout({
 
   return (
     <html lang={initialLang} className={`overflow-x-clip max-w-full ${inter.variable} ${outfit.variable}`}>
+      <head>
+        <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+      </head>
       <body className="antialiased min-h-screen flex flex-col bg-[#fdfbf7] overflow-x-clip">
         <Providers initialLanguage={initialLang}>
           <NextTopLoader
@@ -95,7 +100,9 @@ export default function RootLayout({
             shadow="0 0 10px #b45309,0 0 5px #b45309"
             zIndex={1600}
           />
-          {children}
+          <ClientLayoutWrapper>
+            {children}
+          </ClientLayoutWrapper>
           <Suspense fallback={null}>
             <MobileBottomNav />
           </Suspense>

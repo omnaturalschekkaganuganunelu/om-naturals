@@ -7,11 +7,15 @@ import Image from 'next/image';
 import { Plus, Minus, Check, ChevronDown } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
-import VariantSelectorModal from '@/components/VariantSelectorModal';
 import type { RawProduct, GroupedProduct } from '@/hooks/useGroupedProducts';
+import { getOptimizedImageUrl } from '@/lib/imageOptimizer';
+import dynamic from 'next/dynamic';
+
+const VariantSelectorModal = dynamic(() => import('@/components/VariantSelectorModal'), { ssr: false });
 
 interface ProductCardProps {
   group: GroupedProduct;
+  priority?: boolean;
 }
 
 const FALLBACK_IMAGE = '/images/logo-512.png';
@@ -41,7 +45,7 @@ export function extractBaseNameTe(nameTe: string): string {
     .trim();
 }
 
-export default function ProductCard({ group }: ProductCardProps) {
+export default function ProductCard({ group, priority = false }: ProductCardProps) {
   const { representative, variants, minPrice, minMrp, groupKey } = group;
   const router = useRouter();
 
@@ -55,7 +59,7 @@ export default function ProductCard({ group }: ProductCardProps) {
   const { language } = useLanguage();
 
   const isSingleVariant = variants.length === 1;
-  const imageUrl = imgError ? FALLBACK_IMAGE : (representative.images?.[0] || FALLBACK_IMAGE);
+  const imageUrl = imgError ? FALLBACK_IMAGE : getOptimizedImageUrl(representative.images?.[0]);
   const outOfStock = representative.stock <= 0;
   const discountPercent = minMrp > minPrice ? Math.round(((minMrp - minPrice) / minMrp) * 100) : 0;
 
@@ -115,7 +119,8 @@ export default function ProductCard({ group }: ProductCardProps) {
               src={imageUrl}
               alt={representative.name}
               fill
-              quality={95}
+              priority={priority}
+              quality={85}
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
               className="object-contain p-4 group-hover:scale-[1.04] transition-transform duration-500 ease-out"
               onError={() => setImgError(true)}

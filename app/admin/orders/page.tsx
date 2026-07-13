@@ -3,8 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { ChevronDown, ChevronUp, RefreshCw, Filter, Eye, AlertCircle, Search, Check, X } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
@@ -177,8 +175,7 @@ export default function AdminOrdersPage() {
 
   return (
     <>
-      <Navbar />
-
+      
       <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1">
         <div className="flex flex-col lg:flex-row gap-0 sm:gap-8 items-start">
           
@@ -718,7 +715,6 @@ export default function AdminOrdersPage() {
         </div>
       </main>
 
-      <Footer />
-    </>
+          </>
   );
 }

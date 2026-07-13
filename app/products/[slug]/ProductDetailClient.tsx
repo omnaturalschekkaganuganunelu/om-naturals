@@ -11,7 +11,10 @@ import Image from 'next/image';
 import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
 import { formatVariantLabel, extractBaseNameTe } from '@/components/ProductCard';
-import VariantSelectorModal from '@/components/VariantSelectorModal';
+import { getOptimizedImageUrl } from '@/lib/imageOptimizer';
+import dynamic from 'next/dynamic';
+
+const VariantSelectorModal = dynamic(() => import('@/components/VariantSelectorModal'), { ssr: false });
 
 interface Variant {
   id: string;
@@ -72,7 +75,7 @@ function RelatedCard({ rel, language }: { rel: any; language: string }) {
   const discount = rel.mrp > rel.price ? Math.round(((rel.mrp - rel.price) / rel.mrp) * 100) : 0;
   const outOfStock = rel.stock <= 0;
   const displayName = language === 'te' ? (rel.nameTe || rel.name) : rel.name;
-  const imgSrc = imgErr ? FALLBACK_IMG : (relImages[0] || FALLBACK_IMG);
+  const imgSrc = imgErr ? FALLBACK_IMG : getOptimizedImageUrl(relImages[0]);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -83,7 +86,7 @@ function RelatedCard({ rel, language }: { rel: any; language: string }) {
       name: rel.name,
       nameTe: rel.nameTe || rel.name,
       price: rel.price, mrp: rel.mrp, quantity: 1,
-      image: relImages[0] || FALLBACK_IMG,
+      image: getOptimizedImageUrl(relImages[0]),
       weight: rel.weight, unit: rel.unit, stock: rel.stock,
       variantLabel: formatVariantLabel(rel),
     });
@@ -167,7 +170,7 @@ function ImageViewer({ images, displayName }: { images: string[]; displayName: s
   const mainRef = useRef<HTMLDivElement>(null);
   const ZOOM_FACTOR = 2.5;
 
-  const activeImage = images[activeIdx] || FALLBACK_IMG;
+  const activeImage = getOptimizedImageUrl(images[activeIdx]);
 
   useEffect(() => {
     setActiveIdx(0);
@@ -320,7 +323,7 @@ function ImageViewer({ images, displayName }: { images: string[]; displayName: s
                     : 'border-gray-200 hover:border-amber-400 opacity-70 hover:opacity-100'
                 }`}
               >
-                <Image src={img} alt="" fill sizes="64px" quality={90} className="object-contain p-0.5"
+                <Image src={getOptimizedImageUrl(img)} alt="" fill sizes="64px" quality={90} className="object-contain p-0.5"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).srcset = FALLBACK_IMG; }} />
               </button>
             ))}
@@ -419,7 +422,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
       name: product.name,
       nameTe: product.nameTe,
       price: product.price, mrp: product.mrp, quantity,
-      image: product.images[0] || FALLBACK_IMG,
+      image: getOptimizedImageUrl(product.images[0]),
       weight: product.weight, unit: product.unit, stock: product.stock,
       variantLabel: formatVariantLabel(product),
     });
@@ -441,7 +444,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
           name: product.name,
           nameTe: product.nameTe,
           price: product.price, mrp: product.mrp, quantity: quantity + 1,
-          image: product.images[0] || FALLBACK_IMG,
+          image: getOptimizedImageUrl(product.images[0]),
           weight: product.weight, unit: product.unit, stock: product.stock,
           variantLabel: formatVariantLabel(product),
         });

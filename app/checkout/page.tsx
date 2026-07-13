@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import BackButton from '@/components/BackButton';
 import { useCartStore } from '@/store/cartStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -412,8 +410,7 @@ export default function CheckoutPage() {
 
   return (
     <>
-      <Navbar />
-
+      
       <main className="max-w-screen-2xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
         <div className="mb-6">
           <BackButton />
@@ -915,7 +912,6 @@ export default function CheckoutPage() {
         </div>
       )}
 
-      <Footer />
-    </>
+          </>
   );
 }
