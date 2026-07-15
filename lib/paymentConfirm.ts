@@ -12,7 +12,9 @@ export async function confirmPaidOrder(
   transactionId: string,
   providerResponse: any
 ) {
-  return await prisma.$transaction(async (tx) => {
+  // 1. Run core transaction (lock order, check stock, update order/payment details, decrement stock)
+  // Set explicit 15s timeout to support slow/cold DB connections
+  const updatedOrder = await prisma.$transaction(async (tx) => {
     // Acquire exclusive row lock on the order
     const lockedOrders = await tx.$queryRaw<{ id: string; orderId: string; paymentStatus: string; userId: string; total: number }[]>`
       SELECT id, "orderId", "paymentStatus", "userId", "total" FROM "Order" WHERE id = ${dbOrderId} FOR UPDATE
@@ -52,8 +54,7 @@ export async function confirmPaidOrder(
       }
     }
 
-    // 1. Generate the next sequential orderId (e.g. Om-YYYYMMDD-NNNNN)
-    // Filter by orderIds starting with 'Om-' to ignore temporary 'UNPAID-' orders
+    // Generate the next sequential orderId (e.g. Om-YYYYMMDD-NNNNN)
     const orderCount = await tx.order.count({
       where: {
         orderId: { startsWith: 'Om-' },
@@ -69,8 +70,8 @@ export async function confirmPaidOrder(
     const dateStr = `${y}${m}${day}`;
     const customOrderId = `Om-${dateStr}-${serialStr}`;
 
-    // 2. Update the order fields
-    const updatedOrder = await tx.order.update({
+    // Update the order fields
+    const updated = await tx.order.update({
       where: { id: dbOrderId },
       data: {
         orderId: customOrderId,
@@ -83,7 +84,7 @@ export async function confirmPaidOrder(
       },
     });
 
-    // 3. Upsert/Update the Payment record
+    // Upsert/Update the Payment record
     const merchantTransactionId = 
       providerResponse?.data?.merchantTransactionId || 
       providerResponse?.merchantTransactionId || 
@@ -104,8 +105,7 @@ export async function confirmPaidOrder(
       },
     });
 
-    // 4. Decrement product stocks and increment salesCount
-    const admins = await tx.user.findMany({ where: { role: 'ADMIN' } });
+    // Decrement product stocks and increment salesCount
     for (const item of currentOrder.items) {
       const updatedProduct = await tx.product.update({
         where: { id: item.productId },
@@ -115,61 +115,85 @@ export async function confirmPaidOrder(
         },
       });
 
-      // Stock alerts
-      if (updatedProduct.stock < 5 && admins.length > 0) {
-        await tx.notification.create({
-          data: {
-            title: '⚠️ Low Stock Alert!',
-            body: `Product "${updatedProduct.name}" has critically low stock (${updatedProduct.stock} left).`,
-            type: 'INFO',
-            userId: admins[0].id,
-          },
-        });
+      if (updatedProduct.stock < 0) {
+        throw new Error(`Stock went below zero for product "${updatedProduct.name}"`);
       }
     }
 
-    // 5. Create notifications
-    // Customer notification
-    await tx.notification.create({
+    return updated;
+  }, {
+    timeout: 15000,
+    maxWait: 5000,
+  });
+
+  if (!updatedOrder) {
+    throw new Error('Failed to confirm order within transaction.');
+  }
+
+  // 2. Perform out-of-transaction, async tasks (notifications, SSE, emails)
+  // This speeds up the database transaction significantly and prevents lock timeouts.
+  try {
+    const customOrderId = updatedOrder.orderId;
+    const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
+
+    // Stock alerts
+    for (const item of updatedOrder.items) {
+      const p = await prisma.product.findUnique({ where: { id: item.productId } });
+      if (p && p.stock < 5 && admins.length > 0) {
+        await prisma.notification.create({
+          data: {
+            title: '⚠️ Low Stock Alert!',
+            body: `Product "${p.name}" has critically low stock (${p.stock} left).`,
+            type: 'INFO',
+            userId: admins[0].id,
+          },
+        }).catch(err => console.error('Error creating stock alert notification:', err));
+      }
+    }
+
+    // Customer confirmation notification
+    await prisma.notification.create({
       data: {
         title: '💳 Payment Successful!',
         body: `Your payment for Order ${customOrderId} was successful and your order is confirmed.`,
         type: 'ORDER',
-        userId: order.userId,
+        userId: updatedOrder.userId,
         orderId: dbOrderId,
       },
-    });
+    }).catch(err => console.error('Error creating customer notification:', err));
 
-    // Admin notifications
+    // Admin confirmation notifications
     for (const admin of admins) {
-      await tx.notification.create({
+      await prisma.notification.create({
         data: {
           title: '💰 Order Paid!',
-          body: `Payment for Order ${customOrderId} (₹${order.total}) was successful.`,
+          body: `Payment for Order ${customOrderId} (₹${updatedOrder.total}) was successful.`,
           type: 'ORDER',
           userId: admin.id,
           orderId: dbOrderId,
         },
-      });
+      }).catch(err => console.error('Error creating admin notification:', err));
     }
 
-    // 6. Broadcast SSE events
+    // Broadcast SSE order-update event
     orderEmitter.emit('order-update', {
       orderId: dbOrderId,
       status: 'CONFIRMED',
       updatedAt: new Date().toISOString(),
     });
 
-    // 7. Send confirmation email asynchronously
-    const user = await tx.user.findUnique({ where: { id: order.userId } });
+    // Send confirmation email
+    const user = await prisma.user.findUnique({ where: { id: updatedOrder.userId } });
     if (user?.email) {
       sendOrderConfirmationEmail(dbOrderId, user.email, user.name || 'Customer').catch((emailErr) => {
         console.error(`Email confirmation failed for order ${customOrderId}:`, emailErr);
       });
     }
+  } catch (asyncErr) {
+    console.error('Error executing post-confirmation activities:', asyncErr);
+  }
 
-    return updatedOrder;
-  });
+  return updatedOrder;
 }
 
 /**
