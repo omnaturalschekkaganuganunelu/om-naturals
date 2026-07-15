@@ -126,13 +126,9 @@ export default function CheckoutPage() {
         const createdAt = new Date(latestOrder.createdAt);
         const diffMinutes = (new Date().getTime() - createdAt.getTime()) / (1000 * 60);
 
-        // If the order was created in the last 15 minutes
+        // If the order was created in the last 15 minutes and is PENDING
         if (diffMinutes < 15) {
-          if (latestOrder.paymentStatus === 'COMPLETED') {
-            // Already paid successfully! Clear cart and redirect to confirmation
-            clearCart();
-            router.push(`/order-confirmation?orderId=${latestOrder.id}&status=success`);
-          } else if (latestOrder.paymentStatus === 'PENDING' && latestOrder.paymentMethod === 'PHONEPE') {
+          if (latestOrder.paymentStatus === 'PENDING' && latestOrder.paymentMethod === 'PHONEPE') {
             // Pending payment. Show warning modal in case they completed it offline/app
             setPendingOrder(latestOrder);
             setShowPendingModal(true);
