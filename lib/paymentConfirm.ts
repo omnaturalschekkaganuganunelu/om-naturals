@@ -15,6 +15,9 @@ export async function confirmPaidOrder(
   // 1. Run core transaction (lock order, check stock, update order/payment details, decrement stock)
   // Set explicit 15s timeout to support slow/cold DB connections
   const updatedOrder = await prisma.$transaction(async (tx) => {
+    // Acquire a pessimistic row lock on the site settings singleton to serialize global sequential orderId generation
+    await tx.$executeRaw`SELECT 1 FROM "SiteSettings" WHERE "id" = 'singleton' FOR UPDATE`;
+
     // Acquire exclusive row lock on the order
     const lockedOrders = await tx.$queryRaw<{ id: string; orderId: string; paymentStatus: string; userId: string; total: number }[]>`
       SELECT id, "orderId", "paymentStatus", "userId", "total" FROM "Order" WHERE id = ${dbOrderId} FOR UPDATE
@@ -182,11 +185,17 @@ export async function confirmPaidOrder(
       updatedAt: new Date().toISOString(),
     });
 
-    // Send confirmation email (awaited to ensure SMTP finishes on serverless function like Vercel)
+    // Send confirmation email asynchronously via a background fetch (keeps the main checkout status poll fast)
     const user = await prisma.user.findUnique({ where: { id: updatedOrder.userId } });
-    if (user?.email) {
-      await sendOrderConfirmationEmail(dbOrderId, user.email, user.name || 'Customer').catch((emailErr) => {
-        console.error(`Email confirmation failed for order ${customOrderId}:`, emailErr);
+    if (user?.email && !user.email.endsWith('@no-email.com')) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.om-naturals.com';
+      fetch(`${appUrl}/api/orders/${dbOrderId}/email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, name: user.name || 'Customer' }),
+        keepalive: true,
+      }).catch((emailErr) => {
+        console.error(`Background email trigger failed for order ${customOrderId}:`, emailErr);
       });
     }
   } catch (asyncErr) {
