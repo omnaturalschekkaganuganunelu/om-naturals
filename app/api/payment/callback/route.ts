@@ -55,7 +55,8 @@ export async function GET(req: NextRequest) {
       const state = result?.state?.toUpperCase();
 
       if (state === 'COMPLETED') {
-        await confirmPaidOrder(orderId, paymentRecord.merchantTransactionId, result);
+        const txnId = (result as any)?.paymentDetails?.[0]?.transactionId || (result as any)?.transactionId || paymentRecord.merchantTransactionId;
+        await confirmPaidOrder(orderId, txnId, result);
         return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
       } else if (state === 'FAILED' || state === 'CANCELLED' || state === 'PAYMENT_CANCELLED') {
         await prisma.order.update({

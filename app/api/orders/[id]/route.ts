@@ -36,7 +36,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             const state = result?.state?.toUpperCase();
 
             if (state === 'COMPLETED') {
-              await confirmPaidOrder(row.id, paymentRecord.merchantTransactionId, result);
+              const txnId = (result as any)?.paymentDetails?.[0]?.transactionId || (result as any)?.transactionId || paymentRecord.merchantTransactionId;
+              await confirmPaidOrder(row.id, txnId, result);
               // Fetch the updated status fields from the database
               const updated = await prisma.order.findFirst({
                 where: { id: row.id },
