@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { orderEmitter } from '@/lib/sse';
+import { getPhonePeClient } from '@/lib/phonepe';
+import { confirmPaidOrder } from '@/lib/paymentConfirm';
 
 // GET /api/orders/[id] - Fetch single order details
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -13,12 +15,62 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // Fast unauthenticated path: used by order-confirmation polling.
     // Returns ONLY paymentStatus — no PII. The GUID orderId is the security token.
     if (searchParams.get('statusOnly') === 'true') {
-      const row = await prisma.order.findFirst({
+      let row = await prisma.order.findFirst({
         where: { OR: [{ id }, { orderId: id }] },
-        select: { paymentStatus: true, orderStatus: true, paymentMethod: true, orderId: true },
+        select: { id: true, paymentStatus: true, orderStatus: true, paymentMethod: true, orderId: true },
       });
       if (!row) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-      return NextResponse.json(row);
+
+      // If PhonePe order and still PENDING, actively query PhonePe status
+      if (row.paymentMethod === 'PHONEPE' && row.paymentStatus === 'PENDING') {
+        try {
+          const paymentRecord = await prisma.payment.findFirst({
+            where: { orderId: row.id },
+            orderBy: { createdAt: 'desc' },
+            select: { merchantTransactionId: true },
+          });
+
+          if (paymentRecord?.merchantTransactionId) {
+            const client = getPhonePeClient();
+            const result = await client.getOrderStatus(paymentRecord.merchantTransactionId);
+            const state = result?.state?.toUpperCase();
+
+            if (state === 'COMPLETED') {
+              await confirmPaidOrder(row.id, paymentRecord.merchantTransactionId, result);
+              // Fetch the updated status fields from the database
+              const updated = await prisma.order.findFirst({
+                where: { id: row.id },
+                select: { paymentStatus: true, orderStatus: true, paymentMethod: true, orderId: true },
+              });
+              if (updated) row = { id: row.id, ...updated };
+            } else if (state === 'FAILED' || state === 'CANCELLED' || state === 'PAYMENT_CANCELLED') {
+              await prisma.order.update({
+                where: { id: row.id },
+                data: { paymentStatus: 'FAILED' },
+              });
+              await prisma.payment.update({
+                where: { merchantTransactionId: paymentRecord.merchantTransactionId },
+                data: { status: 'FAILED' },
+              });
+              // Fetch the updated status fields from the database
+              const updated = await prisma.order.findFirst({
+                where: { id: row.id },
+                select: { paymentStatus: true, orderStatus: true, paymentMethod: true, orderId: true },
+              });
+              if (updated) row = { id: row.id, ...updated };
+            }
+          }
+        } catch (err) {
+          console.error('Active statusOnly check: PhonePe API status query failed:', err);
+        }
+      }
+
+      return NextResponse.json({
+        paymentStatus: row.paymentStatus,
+        orderStatus: row.orderStatus,
+        paymentMethod: row.paymentMethod,
+        orderId: row.orderId,
+      });
     }
 
     // Full order details require auth
