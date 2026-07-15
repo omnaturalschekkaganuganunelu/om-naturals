@@ -107,7 +107,14 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        return NextResponse.json({ url: result.redirectUrl, simulated: false });
+        let redirectUrl = result.redirectUrl;
+        const isLiveSite = process.env.NEXT_PUBLIC_APP_URL?.includes('om-naturals.com');
+        if (isLiveSite && redirectUrl.includes('mercury-t2.phonepe.com')) {
+          console.warn('Forcing production redirect subdomain on live site...');
+          redirectUrl = redirectUrl.replace('mercury-t2.phonepe.com', 'mercury.phonepe.com');
+        }
+
+        return NextResponse.json({ url: redirectUrl, simulated: false });
       } else {
         console.error('PhonePe PG response failed:', result);
         return NextResponse.json({ error: 'Payment gateway rejected request. Please try again.' }, { status: 502 });
