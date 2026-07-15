@@ -85,6 +85,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         orderStatus: row.orderStatus,
         paymentMethod: row.paymentMethod,
         orderId: row.orderId,
+        debugEnv: {
+          PHONEPE_ENV: process.env.PHONEPE_ENV,
+          NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+          clientIdPrefix: process.env.PHONEPE_CLIENT_ID?.substring(0, 4)
+        }
       }, {
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
