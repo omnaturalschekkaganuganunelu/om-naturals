@@ -21,7 +21,9 @@ export function getPhonePeClient(): StandardCheckoutClient {
   }
 
   const clientVersion = Number(clientVersionStr || '1');
-  const env = envStr === 'PRODUCTION' ? Env.PRODUCTION : Env.SANDBOX;
+  // Default to Env.PRODUCTION if running on the live domain to avoid sandbox redirection issues
+  const isLiveSite = process.env.NEXT_PUBLIC_APP_URL?.includes('om-naturals.com');
+  const env = (envStr === 'PRODUCTION' || isLiveSite) ? Env.PRODUCTION : Env.SANDBOX;
 
   _client = StandardCheckoutClient.getInstance(
     clientId,
