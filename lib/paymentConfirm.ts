@@ -182,10 +182,10 @@ export async function confirmPaidOrder(
       updatedAt: new Date().toISOString(),
     });
 
-    // Send confirmation email
+    // Send confirmation email (awaited to ensure SMTP finishes on serverless function like Vercel)
     const user = await prisma.user.findUnique({ where: { id: updatedOrder.userId } });
     if (user?.email) {
-      sendOrderConfirmationEmail(dbOrderId, user.email, user.name || 'Customer').catch((emailErr) => {
+      await sendOrderConfirmationEmail(dbOrderId, user.email, user.name || 'Customer').catch((emailErr) => {
         console.error(`Email confirmation failed for order ${customOrderId}:`, emailErr);
       });
     }
