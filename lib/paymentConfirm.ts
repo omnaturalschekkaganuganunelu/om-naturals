@@ -84,7 +84,11 @@ export async function confirmPaidOrder(
     });
 
     // 3. Upsert/Update the Payment record
-    const merchantTransactionId = providerResponse?.data?.merchantTransactionId || providerResponse?.merchantTransactionId || `TXN-${dbOrderId}-${Date.now()}`;
+    const merchantTransactionId = 
+      providerResponse?.data?.merchantTransactionId || 
+      providerResponse?.merchantTransactionId || 
+      providerResponse?.merchantOrderId || 
+      `TXN-${dbOrderId}-${Date.now()}`;
     await tx.payment.upsert({
       where: { merchantTransactionId },
       update: {
