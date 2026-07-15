@@ -47,6 +47,32 @@ export default function AdminOrdersPage() {
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
+  // Auto-expand if 'open' param is in URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const openId = params.get('open');
+      if (openId) {
+        setExpandedOrderId(openId);
+      }
+    }
+  }, []);
+
+  // Auto-scroll to expanded order when loaded
+  useEffect(() => {
+    if (expandedOrderId && orders.length > 0) {
+      setTimeout(() => {
+        const elDesktop = document.getElementById(`order-desktop-${expandedOrderId}`);
+        const elMobile = document.getElementById(`order-mobile-${expandedOrderId}`);
+        if (elDesktop && elDesktop.offsetParent) {
+          elDesktop.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (elMobile && elMobile.offsetParent) {
+          elMobile.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    }
+  }, [expandedOrderId, orders]);
+
   // Auth Protection
   useEffect(() => {
     if (authStatus === 'unauthenticated') {
@@ -291,7 +317,7 @@ export default function AdminOrdersPage() {
                   const isExpanded = expandedOrderId === ord.id;
                   const date = new Date(ord.createdAt).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { day:'numeric', month:'short', year:'numeric', timeZone: 'Asia/Kolkata'});
                   return (
-                    <div key={ord.id}>
+                    <div key={ord.id} id={`order-mobile-${ord.id}`}>
                       <div
                         className={`p-4 cursor-pointer hover:bg-amber-50/20 transition-colors ${isExpanded ? 'bg-amber-50/20' : ''}`}
                         onClick={() => toggleOrderExpand(ord.id)}

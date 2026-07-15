@@ -13,6 +13,7 @@ interface Notification {
   body: string;
   type: string;
   userId: string | null;
+  orderId?: string | null;
   createdAt: string;
 }
 
@@ -57,6 +58,7 @@ export default function AdminNotificationsPage() {
   }
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [expandedNotifs, setExpandedNotifs] = useState<Set<string>>(new Set());
   const [users, setUsers] = useState<UserOption[]>([]);
   const [userSearch, setUserSearch] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -143,6 +145,15 @@ export default function AdminNotificationsPage() {
     } finally {
       setSending(false);
     }
+  };
+
+  const toggleNotif = (id: string) => {
+    setExpandedNotifs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   if (status === 'loading') return <PremiumLoader />;
@@ -346,7 +357,11 @@ export default function AdminNotificationsPage() {
                       {notifications.map((notif) => {
                         const typeOpt = TYPE_OPTS.find(t => t.value === notif.type) || TYPE_OPTS[0];
                         return (
-                          <div key={notif.id} className="px-5 py-4 hover:bg-gray-50/50 transition-colors">
+                          <div 
+                            key={notif.id} 
+                            onClick={() => toggleNotif(notif.id)}
+                            className="px-5 py-4 hover:bg-gray-50/50 transition-colors cursor-pointer"
+                          >
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
@@ -364,7 +379,23 @@ export default function AdminNotificationsPage() {
                                   )}
                                 </div>
                                 <p className="text-sm font-black text-amber-950">{notif.title}</p>
-                                <p className="text-xs text-gray-500 font-medium mt-0.5 line-clamp-2">{notif.body}</p>
+                                <p className={`text-xs text-gray-600 font-medium mt-1 ${expandedNotifs.has(notif.id) ? 'whitespace-pre-wrap leading-relaxed' : 'line-clamp-2'}`}>
+                                  {notif.body}
+                                </p>
+                                
+                                {expandedNotifs.has(notif.id) && notif.orderId && (
+                                  <div className="mt-3">
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(`/admin/orders?open=${notif.orderId}`);
+                                      }}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors"
+                                    >
+                                      <Package size={12} /> View Order
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                               <span className="text-[10px] text-gray-300 font-semibold shrink-0">{timeAgo(notif.createdAt)}</span>
                             </div>
