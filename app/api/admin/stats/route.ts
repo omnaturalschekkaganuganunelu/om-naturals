@@ -28,10 +28,21 @@ export async function GET(req: NextRequest) {
     ] = await Promise.all([
       prisma.product.count(),
       prisma.user.count({ where: { role: 'CUSTOMER' } }),
-      prisma.order.count(),
+      prisma.order.count({
+        where: {
+          OR: [
+            { paymentMethod: { not: 'PHONEPE' } },
+            { paymentStatus: 'COMPLETED' }
+          ]
+        }
+      }),
       prisma.order.findMany({
         where: {
           NOT: { orderStatus: 'CANCELLED' },
+          OR: [
+            { paymentMethod: { not: 'PHONEPE' } },
+            { paymentStatus: 'COMPLETED' }
+          ]
         },
         select: { total: true },
       }),
@@ -42,6 +53,12 @@ export async function GET(req: NextRequest) {
         include: { category: true },
       }),
       prisma.order.findMany({
+        where: {
+          OR: [
+            { paymentMethod: { not: 'PHONEPE' } },
+            { paymentStatus: 'COMPLETED' }
+          ]
+        },
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -56,6 +73,10 @@ export async function GET(req: NextRequest) {
             gte: sevenDaysAgo,
           },
           NOT: { orderStatus: 'CANCELLED' },
+          OR: [
+            { paymentMethod: { not: 'PHONEPE' } },
+            { paymentStatus: 'COMPLETED' }
+          ]
         },
         select: { total: true, createdAt: true },
       })

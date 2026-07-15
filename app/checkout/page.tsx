@@ -738,7 +738,7 @@ export default function CheckoutPage() {
                             alt=""
                             width={40}
                             height={40}
-                            className="w-10 h-10 rounded-xl object-cover border border-amber-100 hover:border-amber-300 transition-colors"
+                            className="w-10 h-10 rounded-xl object-contain p-0.5 bg-amber-50/20 border border-amber-100 hover:border-amber-300 transition-colors"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                             }}
@@ -886,8 +886,8 @@ export default function CheckoutPage() {
               </h3>
               <p className="text-xs sm:text-sm text-gray-500 font-semibold leading-relaxed">
                 {language === 'te'
-                  ? `మీరు ఇటీవల పెట్టిన ఆర్డర్ #${pendingOrder.orderId} (₹${pendingOrder.total}) కోసం చెల్లింపు పెండింగ్‌లో ఉంది. మీరు ఇప్పటికే చెల్లించారా?`
-                  : `We detected a pending payment of ₹${pendingOrder.total} for your recent order #${pendingOrder.orderId}. If you completed the payment on your PhonePe app, please verify it now.`}
+                  ? `మీరు ఇటీవల పెట్టిన ఆర్డర్ ${pendingOrder.orderId.startsWith('UNPAID-') ? '' : `#${pendingOrder.orderId} `}(₹${pendingOrder.total}) కోసం చెల్లింపు పెండింగ్‌లో ఉంది. మీరు ఇప్పటికే చెల్లించారా?`
+                  : `We detected a pending payment of ₹${pendingOrder.total} for your recent order${pendingOrder.orderId.startsWith('UNPAID-') ? '' : ` #${pendingOrder.orderId}`}. If you completed the payment on your PhonePe app, please verify it now.`}
               </p>
             </div>
             <div className="space-y-2.5 pt-2">

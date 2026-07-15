@@ -246,7 +246,7 @@ export default function CartPage() {
                         alt={item.name}
                         fill
                         sizes="(max-width: 640px) 96px, 112px"
-                        className="rounded-2xl object-cover shadow-sm border border-amber-50"
+                        className="rounded-2xl object-contain p-1.5 bg-amber-50/20 shadow-sm border border-amber-100"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                         }}

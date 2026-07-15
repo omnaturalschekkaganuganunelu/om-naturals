@@ -949,7 +949,7 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
                       alt={item.name}
                       width={48}
                       height={48}
-                      className="w-12 h-12 rounded-2xl object-cover border border-amber-100 bg-amber-50 shrink-0"
+                      className="w-12 h-12 rounded-2xl object-contain p-1 border border-amber-100 bg-amber-50 shrink-0"
                       onError={e => { (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png'; }}
                     />
                     <div className="flex-1 min-w-0">

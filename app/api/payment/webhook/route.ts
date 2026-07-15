@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getPhonePeClient } from '@/lib/phonepe';
 import { orderEmitter } from '@/lib/sse';
 import { sendOrderConfirmationEmail } from '@/lib/orderEmail';
+import { confirmPaidOrder, deleteFailedOrder } from '@/lib/paymentConfirm';
 
 export async function POST(req: NextRequest) {
   try {
@@ -138,105 +139,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (verifiedSuccess) {
-      await prisma.$transaction(async (tx) => {
-        // Acquire exclusive row lock to prevent race conditions with callback redirect
-        const lockedOrders = await tx.$queryRaw<{ id: string; paymentStatus: string }[]>`
-          SELECT id, "paymentStatus" FROM "Order" WHERE id = ${orderId} FOR UPDATE
-        `;
-        const currentOrder = lockedOrders[0];
-        if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
-          // Update order status and save PhonePe transaction ID
-          await tx.order.update({
-            where: { id: orderId },
-            data: {
-              paymentStatus: 'COMPLETED',
-              orderStatus: 'CONFIRMED',
-              transactionRef: phonePeTransactionId,
-            },
-          });
-
-          // Update payment record
-          await tx.payment.update({
-            where: { merchantTransactionId },
-            data: {
-              status: 'COMPLETED',
-              providerResponse: JSON.stringify(decodedJson),
-            },
-          });
-
-          // Notify customer
-          await tx.notification.create({
-            data: {
-              title: '💳 Payment Successful!',
-              body: `Your payment for Order ${order.orderId} was successful and your order is confirmed.`,
-              type: 'ORDER',
-              userId: order.userId,
-              orderId: order.id,
-            },
-          });
-
-          // Notify admins
-          const admins = await tx.user.findMany({ where: { role: 'ADMIN' } });
-          for (const admin of admins) {
-            await tx.notification.create({
-              data: {
-                title: '💰 Order Paid!',
-                body: `Payment for Order ${order.orderId} (₹${order.total}) was successful.`,
-                type: 'ORDER',
-                userId: admin.id,
-                orderId: order.id,
-              },
-            });
-          }
-
-          // Deduct inventory stock and increment salesCount (only on confirmed payment)
-          for (const item of order.items) {
-            const updatedProduct = await tx.product.update({
-              where: { id: item.productId },
-              data: {
-                stock: { decrement: item.quantity },
-                salesCount: { increment: item.quantity },
-              },
-            });
-
-            if (updatedProduct.stock < 0) {
-              console.error(`Insufficient stock for product ${updatedProduct.name} after order ${order.orderId}. Stock is now ${updatedProduct.stock}`);
-            }
-
-            if (updatedProduct.stock < 5) {
-              const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });
-              if (admin) {
-                await tx.notification.create({
-                  data: {
-                    title: '⚠️ Low Stock Alert!',
-                    body: `Product "${updatedProduct.name}" has critically low stock (${updatedProduct.stock} left).`,
-                    type: 'INFO',
-                    userId: admin.id,
-                  }
-                });
-              }
-            }
-          }
-        }
-      });
-
-      // Broadcast SSE notification immediately
-      orderEmitter.emit('order-update', {
-        orderId: order.id,
-        status: 'CONFIRMED',
-        updatedAt: new Date().toISOString(),
-      });
-
-      // Send email (awaited to ensure delivery in serverless environment)
-      try {
-        const orderUser = await prisma.user.findUnique({ where: { id: order.userId } });
-        if (orderUser && orderUser.email && orderUser.name) {
-          await sendOrderConfirmationEmail(order.id, orderUser.email, orderUser.name);
-        }
-      } catch (e) {
-        console.error('Webhook: failed to send confirmation email', e);
-      }
-
+      await confirmPaidOrder(orderId, phonePeTransactionId || merchantTransactionId, decodedJson);
       return NextResponse.json({ success: true, message: 'Payment webhook processed successfully' });
     } else {
       if (verificationError) {
@@ -244,34 +147,36 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Temporary status verification error. Please retry.' }, { status: 500 });
       }
 
-      // Mark payment as FAILED if it was not already completed
-      const currentOrder = await prisma.order.findUnique({ where: { id: orderId } });
-      if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
-        await prisma.order.update({
-          where: { id: orderId },
-          data: { paymentStatus: 'FAILED' },
-        });
-
-        await prisma.payment.update({
-          where: { merchantTransactionId },
-          data: {
-            status: 'FAILED',
-            providerResponse: JSON.stringify(decodedJson),
-          },
-        });
-
-        // Notify customer of payment failure
+      await prisma.order.update({
+        where: { id: orderId },
+        data: { paymentStatus: 'FAILED' },
+      });
+      await prisma.payment.upsert({
+        where: { merchantTransactionId },
+        update: {
+          status: 'FAILED',
+          providerResponse: JSON.stringify(decodedJson),
+        },
+        create: {
+          orderId,
+          merchantTransactionId,
+          amount: paymentAmount,
+          status: 'FAILED',
+          providerResponse: JSON.stringify(decodedJson),
+        },
+      });
+      // Notify customer of payment failure
+      if (order) {
         await prisma.notification.create({
           data: {
             title: '❌ Payment Failed',
-            body: `The payment for Order ${currentOrder.orderId} was not completed or declined. Please try again.`,
+            body: `The payment for your online order of ₹${order.total} was not completed. Please retry payment.`,
             type: 'ORDER',
-            userId: currentOrder.userId,
-            orderId: currentOrder.id,
+            userId: order.userId,
+            orderId: order.id,
           },
-        });
+        }).catch((err) => console.error('Failed to create failure notification:', err));
       }
-
       return NextResponse.json({ success: false, message: 'Payment marked as failed' });
     }
   } catch (error: any) {

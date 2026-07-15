@@ -25,7 +25,7 @@ export const sendOrderConfirmationEmail = async (orderId: string, userEmail: str
       <tr>
         <td style="padding: 16px 0; border-bottom: 1px solid #f3f4f6;">
           <div style="display: flex; align-items: center;">
-            <img src="${item.image}" width="48" height="48" style="border-radius: 8px; object-fit: cover; margin-right: 16px; border: 1px solid #e5e7eb;" alt="${item.name}" />
+            <img src="${item.image}" width="48" height="48" style="border-radius: 8px; object-fit: contain; padding: 2px; background-color: #fafaf9; margin-right: 16px; border: 1px solid #f5f5f4;" alt="${item.name}" />
             <div>
               <p style="margin: 0; color: #1f2937; font-weight: 600; font-size: 15px;">${item.name}</p>
               <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">Qty: ${item.quantity} × ₹${item.price.toFixed(2)}</p>

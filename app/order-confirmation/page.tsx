@@ -350,7 +350,7 @@ function OrderConfirmationContent() {
                         alt=""
                         width={32}
                         height={32}
-                        className="w-8 h-8 rounded-lg object-cover border border-amber-50"
+                        className="w-8 h-8 rounded-lg object-contain p-0.5 bg-amber-50/20 border border-amber-100"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                         }}
@@ -467,8 +467,12 @@ function OrderConfirmationContent() {
               </p>
               <p className="text-xs text-gray-600 font-semibold leading-relaxed">
                 {language === 'te'
-                  ? `ఆర్డర్ #${order.orderId} కు చెల్లింపు పూర్తికాలేదు. చెల్లింపు విఫలమైంది కాబట్టి ఆర్డర్ ప్రాసెస్ కాలేదు.`
-                  : `Payment for Order #${order?.orderId} failed. Since payment was not received, your order has NOT been processed or confirmed.`}
+                  ? (order.orderId.startsWith('UNPAID-')
+                      ? 'ఈ ఆన్‌లైన్ చెల్లింపు పూర్తికాలేదు. చెల్లింపు విఫలమైంది కాబట్టి ఆర్డర్ ప్రాసెస్ కాలేదు.'
+                      : `ఆర్డర్ #${order.orderId} కు చెల్లింపు పూర్తికాలేదు. చెల్లింపు విఫలమైంది కాబట్టి ఆర్డర్ ప్రాసెస్ కాలేదు.`)
+                  : (order.orderId.startsWith('UNPAID-')
+                      ? 'Online payment failed. Since payment was not received, your order has NOT been processed or confirmed.'
+                      : `Payment for Order #${order?.orderId} failed. Since payment was not received, your order has NOT been processed or confirmed.`)}
               </p>
               {retryError && (
                 <p className="text-xs text-red-600 font-semibold">{retryError}</p>

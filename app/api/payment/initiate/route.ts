@@ -35,9 +35,7 @@ export async function POST(req: NextRequest) {
     const merchantTransactionId = `TXN-${order.orderId}-${Date.now()}`;
 
     const originUrl = req.headers.get('origin') || 'http://localhost:3000';
-    let appUrl = process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL !== 'http://localhost:3000' 
-                   ? process.env.NEXT_PUBLIC_APP_URL 
-                   : originUrl;
+    let appUrl = originUrl;
 
     if (appUrl.endsWith('/')) {
       appUrl = appUrl.slice(0, -1);

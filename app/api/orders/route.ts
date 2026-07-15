@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { orderEmitter } from '@/lib/sse';
 import { revalidatePath } from 'next/cache';
 import { sendOrderConfirmationEmail } from '@/lib/orderEmail';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,20 @@ export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Background Garbage Collection: Delete stale pending/failed PhonePe orders older than 1 hour
+    try {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      await prisma.order.deleteMany({
+        where: {
+          paymentMethod: 'PHONEPE',
+          paymentStatus: { in: ['PENDING', 'FAILED'] },
+          createdAt: { lt: oneHourAgo },
+        },
+      });
+    } catch (gcErr) {
+      console.error('Garbage collection error:', gcErr);
     }
 
     const { searchParams } = new URL(req.url);
@@ -29,7 +44,7 @@ export async function GET(req: NextRequest) {
           {
             OR: [
               { paymentMethod: { not: 'PHONEPE' } },
-              { paymentStatus: { not: 'PENDING' } }
+              { paymentStatus: 'COMPLETED' }
             ]
           }
         ]
@@ -70,7 +85,7 @@ export async function GET(req: NextRequest) {
       if (!includePending) {
         where.OR = [
           { paymentMethod: { not: 'PHONEPE' } },
-          { paymentStatus: { not: 'PENDING' } }
+          { paymentStatus: 'COMPLETED' }
         ];
       }
       orders = await prisma.order.findMany({
@@ -106,6 +121,19 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Please log in to place an order' }, { status: 401 });
+    }
+
+    // Clean up any old pending/failed PhonePe orders for this user to save space
+    try {
+      await prisma.order.deleteMany({
+        where: {
+          userId: session.user.id,
+          paymentMethod: 'PHONEPE',
+          paymentStatus: { in: ['PENDING', 'FAILED'] },
+        },
+      });
+    } catch (cleanupErr) {
+      console.error('Error cleaning up old user orders:', cleanupErr);
     }
 
     const body = await req.json();
@@ -238,16 +266,23 @@ export async function POST(req: NextRequest) {
     while (retries > 0) {
       try {
         order = await prisma.$transaction(async (tx) => {
-          const orderCount = await tx.order.count();
-          const nextNum = orderCount + 1;
-          const serialStr = nextNum.toString().padStart(5, '0');
+          let customOrderId: string;
+          if (paymentMethod === 'PHONEPE') {
+            customOrderId = `UNPAID-${crypto.randomUUID()}`;
+          } else {
+            const orderCount = await tx.order.count({
+              where: { orderId: { startsWith: 'Om-' } }
+            });
+            const nextNum = orderCount + 1;
+            const serialStr = nextNum.toString().padStart(5, '0');
 
-          const today = new Date();
-          const y = today.toLocaleDateString('en-US', { year: 'numeric', timeZone: 'Asia/Kolkata' });
-          const m = today.toLocaleDateString('en-US', { month: '2-digit', timeZone: 'Asia/Kolkata' });
-          const day = today.toLocaleDateString('en-US', { day: '2-digit', timeZone: 'Asia/Kolkata' });
-          const dateStr = `${y}${m}${day}`;
-          const customOrderId = `Om-${dateStr}-${serialStr}`;
+            const today = new Date();
+            const y = today.toLocaleDateString('en-US', { year: 'numeric', timeZone: 'Asia/Kolkata' });
+            const m = today.toLocaleDateString('en-US', { month: '2-digit', timeZone: 'Asia/Kolkata' });
+            const day = today.toLocaleDateString('en-US', { day: '2-digit', timeZone: 'Asia/Kolkata' });
+            const dateStr = `${y}${m}${day}`;
+            customOrderId = `Om-${dateStr}-${serialStr}`;
+          }
 
           // 1. Create the order
           const newOrder = await tx.order.create({

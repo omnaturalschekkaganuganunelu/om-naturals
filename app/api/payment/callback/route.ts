@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getPhonePeClient } from '@/lib/phonepe';
 import { orderEmitter } from '@/lib/sse';
 import { sendOrderConfirmationEmail } from '@/lib/orderEmail';
+import { confirmPaidOrder, deleteFailedOrder } from '@/lib/paymentConfirm';
 
 // GET handler: Handles user navigation back from PhonePe (browser GET instead of POST redirect)
 // Actively checks PhonePe status so abandoned/cancelled payments are resolved immediately.
@@ -10,9 +11,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderId = searchParams.get('orderId');
   const reqUrl = new URL(req.url);
-  let appUrl = process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL !== 'http://localhost:3000'
-                   ? process.env.NEXT_PUBLIC_APP_URL
-                   : reqUrl.origin;
+  let appUrl = reqUrl.origin;
 
   if (appUrl.endsWith('/')) {
     appUrl = appUrl.slice(0, -1);
@@ -25,7 +24,7 @@ export async function GET(req: NextRequest) {
   try {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true, paymentStatus: true, transactionRef: true, orderId: true, userId: true },
+      select: { id: true, paymentStatus: true, transactionRef: true, orderId: true, userId: true, total: true },
     });
 
     if (!order) {
@@ -56,103 +55,38 @@ export async function GET(req: NextRequest) {
       const state = result?.state?.toUpperCase();
 
       if (state === 'COMPLETED') {
-        // Payment actually succeeded (webhook was slow) — mark COMPLETED and deduct inventory safely
-        await prisma.$transaction(async (tx) => {
-          const currentOrder = await tx.order.findUnique({ 
-            where: { id: orderId },
-            include: { items: true } 
-          });
-          if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
-            await tx.order.update({
-              where: { id: orderId },
-              data: { paymentStatus: 'COMPLETED', orderStatus: 'CONFIRMED' },
-            });
-
-            await tx.payment.update({
-              where: { merchantTransactionId: paymentRecord.merchantTransactionId },
-              data: {
-                status: 'COMPLETED',
-                providerResponse: JSON.stringify(result),
-              },
-            });
-
-            await tx.notification.create({
-              data: {
-                title: '💳 Payment Successful!',
-                body: `Your payment for Order ${currentOrder.orderId} was successful and your order is confirmed.`,
-                type: 'ORDER',
-                userId: currentOrder.userId,
-                orderId: currentOrder.id,
-              },
-            });
-
-            const admins = await tx.user.findMany({ where: { role: 'ADMIN' } });
-            for (const admin of admins) {
-              await tx.notification.create({
-                data: {
-                  title: '💰 Order Paid!',
-                  body: `Payment for Order ${currentOrder.orderId} (₹${currentOrder.total}) was successful.`,
-                  type: 'ORDER',
-                  userId: admin.id,
-                  orderId: currentOrder.id,
-                },
-              });
-            }
-
-            for (const item of currentOrder.items) {
-              const updatedProduct = await tx.product.update({
-                where: { id: item.productId },
-                data: {
-                  stock: { decrement: item.quantity },
-                  salesCount: { increment: item.quantity },
-                },
-              });
-
-              if (updatedProduct.stock < 0) {
-                console.error(`Insufficient stock for product ${updatedProduct.name} after order ${currentOrder.orderId}`);
-              }
-              if (updatedProduct.stock < 5 && admins.length > 0) {
-                await tx.notification.create({
-                  data: {
-                    title: '⚠️ Low Stock Alert!',
-                    body: `Product "${updatedProduct.name}" has critically low stock (${updatedProduct.stock} left).`,
-                    type: 'INFO',
-                    userId: admins[0].id,
-                  }
-                });
-              }
-            }
-          }
-        });
-
-        // Send email (awaited to ensure delivery in serverless environment)
-        const user = await prisma.user.findUnique({ where: { id: order.userId } });
-        if (user?.email) {
-          await sendOrderConfirmationEmail(orderId, user.email, user.name || 'Customer').catch(console.error);
-        }
-
+        await confirmPaidOrder(orderId, paymentRecord.merchantTransactionId, result);
         return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
-
       } else if (state === 'FAILED' || state === 'CANCELLED' || state === 'PAYMENT_CANCELLED') {
-        // Explicitly cancelled or failed by PhonePe — mark FAILED
         await prisma.order.update({
           where: { id: orderId },
           data: { paymentStatus: 'FAILED' },
         });
+        if (paymentRecord?.merchantTransactionId) {
+          await prisma.payment.upsert({
+            where: { merchantTransactionId: paymentRecord.merchantTransactionId },
+            update: { status: 'FAILED' },
+            create: {
+              orderId,
+              merchantTransactionId: paymentRecord.merchantTransactionId,
+              amount: order.total,
+              status: 'FAILED',
+            },
+          });
+        }
+        // Notify customer of payment failure
         await prisma.notification.create({
           data: {
-            title: '❌ Payment Not Completed',
-            body: `Payment for Order ${order.orderId} was not completed. Please retry or place a new order.`,
+            title: '❌ Payment Failed',
+            body: `The payment for your online order of ₹${order.total} was not completed. Please retry payment.`,
             type: 'ORDER',
             userId: order.userId,
             orderId: order.id,
           },
-        }).catch(() => {});
-        return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=failed`, { status: 303 });
+        }).catch((err) => console.error('Failed to create failure notification:', err));
 
+        return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=failed`, { status: 303 });
       } else {
-        // PENDING or unknown state — user may have paid but PhonePe still processing.
-        // DO NOT mark as failed. Go to verifying so polling + webhook can resolve it.
         return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=verifying`, { status: 303 });
       }
     } catch (sdkErr) {
@@ -171,9 +105,7 @@ export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderId = searchParams.get('orderId');
   const reqUrl = new URL(req.url);
-  let appUrl = process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL !== 'http://localhost:3000' 
-                   ? process.env.NEXT_PUBLIC_APP_URL 
-                   : reqUrl.origin;
+  let appUrl = reqUrl.origin;
 
   if (appUrl.endsWith('/')) {
     appUrl = appUrl.slice(0, -1);
@@ -243,112 +175,13 @@ export async function POST(req: NextRequest) {
       verifiedState = 'FAILED';
     }
     if (verifiedState === 'COMPLETED') {
-      // Update Order in Transaction
-      await prisma.$transaction(async (tx) => {
-        // Acquire exclusive row lock to prevent race conditions with background webhook
-        const lockedOrders = await tx.$queryRaw<{ id: string; paymentStatus: string }[]>`
-          SELECT id, "paymentStatus" FROM "Order" WHERE id = ${orderId} FOR UPDATE
-        `;
-        const currentOrder = lockedOrders[0];
-        if (currentOrder && currentOrder.paymentStatus !== 'COMPLETED') {
-          await tx.order.update({
-            where: { id: orderId },
-            data: {
-              paymentStatus: 'COMPLETED',
-              orderStatus: 'CONFIRMED',
-              transactionRef: phonePeTransactionId,
-            },
-          });
-
-          await tx.payment.upsert({
-            where: { merchantTransactionId },
-            update: { status: 'COMPLETED', providerResponse: JSON.stringify(decodedJson) },
-            create: {
-              orderId,
-              merchantTransactionId,
-              amount: paymentAmount,
-              status: 'COMPLETED',
-              providerResponse: JSON.stringify(decodedJson),
-            },
-          });
-
-          await tx.notification.create({
-            data: {
-              title: '💳 Payment Successful!',
-              body: `Your payment for Order ${order.orderId} was successful and your order is confirmed.`,
-              type: 'ORDER',
-              userId: order.userId,
-              orderId: order.id,
-            },
-          });
-
-          const admins = await tx.user.findMany({ where: { role: 'ADMIN' } });
-          for (const admin of admins) {
-            await tx.notification.create({
-              data: {
-                title: '💰 Order Paid!',
-                body: `Payment for Order ${order.orderId} (₹${order.total}) was successful.`,
-                type: 'ORDER',
-                userId: admin.id,
-                orderId: order.id,
-              },
-            });
-          }
-
-          for (const item of order.items) {
-            const updatedProduct = await tx.product.update({
-              where: { id: item.productId },
-              data: {
-                stock: { decrement: item.quantity },
-                salesCount: { increment: item.quantity },
-              },
-            });
-
-            if (updatedProduct.stock < 0) {
-              console.error(`Insufficient stock for product ${updatedProduct.name} after order ${order.orderId}. Stock is now ${updatedProduct.stock}`);
-            }
-
-            if (updatedProduct.stock < 5) {
-              const admin = await tx.user.findFirst({ where: { role: 'ADMIN' } });
-              if (admin) {
-                await tx.notification.create({
-                  data: {
-                    title: '⚠️ Low Stock Alert!',
-                    body: `Product "${updatedProduct.name}" has critically low stock (${updatedProduct.stock} left).`,
-                    type: 'INFO',
-                    userId: admin.id,
-                  }
-                });
-              }
-            }
-          }
-        }
-      });
-
-      // Broadcast SSE notification for Admin & Client
-      orderEmitter.emit('order-update', {
-        orderId: order.id,
-        status: 'CONFIRMED',
-        updatedAt: new Date().toISOString(),
-      });
-
+      await confirmPaidOrder(orderId, phonePeTransactionId || merchantTransactionId, decodedJson);
       return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=success`, { status: 303 });
     } else if (verifiedState === 'FAILED') {
       await prisma.order.update({
         where: { id: orderId },
         data: { paymentStatus: 'FAILED' },
       });
-
-      await prisma.notification.create({
-        data: {
-          title: '❌ Payment Failed',
-          body: `The payment for Order ${order.orderId} was not completed or declined. Please try again.`,
-          type: 'ORDER',
-          userId: order.userId,
-          orderId: order.id,
-        },
-      });
-
       if (merchantTransactionId) {
         await prisma.payment.upsert({
           where: { merchantTransactionId },
@@ -361,6 +194,18 @@ export async function POST(req: NextRequest) {
             providerResponse: JSON.stringify(decodedJson),
           },
         });
+      }
+      // Notify customer of payment failure
+      if (order) {
+        await prisma.notification.create({
+          data: {
+            title: '❌ Payment Failed',
+            body: `The payment for your online order of ₹${order.total} was not completed. Please retry payment.`,
+            type: 'ORDER',
+            userId: order.userId,
+            orderId: order.id,
+          },
+        }).catch((err) => console.error('Failed to create failure notification:', err));
       }
 
       return NextResponse.redirect(`${appUrl}/order-confirmation?orderId=${orderId}&status=failed`, { status: 303 });
