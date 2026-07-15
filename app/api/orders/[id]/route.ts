@@ -6,6 +6,8 @@ import { orderEmitter } from '@/lib/sse';
 import { getPhonePeClient } from '@/lib/phonepe';
 import { confirmPaidOrder } from '@/lib/paymentConfirm';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/orders/[id] - Fetch single order details
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -70,6 +72,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             orderId: row.orderId,
             debugError: err.message || String(err),
             debugStack: err.stack
+          }, {
+            headers: {
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
+            }
           });
         }
       }
@@ -79,6 +85,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         orderStatus: row.orderStatus,
         paymentMethod: row.paymentMethod,
         orderId: row.orderId,
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
+        }
       });
     }
 

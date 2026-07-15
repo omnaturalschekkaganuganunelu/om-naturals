@@ -67,7 +67,7 @@ function OrderConfirmationContent() {
       return;
     }
 
-    fetch(`/api/orders/${orderId}`)
+    fetch(`/api/orders/${orderId}?_t=${Date.now()}`)
       .then((res) => res.json())
       .then((data) => {
         setOrder(data);
@@ -95,7 +95,7 @@ function OrderConfirmationContent() {
 
       try {
         // ?statusOnly=true works without session — returns only paymentStatus/orderStatus
-        const res = await fetch(`/api/orders/${orderId}?statusOnly=true`);
+        const res = await fetch(`/api/orders/${orderId}?statusOnly=true&_t=${Date.now()}`);
 
         if (res.status === 401) {
           // Unauthenticated even on statusOnly — should not happen, but stop polling
@@ -109,7 +109,7 @@ function OrderConfirmationContent() {
 
         if (data.paymentStatus === 'COMPLETED') {
           // Payment confirmed — load full order details then go to success
-          const fullRes = await fetch(`/api/orders/${orderId}`);
+          const fullRes = await fetch(`/api/orders/${orderId}?_t=${Date.now()}`);
           if (fullRes.ok) setOrder(await fullRes.json());
           setStatus('success');
           if (pollingRef.current) clearInterval(pollingRef.current);
@@ -139,12 +139,12 @@ function OrderConfirmationContent() {
 
     const checkStatus = async () => {
       try {
-        const res = await fetch(`/api/orders/${orderId}?statusOnly=true`);
+        const res = await fetch(`/api/orders/${orderId}?statusOnly=true&_t=${Date.now()}`);
         if (!res.ok) return;
         const data = await res.json();
 
         if (data.paymentStatus === 'COMPLETED') {
-          const fullRes = await fetch(`/api/orders/${orderId}`);
+          const fullRes = await fetch(`/api/orders/${orderId}?_t=${Date.now()}`);
           if (fullRes.ok) setOrder(await fullRes.json());
           setStatus('success');
         }
