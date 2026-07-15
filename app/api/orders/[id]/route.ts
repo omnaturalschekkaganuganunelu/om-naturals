@@ -61,8 +61,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
               if (updated) row = { id: row.id, ...updated };
             }
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error('Active statusOnly check: PhonePe API status query failed:', err);
+          return NextResponse.json({
+            paymentStatus: row.paymentStatus,
+            orderStatus: row.orderStatus,
+            paymentMethod: row.paymentMethod,
+            orderId: row.orderId,
+            debugError: err.message || String(err),
+            debugStack: err.stack
+          });
         }
       }
 
