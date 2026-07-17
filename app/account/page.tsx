@@ -705,12 +705,16 @@ function AccountContent() {
             .totals-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #fef3c7; }
             .totals-row.grand { font-size: 18px; font-weight: 900; color: #78350f; border-top: 2px solid #b45309; padding-top: 12px; margin-top: 8px; }
             .store-section {
-              display: grid;
-              grid-template-columns: 1.2fr 1fr;
-              gap: 30px;
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
               margin-top: 50px;
               padding-top: 25px;
               border-top: 2px dashed #fed7aa;
+            }
+            .store-box {
+              flex: 1;
+              margin-right: 40px;
             }
             .store-box h3 {
               margin-top: 0;
@@ -726,10 +730,13 @@ function AccountContent() {
               color: #451a03;
             }
             .map-box {
+              width: 360px;
+              height: 180px;
               border: 1px solid #fed7aa;
-              border-radius: 14px;
+              border-radius: 16px;
               overflow: hidden;
-              box-shadow: 0 4px 10px rgba(120, 53, 15, 0.05);
+              box-shadow: 0 4px 12px rgba(120, 53, 15, 0.08);
+              flex-shrink: 0;
             }
             .footer { text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #fed7aa; padding-top: 20px; margin-top: 50px; }
             .txn-badge { display: inline-block; background: #fefce8; border: 1px solid #fcd34d; color: #78350f; font-weight: 700; font-family: monospace; padding: 3px 10px; border-radius: 6px; font-size: 13px; letter-spacing: 0.5px; }
@@ -830,8 +837,8 @@ function AccountContent() {
             <div class="map-box">
               <iframe 
                 src="https://maps.google.com/maps?q=OM%20NATURAL%20CHEKKA%20GANUGA%20NUNE%20Gorantla%20Guntur&t=&z=16&ie=UTF8&iwloc=&output=embed" 
-                width="100%" 
-                height="125" 
+                width="360" 
+                height="180" 
                 style="border:0;" 
                 allowfullscreen="" 
                 loading="lazy">
