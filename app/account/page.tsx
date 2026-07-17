@@ -639,7 +639,17 @@ function AccountContent() {
   };
 
   // Printable Invoice Generation
-  const handleDownloadInvoice = (order: any) => {
+  const handleDownloadInvoice = async (order: any) => {
+    let dbProducts: any[] = [];
+    try {
+      const res = await fetch('/api/products');
+      if (res.ok) {
+        dbProducts = await res.json();
+      }
+    } catch (err) {
+      console.error('Failed to fetch products for invoice:', err);
+    }
+
     const trkId = getTrackingId(order.orderId);
     const isCancelled = order.orderStatus === 'CANCELLED';
     const isCOD = order.paymentMethod === 'COD';
@@ -653,32 +663,74 @@ function AccountContent() {
       return;
     }
     
-    const itemsHtml = order.items.map((it: any) => `
-      <tr>
-        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: left;">${it.nameTe || it.name}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: center;">${it.quantity}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right;">₹${it.price.toFixed(2)}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right;">₹${(it.price * it.quantity).toFixed(2)}</td>
-      </tr>
-    `).join('');
+    const itemsHtml = order.items.map((it: any) => {
+      const prod = dbProducts.find((p: any) => p.id === it.productId);
+      let sizeLabel = '';
+      if (prod) {
+        const w = prod.weight, u = prod.unit;
+        if (u === 'Litre' || u === 'Liter') sizeLabel = w >= 1 ? `${w} Litre` : `${Math.round(w * 1000)} ml`;
+        else if (u === 'Gram' || u === 'g') sizeLabel = w >= 1000 ? `${w / 1000} Kg` : `${w} g`;
+        else if (u === 'Kg' || u === 'kg') sizeLabel = `${w} Kg`;
+        else if (u === 'ml') sizeLabel = w >= 1000 ? `${w / 1000} L` : `${w} ml`;
+      }
+      const nameEn = sizeLabel ? `${it.name} (${sizeLabel})` : it.name;
+      const nameTe = it.nameTe ? (sizeLabel ? `${it.nameTe} (${sizeLabel})` : it.nameTe) : '';
+      const nameDisplay = nameTe ? `${nameEn} (${nameTe})` : nameEn;
+
+      return `
+        <tr>
+          <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: left; font-size: 13px;">${nameDisplay}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: center; font-size: 13px;">${it.quantity}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right; font-size: 13px;">₹${it.price.toFixed(2)}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right; font-size: 13px; font-weight: bold;">₹${(it.price * it.quantity).toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
 
     const invoiceHtml = `
       <html>
         <head>
           <title>Invoice - ${order.orderId}</title>
           <style>
-            body { font-family: 'Outfit', 'Inter', sans-serif; color: #1c1009; padding: 40px; margin: 0; background: #fff; }
+            body { font-family: 'Segoe UI', sans-serif; color: #1c1009; padding: 40px; margin: 0; background: #fff; }
             .header { display: flex; justify-content: space-between; border-bottom: 2px solid #b45309; padding-bottom: 20px; margin-bottom: 30px; }
-            .logo { font-size: 24px; font-weight: 850; color: #78350f; font-family: 'Outfit'; }
+            .logo { font-size: 24px; font-weight: 850; color: #78350f; }
             .invoice-title { font-size: 28px; font-weight: 900; color: #78350f; text-align: right; }
-            .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
-            .details-box h3 { margin-top: 0; color: #78350f; border-bottom: 1px solid #fcd34d; padding-bottom: 8px; font-size: 14px; text-transform: uppercase; }
+            .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 45px; }
+            .details-box h3 { margin-top: 0; color: #78350f; border-bottom: 1px solid #fcd34d; padding-bottom: 8px; font-size: 13px; text-transform: uppercase; }
             .details-box p { margin: 6px 0; font-size: 13px; line-height: 1.5; }
             table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            th { background: #fdfbf7; padding: 12px; font-weight: bold; font-size: 12px; text-transform: uppercase; text-align: left; border-bottom: 2px solid #fcd34d; color: #78350f; }
+            th { background: #fdfbf7; padding: 12px; font-weight: bold; font-size: 11px; text-transform: uppercase; text-align: left; border-bottom: 2px solid #fcd34d; color: #78350f; }
             .totals { width: 300px; margin-left: auto; margin-top: 20px; font-size: 14px; }
-            .totals-row { display: flex; justify-content: space-between; padding: 8px 0; }
+            .totals-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #fef3c7; }
             .totals-row.grand { font-size: 18px; font-weight: 900; color: #78350f; border-top: 2px solid #b45309; padding-top: 12px; margin-top: 8px; }
+            .store-section {
+              display: grid;
+              grid-template-columns: 1.2fr 1fr;
+              gap: 30px;
+              margin-top: 50px;
+              padding-top: 25px;
+              border-top: 2px dashed #fed7aa;
+            }
+            .store-box h3 {
+              margin-top: 0;
+              font-size: 12px;
+              text-transform: uppercase;
+              color: #78350f;
+              letter-spacing: 0.5px;
+            }
+            .store-box p {
+              margin: 4px 0;
+              font-size: 11.5px;
+              line-height: 1.4;
+              color: #451a03;
+            }
+            .map-box {
+              border: 1px solid #fed7aa;
+              border-radius: 14px;
+              overflow: hidden;
+              box-shadow: 0 4px 10px rgba(120, 53, 15, 0.05);
+            }
             .footer { text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #fed7aa; padding-top: 20px; margin-top: 50px; }
             .txn-badge { display: inline-block; background: #fefce8; border: 1px solid #fcd34d; color: #78350f; font-weight: 700; font-family: monospace; padding: 3px 10px; border-radius: 6px; font-size: 13px; letter-spacing: 0.5px; }
             @media print { body { padding: 20px; } }
@@ -751,6 +803,10 @@ function AccountContent() {
               <span>₹${order.shipping.toFixed(2)}</span>
             </div>
             <div class="totals-row">
+              <span>Packing Charges:</span>
+              <span>₹20.00</span>
+            </div>
+            <div class="totals-row">
               <span>Tax (GST):</span>
               <span>₹${order.tax.toFixed(2)}</span>
             </div>
@@ -760,10 +816,32 @@ function AccountContent() {
               <span>₹${order.total.toFixed(2)}</span>
             </div>
           </div>
+
+          <div class="store-section">
+            <div class="store-box">
+              <h3>Our Registered Office & Store</h3>
+              <p><strong>OM NATURAL CHEKKA GANUGA NUNELU</strong></p>
+              <p>D.No. 126-137, Sri Lakshmi Narasimha Nagar,</p>
+              <p>5th Line, Inner Ring Road, Gorantla,</p>
+              <p>Guntur, Andhra Pradesh - 522034</p>
+              <p style="margin-top:8px">📞 <strong>Phone:</strong> +91 86882 91288</p>
+              <p>✉️ <strong>Email:</strong> info@om-naturals.com</p>
+            </div>
+            <div class="map-box">
+              <iframe 
+                src="https://maps.google.com/maps?q=OM%20NATURAL%20CHEKKA%20GANUGA%20NUNE%20Gorantla%20Guntur&t=&z=16&ie=UTF8&iwloc=&output=embed" 
+                width="100%" 
+                height="125" 
+                style="border:0;" 
+                allowfullscreen="" 
+                loading="lazy">
+              </iframe>
+            </div>
+          </div>
           
           <div class="footer">
-            <p>Thank you for purchasing organic wood-pressed oil from Om Natural!</p>
-            <p>This is a computer-generated invoice and does not require a physical signature.</p>
+            <p>Thank you for choosing Om Natural wood-pressed oils!</p>
+            <p>Computer-generated invoice. No physical signature required.</p>
           </div>
           <script>
             window.onload = function() {

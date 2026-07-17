@@ -195,6 +195,232 @@ export default function AdminOrdersPage() {
     }
   };
 
+  // Printable Invoice Generation
+  const handlePrintInvoice = async (order: any) => {
+    try {
+      const res = await fetch('/api/products');
+      let dbProducts = [];
+      if (res.ok) {
+        dbProducts = await res.json();
+      }
+
+      const isCancelled = order.orderStatus === 'CANCELLED';
+      const isCOD = order.paymentMethod === 'COD';
+      const txnRef = order.transactionRef || null;
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert(language === 'te' ? 'దయచేసి పాపప్స్ అనుమతించండి.' : 'Please allow popups to view invoice.');
+        return;
+      }
+
+      const getTrackingId = (oid: string) => {
+        const parts = oid.split('-');
+        if (parts.length >= 3) {
+          return `TRK-GNT-${parts[2]}`;
+        }
+        return `TRK-${oid.substring(0, 8)}`;
+      };
+      
+      const trkId = getTrackingId(order.orderId);
+
+      const itemsHtml = order.items.map((it: any) => {
+        const prod = dbProducts.find((p: any) => p.id === it.productId);
+        let sizeLabel = '';
+        if (prod) {
+          const w = prod.weight, u = prod.unit;
+          if (u === 'Litre' || u === 'Liter') sizeLabel = w >= 1 ? `${w} Litre` : `${Math.round(w * 1000)} ml`;
+          else if (u === 'Gram' || u === 'g') sizeLabel = w >= 1000 ? `${w / 1000} Kg` : `${w} g`;
+          else if (u === 'Kg' || u === 'kg') sizeLabel = `${w} Kg`;
+          else if (u === 'ml') sizeLabel = w >= 1000 ? `${w / 1000} L` : `${w} ml`;
+        }
+
+        const nameEn = sizeLabel ? `${it.name} (${sizeLabel})` : it.name;
+        const nameTe = it.nameTe ? (sizeLabel ? `${it.nameTe} (${sizeLabel})` : it.nameTe) : '';
+        const nameDisplay = nameTe ? `${nameEn} (${nameTe})` : nameEn;
+
+        return `
+          <tr>
+            <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: left; font-size: 13px;">${nameDisplay}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: center; font-size: 13px;">${it.quantity}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right; font-size: 13px;">₹${it.price.toFixed(2)}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right; font-size: 13px; font-weight: bold;">₹${(it.price * it.quantity).toFixed(2)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const invoiceHtml = `
+        <html>
+          <head>
+            <title>Invoice - ${order.orderId}</title>
+            <style>
+              body { font-family: 'Segoe UI', sans-serif; color: #1c1009; padding: 40px; margin: 0; background: #fff; }
+              .header { display: flex; justify-content: space-between; border-bottom: 2px solid #b45309; padding-bottom: 20px; margin-bottom: 30px; }
+              .logo { font-size: 24px; font-weight: 850; color: #78350f; }
+              .invoice-title { font-size: 28px; font-weight: 900; color: #78350f; text-align: right; }
+              .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 45px; }
+              .details-box h3 { margin-top: 0; color: #78350f; border-bottom: 1px solid #fcd34d; padding-bottom: 8px; font-size: 13px; text-transform: uppercase; }
+              .details-box p { margin: 6px 0; font-size: 13px; line-height: 1.5; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+              th { background: #fdfbf7; padding: 12px; font-weight: bold; font-size: 11px; text-transform: uppercase; text-align: left; border-bottom: 2px solid #fcd34d; color: #78350f; }
+              .totals { width: 300px; margin-left: auto; margin-top: 20px; font-size: 14px; }
+              .totals-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #fef3c7; }
+              .totals-row.grand { font-size: 18px; font-weight: 900; color: #78350f; border-top: 2px solid #b45309; padding-top: 12px; margin-top: 8px; }
+              .store-section {
+                display: grid;
+                grid-template-columns: 1.2fr 1fr;
+                gap: 30px;
+                margin-top: 50px;
+                padding-top: 25px;
+                border-top: 2px dashed #fed7aa;
+              }
+              .store-box h3 {
+                margin-top: 0;
+                font-size: 12px;
+                text-transform: uppercase;
+                color: #78350f;
+                letter-spacing: 0.5px;
+              }
+              .store-box p {
+                margin: 4px 0;
+                font-size: 11.5px;
+                line-height: 1.4;
+                color: #451a03;
+              }
+              .map-box {
+                border: 1px solid #fed7aa;
+                border-radius: 14px;
+                overflow: hidden;
+                box-shadow: 0 4px 10px rgba(120, 53, 15, 0.05);
+              }
+              .footer { text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #fed7aa; padding-top: 20px; margin-top: 50px; }
+              .txn-badge { display: inline-block; background: #fefce8; border: 1px solid #fcd34d; color: #78350f; font-weight: 700; font-family: monospace; padding: 3px 10px; border-radius: 6px; font-size: 13px; letter-spacing: 0.5px; }
+              @media print { body { padding: 20px; } }
+            </style>
+          </head>
+          <body>
+            <div class="header" style="align-items: center;">
+              <div style="display:flex;align-items:center;gap:12px">
+                <img src="/images/logo.png" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #b45309" />
+                <div>
+                  <div class="logo">Om Natural</div>
+                  <div style="font-size:11px;color:#b45309">Chekka Ganuga Nune</div>
+                  <div style="font-size:10px;color:#475569;margin-top:2px">📞 +91 86882 91288 | ✉️ info@om-naturals.com</div>
+                </div>
+              </div>
+              <div>
+                <div class="invoice-title">${isCancelled ? '<span style="color:#dc2626">CANCELLED</span>' : 'INVOICE'}</div>
+                <div style="font-size: 12px; color: #b45309; margin-top: 4px; text-align: right;">ID: ${order.orderId}</div>
+              </div>
+            </div>
+            
+            ${isCancelled ? `
+            <div style="background-color: #fef2f2; border: 1px solid #fca5a5; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; color: #991b1b; font-size: 14px; font-weight: bold; text-align: center; font-family: sans-serif;">
+              ❌ THIS ORDER HAS BEEN CANCELLED
+              ${order.cancelReason ? `<br/><span style="font-size: 11px; font-weight: normal; color: #7f1d1d;">Reason: ${order.cancelReason}</span>` : ''}
+            </div>
+            ` : ''}
+            
+            <div class="details-grid">
+              <div class="details-box">
+                <h3>Billed To</h3>
+                <p><strong>${order.name}</strong></p>
+                <p>${order.line1}</p>
+                ${order.line2 ? `<p>${order.line2}</p>` : ''}
+                <p>${order.city}, ${order.state} - ${order.pincode}</p>
+                <p>Phone: ${order.phone}</p>
+              </div>
+              <div class="details-box" style="text-align: right;">
+                <h3>Order Info</h3>
+                <p><strong>Order ID:</strong> ${order.orderId}</p>
+                <p><strong>Tracking ID:</strong> ${trkId}</p>
+                <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+                <p><strong>Payment:</strong> ${isCOD ? 'Cash on Delivery (COD)' : 'PhonePe Online'}</p>
+                ${txnRef ? `<p><strong>${isCOD ? 'COD Reference:' : 'Transaction ID:'}</strong><br/><span class="txn-badge">${txnRef}</span></p>` : ''}
+                <p><strong>Payment Status:</strong> <span style="color:${order.paymentStatus === 'COMPLETED' ? '#16a34a' : order.paymentStatus === 'REFUNDED' ? '#9333ea' : '#b45309'}">${order.paymentStatus}</span></p>
+              </div>
+            </div>
+            
+            <table>
+              <thead>
+                <tr>
+                  <th style="text-align: left;">Product Details</th>
+                  <th style="text-align: center; width: 80px;">Qty</th>
+                  <th style="text-align: right; width: 120px;">Price</th>
+                  <th style="text-align: right; width: 120px;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsHtml}
+              </tbody>
+            </table>
+            
+            <div class="totals">
+              <div class="totals-row">
+                <span>Subtotal</span>
+                <span>₹${order.subtotal.toFixed(2)}</span>
+              </div>
+              <div class="totals-row">
+                <span>Shipping</span>
+                <span>₹${order.shipping.toFixed(2)}</span>
+              </div>
+              <div class="totals-row">
+                <span>Packing Charges</span>
+                <span>₹20.00</span>
+              </div>
+              <div class="totals-row">
+                <span>Tax (GST)</span>
+                <span>₹${order.tax.toFixed(2)}</span>
+              </div>
+              ${order.discount > 0 ? `<div class="totals-row" style="color:#16a34a"><span>Discount ${order.couponCode ? `(${order.couponCode})` : ''}</span><span>-₹${order.discount.toFixed(2)}</span></div>` : ''}
+              <div class="totals-row grand">
+                <span>Grand Total</span>
+                <span>₹${order.total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div class="store-section">
+              <div class="store-box">
+                <h3>Our Registered Office & Store</h3>
+                <p><strong>OM NATURAL CHEKKA GANUGA NUNELU</strong></p>
+                <p>D.No. 126-137, Sri Lakshmi Narasimha Nagar,</p>
+                <p>5th Line, Inner Ring Road, Gorantla,</p>
+                <p>Guntur, Andhra Pradesh - 522034</p>
+                <p style="margin-top:8px">📞 <strong>Phone:</strong> +91 86882 91288</p>
+                <p>✉️ <strong>Email:</strong> info@om-naturals.com</p>
+              </div>
+              <div class="map-box">
+                <iframe 
+                  src="https://maps.google.com/maps?q=OM%20NATURAL%20CHEKKA%20GANUGA%20NUNE%20Gorantla%20Guntur&t=&z=16&ie=UTF8&iwloc=&output=embed" 
+                  width="100%" 
+                  height="125" 
+                  style="border:0;" 
+                  allowfullscreen="" 
+                  loading="lazy">
+                </iframe>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p>Thank you for choosing Om Natural wood-pressed oils!</p>
+              <p>Computer-generated invoice. No physical signature required.</p>
+            </div>
+            <script>
+              window.onload = function() {
+                window.print();
+              };
+            </script>
+          </body>
+        </html>
+      `;
+      
+      printWindow.document.open();
+      printWindow.document.write(invoiceHtml);
+      printWindow.document.close();
+    } catch (err) {
+      console.error('Error generating invoice:', err);
+    }
+  };
+
   if (authStatus === 'loading' || loading) {
     return <PremiumLoader fullScreen={true} text={t('admin_orders_loading')} />;
   }
@@ -398,19 +624,29 @@ export default function AdminOrdersPage() {
                               )}
                             </div>
 
-                            {(() => {
-                              const coords = getCoordinates(ord);
-                              return coords ? (
-                                <a
-                                  href={`https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center space-x-1 mt-2.5 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1 rounded-xl shadow-xs transition-all"
-                                >
-                                  <span>{t('admin_view_map') || 'View on Map'}</span>
-                                </a>
-                              ) : null;
-                            })()}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                onClick={() => handlePrintInvoice(ord)}
+                                className="inline-flex items-center space-x-1 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer"
+                              >
+                                <span className="text-[11px]">📄</span>
+                                <span>{language === 'te' ? 'ఇన్వాయిస్ చూడండి' : 'View Invoice'}</span>
+                              </button>
+
+                              {(() => {
+                                const coords = getCoordinates(ord);
+                                return coords ? (
+                                  <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center space-x-1 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1.5 rounded-xl shadow-xs transition-all"
+                                  >
+                                    <span>{t('admin_view_map') || 'View on Map'}</span>
+                                  </a>
+                                ) : null;
+                              })()}
+                            </div>
                           </div>
 
                           {/* Update Controls */}
@@ -623,19 +859,29 @@ export default function AdminOrdersPage() {
                                         )}
                                       </div>
 
-                                      {(() => {
-                                        const coords = getCoordinates(ord);
-                                        return coords ? (
-                                          <a
-                                            href={`https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center space-x-1 mt-2.5 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1 rounded-xl shadow-xs transition-all"
-                                          >
-                                            <span>{t('admin_view_map')}</span>
-                                          </a>
-                                        ) : null;
-                                      })()}
+                                      <div className="mt-3 flex flex-wrap gap-2">
+                                        <button
+                                          onClick={() => handlePrintInvoice(ord)}
+                                          className="inline-flex items-center space-x-1 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer"
+                                        >
+                                          <span className="text-[11px]">📄</span>
+                                          <span>{language === 'te' ? 'ఇన్వాయిస్ చూడండి' : 'View Invoice'}</span>
+                                        </button>
+
+                                        {(() => {
+                                          const coords = getCoordinates(ord);
+                                          return coords ? (
+                                            <a
+                                              href={`https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="inline-flex items-center space-x-1 text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1.5 rounded-xl shadow-xs transition-all"
+                                            >
+                                              <span>{t('admin_view_map')}</span>
+                                            </a>
+                                          ) : null;
+                                        })()}
+                                      </div>
                                     </div>
                                   </div>
 

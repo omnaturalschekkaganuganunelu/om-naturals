@@ -129,20 +129,47 @@ function useToastBus() {
 
 // ── Invoice ────────────────────────────────────────────────────────────────────
 
-function printInvoice(order: any) {
+async function printInvoice(order: any, language: string) {
+  let dbProducts: any[] = [];
+  try {
+    const res = await fetch('/api/products');
+    if (res.ok) {
+      dbProducts = await res.json();
+    }
+  } catch (err) {
+    console.error('Failed to fetch products for invoice:', err);
+  }
+
   const trkId = getTrackingId(order.orderId);
   const isCancelled = order.orderStatus === 'CANCELLED';
   const isCOD = order.paymentMethod === 'COD';
   const txnRef = order.transactionRef || null;
   const win = window.open('', '_blank');
   if (!win) return;
-  const rows = order.items.map((it: any) => `
-    <tr>
-      <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9">${it.name}${it.nameTe ? ` (${it.nameTe})` : ''}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9;text-align:center">${it.quantity}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9;text-align:right">&#x20B9;${it.price}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9;text-align:right">&#x20B9;${it.price * it.quantity}</td>
-    </tr>`).join('');
+
+  const rows = order.items.map((it: any) => {
+    const prod = dbProducts.find((p: any) => p.id === it.productId);
+    let sizeLabel = '';
+    if (prod) {
+      const w = prod.weight, u = prod.unit;
+      if (u === 'Litre' || u === 'Liter') sizeLabel = w >= 1 ? `${w} Litre` : `${Math.round(w * 1000)} ml`;
+      else if (u === 'Gram' || u === 'g') sizeLabel = w >= 1000 ? `${w / 1000} Kg` : `${w} g`;
+      else if (u === 'Kg' || u === 'kg') sizeLabel = `${w} Kg`;
+      else if (u === 'ml') sizeLabel = w >= 1000 ? `${w / 1000} L` : `${w} ml`;
+    }
+    const nameEn = sizeLabel ? `${it.name} (${sizeLabel})` : it.name;
+    const nameTe = it.nameTe ? (sizeLabel ? `${it.nameTe} (${sizeLabel})` : it.nameTe) : '';
+    const nameDisplay = nameTe ? `${nameEn} (${nameTe})` : nameEn;
+
+    return `
+      <tr>
+        <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9;font-size:13px">${nameDisplay}</td>
+        <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9;text-align:center;font-size:13px">${it.quantity}</td>
+        <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9;text-align:right;font-size:13px">&#x20B9;${it.price}</td>
+        <td style="padding:10px 8px;border-bottom:1px solid #f1f5f9;text-align:right;font-size:13px;font-weight:bold">&#x20B9;${it.price * it.quantity}</td>
+      </tr>`;
+  }).join('');
+
   const html = `
   <html><head><title>Invoice – ${order.orderId}</title>
   <style>
@@ -157,6 +184,33 @@ function printInvoice(order: any) {
     .tot{width:280px;margin:24px 0 0 auto;font-size:13px}
     .tot-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #fef3c7}
     .grand{font-size:17px;font-weight:900;color:#78350f;border-top:2px solid #b45309;padding-top:10px;margin-top:6px}
+    .store-section {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 30px;
+      margin-top: 50px;
+      padding-top: 25px;
+      border-top: 2px dashed #fed7aa;
+    }
+    .store-box h3 {
+      margin-top: 0;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #78350f;
+      letter-spacing: 0.5px;
+    }
+    .store-box p {
+      margin: 4px 0;
+      font-size: 11.5px;
+      line-height: 1.4;
+      color: #451a03;
+    }
+    .map-box {
+      border: 1px solid #fed7aa;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(120, 53, 15, 0.05);
+    }
     .ftr{text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #fed7aa;padding-top:16px;margin-top:40px}
     .txn-badge{display:inline-block;background:#fefce8;border:1px solid #fcd34d;color:#78350f;font-weight:700;font-family:monospace;padding:3px 10px;border-radius:6px;font-size:12px;letter-spacing:0.5px}
   </style></head><body>
@@ -203,6 +257,29 @@ function printInvoice(order: any) {
     ${order.discount > 0 ? `<div class="tot-row" style="color:#16a34a"><span>Discount ${order.couponCode ? `(${order.couponCode})` : ''}</span><span>-&#x20B9;${order.discount}</span></div>` : ''}
     <div class="tot-row grand"><span>Grand Total</span><span>&#x20B9;${order.total}</span></div>
   </div>
+
+  <div class="store-section">
+    <div class="store-box">
+      <h3>Our Registered Office & Store</h3>
+      <p><strong>OM NATURAL CHEKKA GANUGA NUNELU</strong></p>
+      <p>D.No. 126-137, Sri Lakshmi Narasimha Nagar,</p>
+      <p>5th Line, Inner Ring Road, Gorantla,</p>
+      <p>Guntur, Andhra Pradesh - 522034</p>
+      <p style="margin-top:8px">📞 <strong>Phone:</strong> +91 86882 91288</p>
+      <p>✉️ <strong>Email:</strong> info@om-naturals.com</p>
+    </div>
+    <div class="map-box">
+      <iframe 
+        src="https://maps.google.com/maps?q=OM%20NATURAL%20CHEKKA%20GANUGA%20NUNE%20Gorantla%20Guntur&t=&z=16&ie=UTF8&iwloc=&output=embed" 
+        width="100%" 
+        height="125" 
+        style="border:0;" 
+        allowfullscreen="" 
+        loading="lazy">
+      </iframe>
+    </div>
+  </div>
+
   <div class="ftr"><p>Thank you for choosing Om Natural wood-pressed oils!</p><p>Computer-generated invoice. No physical signature required.</p></div>
   <script>window.onload=()=>window.print();</script>
   </body></html>`;
@@ -831,7 +908,7 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
               </span>
             )}
             <button
-              onClick={() => printInvoice(order)}
+              onClick={() => printInvoice(order, language)}
               className="flex items-center gap-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-100 text-xs font-bold px-3.5 py-2 rounded-xl transition-colors"
             >
               <Printer size={12}/> {language === 'te' ? 'రసీదు' : 'Invoice'}
@@ -1031,7 +1108,7 @@ function OrderCard({ order, expanded, onToggle, onCancelSuccess, showToast, onRe
                 </button>
               )}
               <button
-                onClick={() => printInvoice(order)}
+                onClick={() => printInvoice(order, language)}
                 className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-100 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors"
               >
                 <Printer size={12}/> {language === 'te' ? 'ఇన్‌వాయిస్ డౌన్‌లోడ్' : 'Download Invoice'}
