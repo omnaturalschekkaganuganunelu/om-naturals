@@ -52,7 +52,7 @@ export const useCartStore = create<CartState>()(
         if (existingItem) {
           const newQuantity = existingItem.quantity + item.quantity;
           if (newQuantity > item.stock) {
-            alert(`క్షమించండి, స్టాక్ పరిమితి దాటింది. గరిష్ట స్టాక్: ${item.stock}`);
+            useToastStore.getState().showToast(`క్షమించండి, స్టాక్ పరిమితి దాటింది. గరిష్ట స్టాక్: ${item.stock}`, 'error');
             return;
           }
           newItems = currentItems.map((i) =>
@@ -60,7 +60,7 @@ export const useCartStore = create<CartState>()(
           );
         } else {
           if (item.quantity > item.stock) {
-            alert(`క్షమించండి, స్టాక్ పరిమితి దాటింది. గరిష్ట స్టాక్: ${item.stock}`);
+            useToastStore.getState().showToast(`క్షమించండి, స్టాక్ పరిమితి దాటింది. గరిష్ట స్టాక్: ${item.stock}`, 'error');
             return;
           }
           newItems = [...currentItems, item];
@@ -148,7 +148,7 @@ export const useCartStore = create<CartState>()(
         }
         const item = get().items.find((i) => i.productId === productId);
         if (item && quantity > item.stock) {
-          alert(`క్షమించండి, స్టాక్ పరిమితి దాటింది. గరిష్ట స్టాక్: ${item.stock}`);
+          useToastStore.getState().showToast(`క్షమించండి, స్టాక్ పరిమితి దాటింది. గరిష్ట స్టాక్: ${item.stock}`, 'error');
           return;
         }
 

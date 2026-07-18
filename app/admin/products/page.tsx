@@ -173,7 +173,7 @@ export default function AdminProductsPage() {
           newUrls.push(data.url);
         } else {
           const err = await res.json();
-          alert(`Failed to upload ${files[i].name}: ${err.error}`);
+          showToast(`Failed to upload ${files[i].name}: ${err.error}`, 'error');
         }
       }
 
@@ -184,7 +184,7 @@ export default function AdminProductsPage() {
       }
     } catch (error) {
       console.error('Error uploading files:', error);
-      alert('Connection error during file upload.');
+      showToast('Connection error during file upload.', 'error');
     } finally {
       setUploadingSingle(false);
       setUploadingVariantIndex(null);

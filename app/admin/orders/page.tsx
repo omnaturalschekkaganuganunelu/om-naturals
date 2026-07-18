@@ -10,11 +10,13 @@ import PremiumLoader from '@/components/PremiumLoader';
 import CustomSelect from '@/components/CustomSelect';
 import CustomCalendar from '@/components/admin/CustomCalendar';
 import { useRealtime } from '@/hooks/useRealtime';
+import { useToastStore } from '@/store/toastStore';
 
 export default function AdminOrdersPage() {
   const router = useRouter();
   const { data: session, status: authStatus } = useSession();
   const { t, language } = useLanguage();
+  const showToast = useToastStore((s) => s.showToast);
   const hasFetchedRef = useRef(false);
 
   // Helper to extract coordinates from order or address lines
@@ -186,7 +188,7 @@ export default function AdminOrdersPage() {
         loadOrders();
       } else {
         const err = await res.json();
-        alert(err.error || 'స్థితి అప్‌డేట్ చేయడంలో లోపం జరిగింది.');
+        showToast(err.error || 'స్థితి అప్‌డేట్ చేయడంలో లోపం జరిగింది.', 'error');
       }
     } catch (err) {
       console.error('Error updating order status:', err);
@@ -209,7 +211,7 @@ export default function AdminOrdersPage() {
       const txnRef = order.transactionRef || null;
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
-        alert(language === 'te' ? 'దయచేసి పాపప్స్ అనుమతించండి.' : 'Please allow popups to view invoice.');
+        showToast(language === 'te' ? 'దయచేసి పాపప్స్ అనుమతించండి.' : 'Please allow popups to view invoice.', 'error');
         return;
       }
 

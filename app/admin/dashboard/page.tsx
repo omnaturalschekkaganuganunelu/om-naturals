@@ -57,7 +57,7 @@ export default function AdminDashboardPage() {
     setNewOrderAlert(payload.new);
     // Optional: play an audio alert
     if (audioRef.current) {
-      audioRef.current.play().catch(() => {});
+      audioRef.current.play().catch(() => { });
     }
   });
 
@@ -65,14 +65,15 @@ export default function AdminDashboardPage() {
     return <PremiumLoader fullScreen={true} text={t('admin_dashboard_loading')} />;
   }
 
-  // Find maximum revenue to scale custom chart bars
-  const maxTrendRevenue = Math.max(...stats.revenueTrend.map((t: any) => t.revenue), 100);
+  // Find maximum revenue to scale custom chart bars dynamically
+  const maxRevenueVal = Math.max(...stats.revenueTrend.map((t: any) => t.revenue));
+  const maxTrendRevenue = maxRevenueVal > 0 ? maxRevenueVal : 100;
 
   return (
     <>
-      
+
       <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1">
-        
+
         {/* Real-time Order Alert Toast overlay */}
         {newOrderAlert && (
           <div className="fixed top-20 left-3 right-3 sm:left-auto sm:right-6 bg-gradient-to-r from-amber-600 to-amber-800 text-white p-4 rounded-2xl smooth-shadow z-50 flex items-center space-x-3.5 border border-amber-400 animate-bounce sm:max-w-sm">
@@ -100,13 +101,13 @@ export default function AdminDashboardPage() {
         )}
 
         <div className="flex flex-col lg:flex-row gap-0 sm:gap-8 items-start">
-          
+
           {/* Admin Sidebar Navigation */}
           <AdminSidebar />
 
           {/* Main Dashboard Content */}
           <section className="flex-1 w-full min-w-0 px-2 sm:px-0 pt-2 sm:pt-0 space-y-4 sm:space-y-6">
-            
+
             <div className="flex justify-between items-baseline">
               <div>
                 <h1 className="text-xl sm:text-3xl font-extrabold text-amber-950 font-heading">
@@ -114,7 +115,7 @@ export default function AdminDashboardPage() {
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500 mt-1">{t('admin_dashboard_sub')}</p>
               </div>
-              
+
               <button
                 onClick={loadStats}
                 className="p-2 bg-amber-50 hover:bg-amber-100 border border-amber-100 text-amber-800 rounded-xl transition-all"
@@ -126,7 +127,7 @@ export default function AdminDashboardPage() {
 
             {/* Stats Cards grid — 2 cols on mobile, 4 on md+ */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              
+
               <div className="bg-white border border-amber-100 p-3 sm:p-4 rounded-2xl sm:rounded-3xl smooth-shadow flex items-center gap-2 sm:gap-3">
                 <div className="p-2 sm:p-3 bg-amber-50 text-amber-800 rounded-xl sm:rounded-2xl border border-amber-100 shrink-0">
                   <Landmark size={18} />
@@ -170,43 +171,43 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              
+
               {/* Sales trend Chart Card */}
               <div className="lg:col-span-2 bg-white border border-amber-100 p-4 sm:p-6 rounded-3xl smooth-shadow space-y-3">
                 <h3 className="text-xs sm:text-sm font-bold text-amber-950">{t('admin_dashboard_chart_title')}</h3>
                 <div className="overflow-x-auto no-scrollbar pt-8 -mt-8">
                   {/* Bar Chart */}
                   <div className="h-44 min-w-[280px] flex items-end justify-between gap-1.5 border-b border-amber-100 pb-2 mt-8">
-                  {stats.revenueTrend.map((day: any) => {
-                    const heightPercent = Math.max(8, Math.round((day.revenue / maxTrendRevenue) * 100));
-                    return (
-                      <div key={day.date} className="flex-1 flex flex-col items-center justify-end h-full group relative">
-                        {/* Hover Tooltip — above bar, won't clip because of pt-10 */}
-                        <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 bg-amber-900 text-white text-[9px] font-bold py-1 px-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap pointer-events-none">
-                          ₹{Number(day.revenue).toFixed(2)}<br/>{day.orders} {language === 'te' ? 'ఆర్డర్లు' : 'orders'}
+                    {stats.revenueTrend.map((day: any) => {
+                      const heightPercent = Math.max(8, Math.round((day.revenue / maxTrendRevenue) * 100));
+                      return (
+                        <div key={day.date} className="flex-1 flex flex-col items-center justify-end h-full group relative">
+                          {/* Hover Tooltip — above bar, won't clip because of pt-10 */}
+                          <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 bg-amber-900 text-white text-[9px] font-bold py-1 px-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap pointer-events-none">
+                            ₹{Number(day.revenue).toFixed(2)}<br />{day.orders} {language === 'te' ? 'ఆర్డర్లు' : 'orders'}
+                          </div>
+                          {/* Bar */}
+                          <div
+                            style={{ height: `${heightPercent}%` }}
+                            className="w-full bg-amber-800 hover:bg-amber-600 rounded-t-lg transition-all cursor-pointer duration-300"
+                          ></div>
+                          <span className="text-[9px] text-gray-500 font-bold mt-1.5 leading-none">
+                            {language === 'te' ? day.day : (() => {
+                              const clean = day.day.trim();
+                              if (clean.includes('ఆది')) return 'Sun';
+                              if (clean.includes('సోమ')) return 'Mon';
+                              if (clean.includes('మంగళ')) return 'Tue';
+                              if (clean.includes('బుధ')) return 'Wed';
+                              if (clean.includes('గురు')) return 'Thu';
+                              if (clean.includes('శుక్ర')) return 'Fri';
+                              if (clean.includes('శని')) return 'Sat';
+                              return day.day;
+                            })()}
+                          </span>
+                          <span className="text-[8px] text-gray-400 font-semibold leading-none">{day.date}</span>
                         </div>
-                        {/* Bar */}
-                        <div
-                          style={{ height: `${heightPercent}%` }}
-                          className="w-full bg-amber-800 hover:bg-amber-600 rounded-t-lg transition-all cursor-pointer duration-300"
-                        ></div>
-                        <span className="text-[9px] text-gray-500 font-bold mt-1.5 leading-none">
-                          {language === 'te' ? day.day : (() => {
-                            const clean = day.day.trim();
-                            if (clean.includes('ఆది')) return 'Sun';
-                            if (clean.includes('సోమ')) return 'Mon';
-                            if (clean.includes('మంగళ')) return 'Tue';
-                            if (clean.includes('బుధ')) return 'Wed';
-                            if (clean.includes('గురు')) return 'Thu';
-                            if (clean.includes('శుక్ర')) return 'Fri';
-                            if (clean.includes('శని')) return 'Sat';
-                            return day.day;
-                          })()}
-                        </span>
-                        <span className="text-[8px] text-gray-400 font-semibold leading-none">{day.date}</span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -263,15 +264,13 @@ export default function AdminDashboardPage() {
                         <p className="text-[10px] text-gray-400">{ord.user?.email || 'Guest'}</p>
                       </div>
                       <div className="flex gap-1.5 items-center">
-                        <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-black border uppercase ${
-                          ord.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-amber-100 text-amber-800 border-amber-200'
-                        }`}>
+                        <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-black border uppercase ${ord.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+                          }`}>
                           {ord.paymentStatus === 'COMPLETED' ? 'Paid' : 'Pending'}
                         </span>
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black border uppercase ${
-                          ord.orderStatus === 'DELIVERED' ? 'bg-green-100 text-green-800 border-green-200' :
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black border uppercase ${ord.orderStatus === 'DELIVERED' ? 'bg-green-100 text-green-800 border-green-200' :
                           ord.orderStatus === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-900 border-amber-200'
-                        }`}>
+                          }`}>
                           {ord.orderStatus}
                         </span>
                       </div>
@@ -301,17 +300,15 @@ export default function AdminDashboardPage() {
                           <p className="text-[10px] text-gray-400 font-semibold">{ord.user?.email || 'Guest'}</p>
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-black border uppercase ${
-                            ord.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-amber-100 text-amber-800 border-amber-200'
-                          }`}>
+                          <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-black border uppercase ${ord.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+                            }`}>
                             {ord.paymentStatus === 'COMPLETED' ? (language === 'te' ? 'పూర్తయింది' : 'Paid') : (language === 'te' ? 'పెండింగ్' : 'Pending')}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black border uppercase ${
-                            ord.orderStatus === 'DELIVERED' ? 'bg-green-100 text-green-800 border-green-200' :
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black border uppercase ${ord.orderStatus === 'DELIVERED' ? 'bg-green-100 text-green-800 border-green-200' :
                             ord.orderStatus === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-900 border-amber-200'
-                          }`}>
+                            }`}>
                             {ord.orderStatus}
                           </span>
                         </td>
@@ -329,6 +326,6 @@ export default function AdminDashboardPage() {
 
       </main>
 
-          </>
+    </>
   );
 }

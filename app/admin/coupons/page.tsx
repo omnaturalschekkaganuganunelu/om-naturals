@@ -13,11 +13,13 @@ import { useLanguage } from '@/context/LanguageContext';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomSelect from '@/components/CustomSelect';
 import CustomCalendar from '@/components/admin/CustomCalendar';
+import { useToastStore } from '@/store/toastStore';
 
 export default function AdminCouponsPage() {
   const router = useRouter();
   const { data: session, status: authStatus } = useSession();
   const { t, language } = useLanguage();
+  const showToast = useToastStore((s) => s.showToast);
 
   const [coupons, setCoupons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,7 +129,7 @@ export default function AdminCouponsPage() {
     try {
       const res = await fetch(`/api/coupons/${id}`, { method: 'DELETE' });
       if (res.ok) loadCoupons();
-      else { const err = await res.json(); alert(err.error || 'Deletion failed.'); }
+      else { const err = await res.json(); showToast(err.error || 'Deletion failed.', 'error'); }
     } catch { console.error('Delete error'); }
     finally { setDeletingId(null); }
   };

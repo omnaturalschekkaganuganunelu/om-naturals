@@ -8,11 +8,13 @@ import { Plus, Edit3, Trash2, Search, X, AlertCircle } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import Image from 'next/image';
 import PremiumLoader from '@/components/PremiumLoader';
+import { useToastStore } from '@/store/toastStore';
 
 export default function AdminCategoriesPage() {
   const router = useRouter();
   const { data: session, status: authStatus } = useSession();
   const { t, language } = useLanguage();
+  const showToast = useToastStore((s) => s.showToast);
 
   // Data states
   const [categories, setCategories] = useState<any[]>([]);
@@ -175,7 +177,7 @@ export default function AdminCategoriesPage() {
         loadCategories();
       } else {
         const err = await res.json();
-        alert(err.error || (language === 'te' ? 'తొలగించడం విఫలమైంది.' : 'Deletion failed.'));
+        showToast(err.error || (language === 'te' ? 'తొలగించడం విఫలమైంది.' : 'Deletion failed.'), 'error');
       }
     } catch (err) {
       console.error('Error deleting category:', err);

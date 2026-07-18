@@ -406,7 +406,7 @@ function AccountContent() {
   // Get User's Live Geolocation Coordinates
   const handleGetLiveLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
+      showToast("Geolocation is not supported by your browser.", "error");
       return;
     }
 

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import {
   LayoutDashboard, ShoppingCart, FolderHeart, ShieldAlert,
-  Award, LogOut, ArrowLeft, Bell, Menu, X, Settings,
+  Award, LogOut, ArrowLeft, Bell, Menu, X, Settings, Users,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -17,6 +17,7 @@ const NAV_LINKS = (t: Function, language: string) => [
   { href: '/admin/categories',    icon: FolderHeart,     label: t('admin_sidebar_categories') },
   { href: '/admin/orders',        icon: ShieldAlert,     label: t('admin_sidebar_orders') },
   { href: '/admin/coupons',       icon: Award,           label: t('admin_sidebar_coupons') },
+  { href: '/admin/customers',     icon: Users,           label: language === 'te' ? 'వినియోగదారులు' : 'Customers' },
   { href: '/admin/notifications', icon: Bell,            label: language === 'te' ? 'నోటిఫికేషన్లు' : 'Notifications' },
   { href: '/admin/settings',      icon: Settings,        label: language === 'te' ? 'సెట్టింగ్‌లు' : 'Settings' },
 ];

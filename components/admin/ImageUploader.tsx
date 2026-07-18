@@ -4,6 +4,8 @@ import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import { UploadCloud, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 
+import { useToastStore } from '@/store/toastStore';
+
 interface ImageUploaderProps {
   images: string[];
   onChange: (images: string[]) => void;
@@ -13,6 +15,7 @@ interface ImageUploaderProps {
 }
 
 export default function ImageUploader({ images, onChange, maxImages = 5, label, language = 'en' }: ImageUploaderProps) {
+  const showToast = useToastStore((s) => s.showToast);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -22,7 +25,7 @@ export default function ImageUploader({ images, onChange, maxImages = 5, label, 
     
     // Check max images
     if (images.length + files.length > maxImages) {
-      alert(language === 'te' ? `మీరు గరిష్టంగా ${maxImages} చిత్రాలను మాత్రమే అప్‌లోడ్ చేయగలరు.` : `You can only upload up to ${maxImages} images.`);
+      showToast(language === 'te' ? `మీరు గరిష్టంగా ${maxImages} చిత్రాలను మాత్రమే అప్‌లోడ్ చేయగలరు.` : `You can only upload up to ${maxImages} images.`, 'error');
       return;
     }
 

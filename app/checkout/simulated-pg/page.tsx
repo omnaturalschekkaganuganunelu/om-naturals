@@ -5,11 +5,13 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { ShieldCheck, CreditCard, XCircle, CheckCircle } from 'lucide-react';
 import PremiumLoader from '@/components/PremiumLoader';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToastStore } from '@/store/toastStore';
 
 function SimulatedPGContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { language } = useLanguage();
+  const showToast = useToastStore((s) => s.showToast);
 
   const txnId = searchParams.get('txnId') || '';
   const orderId = searchParams.get('orderId') || '';
@@ -49,15 +51,16 @@ function SimulatedPGContent() {
           }
         }, 1500);
       } else {
-        alert(
+        showToast(
           language === 'te'
             ? 'సిమ్యులేషన్ రన్ చేయడంలో లోపం జరిగింది.'
-            : 'Error running simulation.'
+            : 'Error running simulation.',
+          'error'
         );
         setProcessing(false);
       }
     } catch (err) {
-      alert(language === 'te' ? 'కనెక్షన్ లోపం.' : 'Connection error.');
+      showToast(language === 'te' ? 'కనెక్షన్ లోపం.' : 'Connection error.', 'error');
       setProcessing(false);
     }
   };
