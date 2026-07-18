@@ -401,7 +401,7 @@ export default function CheckoutPage() {
   const discount = coupon ? coupon.discount : 0;
   const taxable = subtotal - discount;
   const tax = parseFloat(((taxable * gstRate) / 100).toFixed(2));
-  const shipping = taxable >= freeShippingAbove ? 0 : shippingFee;
+  const shipping = subtotal >= freeShippingAbove ? 0 : shippingFee;
   const total = parseFloat((taxable + tax + shipping + packingFee).toFixed(2));
 
   return (

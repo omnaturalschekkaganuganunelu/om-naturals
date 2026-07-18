@@ -130,7 +130,7 @@ export default function CartPage() {
 
     const taxableAmount = cartSubtotal - couponDiscount;
     const computedTax = parseFloat(((taxableAmount * GST_RATE) / 100).toFixed(2));
-    const computedShipping = taxableAmount >= FREE_SHIPPING_THRESHOLD || cartSubtotal === 0 ? 0 : SHIPPING_FEE;
+    const computedShipping = cartSubtotal >= FREE_SHIPPING_THRESHOLD || cartSubtotal === 0 ? 0 : SHIPPING_FEE;
     const computedTotal = parseFloat((taxableAmount + computedTax + computedShipping + (cartSubtotal > 0 ? PACKING_FEE : 0)).toFixed(2));
 
     setTax(computedTax);

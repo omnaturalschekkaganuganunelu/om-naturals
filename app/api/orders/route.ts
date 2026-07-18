@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
     // Calculate Tax, Shipping & Packing
     const taxableAmount = subtotal - discount;
     const tax = parseFloat(((taxableAmount * gstRate) / 100).toFixed(2));
-    const shipping = taxableAmount >= freeShippingAbove ? 0 : shippingFee;
+    const shipping = subtotal >= freeShippingAbove ? 0 : shippingFee;
     const total = parseFloat((taxableAmount + tax + shipping + packingFee).toFixed(2));
 
     // Execute order creation in transaction with collision retry protection

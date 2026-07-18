@@ -47,6 +47,7 @@ export const useCartStore = create<CartState>()(
       addItem: (item) => {
         const currentItems = get().items;
         const existingItem = currentItems.find((i) => i.productId === item.productId);
+        let newItems = [];
 
         if (existingItem) {
           const newQuantity = existingItem.quantity + item.quantity;
@@ -54,20 +55,42 @@ export const useCartStore = create<CartState>()(
             alert(`క్షమించండి, స్టాక్ పరిమితి దాటింది. గరిష్ట స్టాక్: ${item.stock}`);
             return;
           }
-          set({
-            items: currentItems.map((i) =>
-              i.productId === item.productId ? { ...i, quantity: newQuantity } : i
-            ),
-          });
+          newItems = currentItems.map((i) =>
+            i.productId === item.productId ? { ...i, quantity: newQuantity } : i
+          );
         } else {
           if (item.quantity > item.stock) {
             alert(`క్షమించండి, స్టాక్ పరిమితి దాటింది. గరిష్ట స్టాక్: ${item.stock}`);
             return;
           }
-          set({ items: [...currentItems, item] });
+          newItems = [...currentItems, item];
         }
-        // Clear coupon when cart changes
-        set({ coupon: null });
+
+        const newSubtotal = newItems.reduce((total, it) => total + it.price * it.quantity, 0);
+        let newCoupon = get().coupon;
+        if (newCoupon) {
+          const minRequired = newCoupon.minOrderValue ?? 0;
+          if (newSubtotal >= minRequired) {
+            let newDiscount = 0;
+            if (newCoupon.type === 'PERCENT') {
+              newDiscount = (newSubtotal * newCoupon.value) / 100;
+              if (newCoupon.maxDiscount && newDiscount > newCoupon.maxDiscount) {
+                newDiscount = newCoupon.maxDiscount;
+              }
+            } else {
+              newDiscount = newCoupon.value;
+            }
+            if (newDiscount > newSubtotal) newDiscount = newSubtotal;
+            newCoupon = { ...newCoupon, discount: parseFloat(newDiscount.toFixed(2)) };
+          } else {
+            newCoupon = null;
+          }
+        }
+
+        set({
+          items: newItems,
+          coupon: newCoupon,
+        });
 
         // Trigger premium cart toast
         const isTe = typeof document !== 'undefined' && document.cookie.includes('nune-lang=te');
@@ -80,9 +103,32 @@ export const useCartStore = create<CartState>()(
       },
       removeItem: (productId) => {
         const removedItem = get().items.find((i) => i.productId === productId);
+        const newItems = get().items.filter((i) => i.productId !== productId);
+        const newSubtotal = newItems.reduce((total, it) => total + it.price * it.quantity, 0);
+
+        let newCoupon = get().coupon;
+        if (newCoupon) {
+          const minRequired = newCoupon.minOrderValue ?? 0;
+          if (newSubtotal >= minRequired) {
+            let newDiscount = 0;
+            if (newCoupon.type === 'PERCENT') {
+              newDiscount = (newSubtotal * newCoupon.value) / 100;
+              if (newCoupon.maxDiscount && newDiscount > newCoupon.maxDiscount) {
+                newDiscount = newCoupon.maxDiscount;
+              }
+            } else {
+              newDiscount = newCoupon.value;
+            }
+            if (newDiscount > newSubtotal) newDiscount = newSubtotal;
+            newCoupon = { ...newCoupon, discount: parseFloat(newDiscount.toFixed(2)) };
+          } else {
+            newCoupon = null;
+          }
+        }
+
         set({
-          items: get().items.filter((i) => i.productId !== productId),
-          coupon: null,
+          items: newItems,
+          coupon: newCoupon,
         });
 
         if (removedItem) {
@@ -105,11 +151,35 @@ export const useCartStore = create<CartState>()(
           alert(`క్షమించండి, స్టాక్ పరిమితి దాటింది. గరిష్ట స్టాక్: ${item.stock}`);
           return;
         }
+
+        const newItems = get().items.map((i) =>
+          i.productId === productId ? { ...i, quantity } : i
+        );
+        const newSubtotal = newItems.reduce((total, it) => total + it.price * it.quantity, 0);
+
+        let newCoupon = get().coupon;
+        if (newCoupon) {
+          const minRequired = newCoupon.minOrderValue ?? 0;
+          if (newSubtotal >= minRequired) {
+            let newDiscount = 0;
+            if (newCoupon.type === 'PERCENT') {
+              newDiscount = (newSubtotal * newCoupon.value) / 100;
+              if (newCoupon.maxDiscount && newDiscount > newCoupon.maxDiscount) {
+                newDiscount = newCoupon.maxDiscount;
+              }
+            } else {
+              newDiscount = newCoupon.value;
+            }
+            if (newDiscount > newSubtotal) newDiscount = newSubtotal;
+            newCoupon = { ...newCoupon, discount: parseFloat(newDiscount.toFixed(2)) };
+          } else {
+            newCoupon = null;
+          }
+        }
+
         set({
-          items: get().items.map((i) =>
-            i.productId === productId ? { ...i, quantity } : i
-          ),
-          coupon: null,
+          items: newItems,
+          coupon: newCoupon,
         });
       },
       clearCart: () => set({ items: [], coupon: null }),
