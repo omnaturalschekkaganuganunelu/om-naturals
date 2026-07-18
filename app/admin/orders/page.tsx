@@ -222,6 +222,8 @@ export default function AdminOrdersPage() {
       };
       
       const trkId = getTrackingId(order.orderId);
+      const calculatedPacking = order.total - order.subtotal + (order.discount || 0) - (order.tax || 0) - order.shipping;
+      const packingFee = Math.max(0, Math.round(calculatedPacking * 100) / 100);
 
       const itemsHtml = order.items.map((it: any) => {
         const prod = dbProducts.find((p: any) => p.id === it.productId);
@@ -372,7 +374,7 @@ export default function AdminOrdersPage() {
               </div>
               <div class="totals-row">
                 <span>Packing Charges</span>
-                <span>₹20.00</span>
+                <span>₹${packingFee.toFixed(2)}</span>
               </div>
               <div class="totals-row">
                 <span>Tax (GST)</span>

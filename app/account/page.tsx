@@ -654,6 +654,8 @@ function AccountContent() {
     const isCancelled = order.orderStatus === 'CANCELLED';
     const isCOD = order.paymentMethod === 'COD';
     const txnRef = order.transactionRef || null;
+    const calculatedPacking = order.total - order.subtotal + (order.discount || 0) - (order.tax || 0) - order.shipping;
+    const packingFee = Math.max(0, Math.round(calculatedPacking * 100) / 100);
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       showToast(
@@ -811,7 +813,7 @@ function AccountContent() {
             </div>
             <div class="totals-row">
               <span>Packing Charges:</span>
-              <span>₹20.00</span>
+              <span>₹${packingFee.toFixed(2)}</span>
             </div>
             <div class="totals-row">
               <span>Tax (GST):</span>

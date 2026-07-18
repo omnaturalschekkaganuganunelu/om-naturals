@@ -14,13 +14,12 @@ export const sendOrderConfirmationEmail = async (orderId: string, userEmail: str
 
     if (!order) return false;
 
-    // Fetch settings for gst, shipping, packing
-    const settings = await prisma.siteSettings.findFirst();
-    const gstRate = settings?.gstRate || 5;
-    const packingFee = settings?.packingFee || 20;
-
-    // We can infer shipping by checking subtotal vs freeShippingAbove if we wanted, 
-    // but order.shipping already has the exact value stored!
+    // Calculate exact packing fee and GST rate dynamically from order totals
+    const calculatedPacking = order.total - order.subtotal + (order.discount || 0) - (order.tax || 0) - order.shipping;
+    const packingFee = Math.max(0, Math.round(calculatedPacking * 100) / 100);
+    const gstRate = order.tax > 0 && (order.subtotal - (order.discount || 0)) > 0 
+      ? Math.round((order.tax / (order.subtotal - (order.discount || 0))) * 100) 
+      : 0;
     const itemsHtml = order.items.map(item => `
       <tr>
         <td style="padding: 16px 0; border-bottom: 1px solid #f3f4f6;">
@@ -91,15 +90,21 @@ export const sendOrderConfirmationEmail = async (orderId: string, userEmail: str
               ` : ''}
               <tr>
                 <td style="padding: 8px 0; color: #57534e;">
-                  <div style="font-weight: 500;">Taxes (GST ${gstRate}%)</div>
+                  <div style="font-weight: 500;">GST (GST ${gstRate}%)</div>
                 </td>
                 <td style="padding: 8px 0; text-align: right; color: #292524; font-weight: 700; vertical-align: top;">₹${order.tax.toFixed(2)}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #57534e;">
-                  <div style="font-weight: 500;">Shipping & Packing</div>
+                  <div style="font-weight: 500;">Shipping</div>
                 </td>
-                <td style="padding: 8px 0; text-align: right; color: #292524; font-weight: 700; vertical-align: top;">₹${(order.shipping + packingFee).toFixed(2)}</td>
+                <td style="padding: 8px 0; text-align: right; color: #292524; font-weight: 700; vertical-align: top;">₹${order.shipping.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #57534e;">
+                  <div style="font-weight: 500;">Packing Charges</div>
+                </td>
+                <td style="padding: 8px 0; text-align: right; color: #292524; font-weight: 700; vertical-align: top;">₹${packingFee.toFixed(2)}</td>
               </tr>
               <tr>
                 <td colspan="2" style="padding: 16px 0 0 0; border-top: 1px solid #e7e5e4;"></td>

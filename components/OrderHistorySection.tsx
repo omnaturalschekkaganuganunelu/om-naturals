@@ -144,6 +144,8 @@ async function printInvoice(order: any, language: string) {
   const isCancelled = order.orderStatus === 'CANCELLED';
   const isCOD = order.paymentMethod === 'COD';
   const txnRef = order.transactionRef || null;
+  const calculatedPacking = order.total - order.subtotal + (order.discount || 0) - (order.tax || 0) - order.shipping;
+  const packingFee = Math.max(0, Math.round(calculatedPacking * 100) / 100);
   const win = window.open('', '_blank');
   if (!win) return;
 
@@ -259,7 +261,7 @@ async function printInvoice(order: any, language: string) {
   <div class="tot">
     <div class="tot-row"><span>Subtotal</span><span>&#x20B9;${order.subtotal ?? 0}</span></div>
     <div class="tot-row"><span>Shipping</span><span>&#x20B9;${order.shipping ?? 0}</span></div>
-    <div class="tot-row"><span>Packing Charges</span><span>&#x20B9;20</span></div>
+    <div class="tot-row"><span>Packing Charges</span><span>&#x20B9;${packingFee}</span></div>
     <div class="tot-row"><span>Tax (GST)</span><span>&#x20B9;${order.tax ?? 0}</span></div>
     ${order.discount > 0 ? `<div class="tot-row" style="color:#16a34a"><span>Discount ${order.couponCode ? `(${order.couponCode})` : ''}</span><span>-&#x20B9;${order.discount}</span></div>` : ''}
     <div class="tot-row grand"><span>Grand Total</span><span>&#x20B9;${order.total}</span></div>
