@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import BackButton from '@/components/BackButton';
 import ProductDetailClient from './ProductDetailClient';
 import { extractBaseName } from '@/hooks/useGroupedProducts';
+import { parseJSONArray } from '@/lib/json';
 
 export const revalidate = 86400; // 24 hours - relies on on-demand admin revalidatePath for updates
 
@@ -72,30 +73,18 @@ const getProductData = async (slug: string) => {
       })(),
     }));
 
-    // Format current product fields
+// Format current product fields
     const formattedProduct = {
       ...product,
       images: (() => {
         try { return JSON.parse(product.images); } catch { return []; }
       })(),
-      benefits: (() => {
-        try { return JSON.parse(product.benefits); } catch { return []; }
-      })(),
-      benefitsTe: (() => {
-        try { return product.benefitsTe ? JSON.parse(product.benefitsTe) : []; } catch { return []; }
-      })(),
-      ingredients: (() => {
-        try { return product.ingredients ? JSON.parse(product.ingredients) : []; } catch { return []; }
-      })(),
-      ingredientsTe: (() => {
-        try { return product.ingredientsTe ? JSON.parse(product.ingredientsTe) : []; } catch { return []; }
-      })(),
-      usage: (() => {
-        try { return product.usage ? JSON.parse(product.usage) : []; } catch { return []; }
-      })(),
-      usageTe: (() => {
-        try { return product.usageTe ? JSON.parse(product.usageTe) : []; } catch { return []; }
-      })(),
+      benefits: parseJSONArray(product.benefits),
+      benefitsTe: parseJSONArray(product.benefitsTe),
+      ingredients: parseJSONArray(product.ingredients),
+      ingredientsTe: parseJSONArray(product.ingredientsTe),
+      usage: parseJSONArray(product.usage),
+      usageTe: parseJSONArray(product.usageTe),
     };
 
     return { product: formattedProduct, relatedProducts, siblings };

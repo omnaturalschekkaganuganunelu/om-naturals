@@ -12,6 +12,7 @@ import CustomSelect from '@/components/CustomSelect';
 import { extractBaseName } from '@/hooks/useGroupedProducts';
 import { extractBaseNameTe } from '@/components/ProductCard';
 import { useToastStore } from '@/store/toastStore';
+import { safeUnwrapLines } from '@/lib/json';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VariantForm {
@@ -339,7 +340,6 @@ export default function AdminProductsPage() {
     setEditingProduct(p);
     setModalMode('single');
     setFormError('');
-    const joinArr = (v: any) => Array.isArray(v) ? v.join('\n') : (v || '');
     setSingleForm({
       id: p.id,
       name: p.name,
@@ -355,12 +355,12 @@ export default function AdminProductsPage() {
       imageUrls: p.images || [],
       description: p.description || '',
       descriptionTe: p.descriptionTe || '',
-      benefits: joinArr(p.benefits),
-      benefitsTe: joinArr(p.benefitsTe),
-      ingredients: joinArr(p.ingredients),
-      ingredientsTe: joinArr(p.ingredientsTe),
-      usage: joinArr(p.usage),
-      usageTe: joinArr(p.usageTe),
+      benefits: safeUnwrapLines(p.benefits),
+      benefitsTe: safeUnwrapLines(p.benefitsTe),
+      ingredients: safeUnwrapLines(p.ingredients),
+      ingredientsTe: safeUnwrapLines(p.ingredientsTe),
+      usage: safeUnwrapLines(p.usage),
+      usageTe: safeUnwrapLines(p.usageTe),
       isActive: p.isActive !== undefined ? p.isActive : true,
     });
     setShowModal(true);
@@ -371,7 +371,6 @@ export default function AdminProductsPage() {
     setModalMode('single');
     setFormError('');
     const baseName = extractBaseName(p.name);
-    const joinArr = (v: any) => Array.isArray(v) ? v.join('\n') : (v || '');
     setSingleForm({
       name: baseName + ' ',
       nameTe: p.nameTe ? p.nameTe + ' ' : '',
@@ -386,12 +385,12 @@ export default function AdminProductsPage() {
       imageUrls: [],
       description: p.description || '',
       descriptionTe: p.descriptionTe || '',
-      benefits: joinArr(p.benefits),
-      benefitsTe: joinArr(p.benefitsTe),
-      ingredients: joinArr(p.ingredients),
-      ingredientsTe: joinArr(p.ingredientsTe),
-      usage: joinArr(p.usage),
-      usageTe: joinArr(p.usageTe),
+      benefits: safeUnwrapLines(p.benefits),
+      benefitsTe: safeUnwrapLines(p.benefitsTe),
+      ingredients: safeUnwrapLines(p.ingredients),
+      ingredientsTe: safeUnwrapLines(p.ingredientsTe),
+      usage: safeUnwrapLines(p.usage),
+      usageTe: safeUnwrapLines(p.usageTe),
       isActive: true,
     });
     setShowModal(true);
@@ -404,7 +403,7 @@ export default function AdminProductsPage() {
       setFormError(language === 'te' ? 'దయచేసి అన్ని అవసరమైన వివరాలు నింపండి.' : 'Please fill in all required fields.');
       return false;
     }
-    const splitLines = (s: string) => s.split('\n').map(l => l.trim()).filter(Boolean);
+    const splitLines = (s: string) => safeUnwrapLines(s).split('\n').map(l => l.trim()).filter(Boolean);
     const payload = {
       name,
       nameTe: nameTe || name,

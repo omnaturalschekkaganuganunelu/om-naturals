@@ -12,6 +12,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useLanguage } from '@/context/LanguageContext';
 import { formatVariantLabel, extractBaseNameTe } from '@/components/ProductCard';
 import { getOptimizedImageUrl } from '@/lib/imageOptimizer';
+import { parseJSONArray } from '@/lib/json';
 import dynamic from 'next/dynamic';
 
 const VariantSelectorModal = dynamic(() => import('@/components/VariantSelectorModal'), { ssr: false });
@@ -713,7 +714,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
               {activeTab === 'details' && <p className="font-medium">{language === 'te' && product.descriptionTe ? product.descriptionTe : product.description}</p>}
               {activeTab === 'benefits' && (
                 <ul className="space-y-2">
-                  {(language === 'te' && product.benefitsTe && product.benefitsTe.length > 0 ? product.benefitsTe : product.benefits).map((b: string, i: number) => (
+                  {parseJSONArray(language === 'te' && product.benefitsTe && product.benefitsTe.length > 0 ? product.benefitsTe : product.benefits).map((b: string, i: number) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="mt-1 w-4 h-4 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
                         <Check size={9} strokeWidth={3} className="text-emerald-600" />
@@ -725,7 +726,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
               )}
               {activeTab === 'ingredients' && (
                 <ul className="space-y-2">
-                  {(language === 'te' && product.ingredientsTe && product.ingredientsTe.length > 0 ? product.ingredientsTe : product.ingredients).map((ing: string, i: number) => (
+                  {parseJSONArray(language === 'te' && product.ingredientsTe && product.ingredientsTe.length > 0 ? product.ingredientsTe : product.ingredients).map((ing: string, i: number) => (
                     <li key={i} className="flex items-center gap-2 font-medium">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                       {ing}
@@ -735,7 +736,7 @@ export default function ProductDetailClient({ product, relatedProducts, siblings
               )}
               {activeTab === 'usage' && (
                 <ol className="space-y-2.5">
-                  {(language === 'te' && product.usageTe && product.usageTe.length > 0 ? product.usageTe : product.usage).map((use: string, i: number) => (
+                  {parseJSONArray(language === 'te' && product.usageTe && product.usageTe.length > 0 ? product.usageTe : product.usage).map((use: string, i: number) => (
                     <li key={i} className="flex gap-3">
                       <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 font-black text-xs flex items-center justify-center shrink-0 border border-amber-200">
                         {i + 1}
