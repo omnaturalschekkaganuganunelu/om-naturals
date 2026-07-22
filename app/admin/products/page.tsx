@@ -51,8 +51,14 @@ export default function AdminProductsPage() {
   };
 
   const generateSKU = (name: string, weight: string, unit: string) => {
-    const cleanName = name.toUpperCase().replace(/[^A-Z0-9]/g, "");
-    const prefix = cleanName.substring(0, 8) || "PROD";
+    const cleanWords = name
+      .toUpperCase()
+      .replace(/[^A-Z0-9\s]/g, "")
+      .split(/\s+/)
+      .filter((w) => !["100", "PURE", "WOOD", "PRESSED", "COLD", "OIL", "CHEKKA", "GANUGA"].includes(w) && w.length > 0);
+
+    const mainStr = cleanWords.join("") || name.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const prefix = mainStr.substring(0, 8) || "PROD";
     const wLabel = unit === "Litre" ? (weight + "L") : (weight + unit.slice(0, 2).toUpperCase());
     return ("OIL-" + prefix + "-" + wLabel).replace(/--+/g, "-");
   };
@@ -1117,8 +1123,8 @@ export default function AdminProductsPage() {
                   {/* SKU + Stock */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className={labelCls}>SKU Code (Auto-generated)</label>
-                      <input type="text" disabled className={`${inputCls} font-mono bg-gray-100 text-gray-500 font-bold border-amber-100/50 cursor-not-allowed`} value={singleForm.sku} />
+                      <label className={labelCls}>SKU Code *</label>
+                      <input type="text" className={`${inputCls} font-mono font-bold`} value={singleForm.sku} onChange={(e) => setSingleForm((p) => ({ ...p, sku: e.target.value.toUpperCase() }))} />
                     </div>
                     <div>
                       <label className={labelCls}>{t('admin_products_form_stock')} *</label>
@@ -1413,9 +1419,10 @@ export default function AdminProductsPage() {
                         {/* SKU + Stock */}
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className={labelCls}>{language === 'te' ? 'SKU (ఆటో)' : 'SKU (Auto-generated)'}</label>
-                            <input type="text" disabled className={`${inputCls} font-mono bg-gray-100 text-gray-500 font-bold border-amber-100/50 cursor-not-allowed`}
+                            <label className={labelCls}>{language === 'te' ? 'SKU *' : 'SKU *'}</label>
+                            <input type="text" className={`${inputCls} font-mono font-bold`}
                               value={v.sku}
+                              onChange={(e) => updateVariant(idx, 'sku', e.target.value.toUpperCase())}
                               placeholder="OIL-SKU" />
                           </div>
                           <div>
