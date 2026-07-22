@@ -279,7 +279,7 @@ export default function AdminProductsPage() {
       const key = extractBaseName(p.name);
       map.set(key, [...(map.get(key) || []), p]);
     });
-    
+
     let groups = Array.from(map.entries())
       .map(([key, variants]) => ({
         key,
@@ -540,11 +540,11 @@ export default function AdminProductsPage() {
 
   // ─── Toggle Active ────────────────────────────────────────────────────────
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  
+
   const handleToggleActive = async (productIds: string[], targetActive: boolean) => {
     const indicatorId = productIds.length === 1 ? productIds[0] : 'group-' + productIds[0];
     setTogglingId(indicatorId);
-    
+
     try {
       const promises = productIds.map(id =>
         fetch(`/api/products/${id}`, {
@@ -553,10 +553,10 @@ export default function AdminProductsPage() {
           body: JSON.stringify({ isActive: targetActive }),
         })
       );
-      
+
       const results = await Promise.all(promises);
       const allOk = results.every(res => res.ok);
-      
+
       if (allOk) {
         loadData(false);
         showToast(
@@ -622,7 +622,7 @@ export default function AdminProductsPage() {
 
   return (
     <>
-            <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1">
+      <main className="max-w-7xl mx-auto sm:px-5 lg:px-8 py-2 sm:py-8 flex-1">
         <div className="flex flex-col lg:flex-row gap-0 sm:gap-8 items-start">
           <AdminSidebar />
 
@@ -759,11 +759,10 @@ export default function AdminProductsPage() {
                               <span className="text-[9px] font-black bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full border border-amber-100">
                                 {language === 'te' ? 'బుక్ అయినవి' : 'Booked'}: {groupVariants.reduce((s, v) => s + v.salesCount, 0)}
                               </span>
-                              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${
-                                Math.min(...groupVariants.map((v) => v.stock)) < 10
-                                  ? 'bg-red-50 text-red-600 border-red-100'
-                                  : 'bg-green-50 text-green-700 border-green-100'
-                              }`}>
+                              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${Math.min(...groupVariants.map((v) => v.stock)) < 10
+                                ? 'bg-red-50 text-red-600 border-red-100'
+                                : 'bg-green-50 text-green-700 border-green-100'
+                                }`}>
                                 {language === 'te' ? 'మిగిలిన స్టాక్' : 'Left'}: {groupVariants.reduce((s, v) => s + v.stock, 0)}
                               </span>
                               <button
@@ -774,11 +773,10 @@ export default function AdminProductsPage() {
                                   const ids = groupVariants.map(v => v.id);
                                   handleToggleActive(ids, !first.isActive);
                                 }}
-                                className={`text-[9px] font-black px-2 py-0.5 rounded-full border transition-all active:scale-95 disabled:opacity-50 cursor-pointer ${
-                                  first.isActive
-                                    ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
-                                    : 'bg-red-50 hover:bg-red-100 text-red-800 border-red-200'
-                                }`}
+                                className={`text-[9px] font-black px-2 py-0.5 rounded-full border transition-all active:scale-95 disabled:opacity-50 cursor-pointer ${first.isActive
+                                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
+                                  : 'bg-red-50 hover:bg-red-100 text-red-800 border-red-200'
+                                  }`}
                               >
                                 {togglingId === 'group-' + first.id ? (language === 'te' ? 'మార్పు...' : 'Saving...') : (first.isActive
                                   ? (language === 'te' ? 'యాక్టివ్' : 'Active')
@@ -847,11 +845,10 @@ export default function AdminProductsPage() {
                                         e.stopPropagation();
                                         handleToggleActive([v.id], !v.isActive);
                                       }}
-                                      className={`text-[8px] font-black px-1.5 py-0.5 rounded-md border transition-all active:scale-95 disabled:opacity-50 cursor-pointer ${
-                                        v.isActive
-                                          ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
-                                          : 'bg-red-50 hover:bg-red-100 text-red-800 border-red-200'
-                                      }`}
+                                      className={`text-[8px] font-black px-1.5 py-0.5 rounded-md border transition-all active:scale-95 disabled:opacity-50 cursor-pointer ${v.isActive
+                                        ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
+                                        : 'bg-red-50 hover:bg-red-100 text-red-800 border-red-200'
+                                        }`}
                                     >
                                       {togglingId === v.id ? '...' : (v.isActive
                                         ? (language === 'te' ? 'యాక్టివ్' : 'Active')
@@ -866,9 +863,8 @@ export default function AdminProductsPage() {
                                     <span className="text-[9px] font-bold bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded border border-amber-100">
                                       {language === 'te' ? 'బుక్ చేయబడింది' : 'Booked'}: {v.salesCount}
                                     </span>
-                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                                      v.stock < 10 ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100'
-                                    }`}>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${v.stock < 10 ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100'
+                                      }`}>
                                       {language === 'te' ? 'మిగిలి ఉంది' : 'Left'}: {v.stock}
                                     </span>
                                   </div>
@@ -904,7 +900,7 @@ export default function AdminProductsPage() {
       {/* ─── Add / Edit Modal ─────────────────────────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-[200] pt-16 sm:pt-0">
-          <form onSubmit={handleFormSubmit} className="w-full sm:max-w-2xl bg-white shadow-2xl border border-amber-100 flex flex-col rounded-t-3xl sm:rounded-3xl" style={{maxHeight: 'calc(100dvh - 72px)', maxWidth: '42rem'}}>
+          <form onSubmit={handleFormSubmit} className="w-full sm:max-w-2xl bg-white shadow-2xl border border-amber-100 flex flex-col rounded-t-3xl sm:rounded-3xl" style={{ maxHeight: 'calc(100dvh - 72px)', maxWidth: '42rem' }}>
 
             {/* Modal Header - sticky */}
             <div className="sticky top-0 z-10 bg-white flex justify-between items-center px-6 pt-6 pb-4 border-b border-gray-100 rounded-t-3xl">
@@ -913,8 +909,8 @@ export default function AdminProductsPage() {
                   {editingProduct
                     ? (language === 'te' ? 'ఉత్పత్తి సవరణ' : 'Edit Product')
                     : modalMode === 'multi'
-                    ? (language === 'te' ? 'బహు-పరిమాణాల ఉత్పత్తి చేర్చు' : 'Add Multi-Size Product')
-                    : (language === 'te' ? 'కొత్త ఉత్పత్తి చేర్చు' : 'Add New Product')}
+                      ? (language === 'te' ? 'బహు-పరిమాణాల ఉత్పత్తి చేర్చు' : 'Add Multi-Size Product')
+                      : (language === 'te' ? 'కొత్త ఉత్పత్తి చేర్చు' : 'Add New Product')}
                 </h3>
                 {!editingProduct && modalMode === 'multi' && (
                   <p className="text-[11px] text-amber-800 mt-0.5 font-medium">
@@ -1021,23 +1017,22 @@ export default function AdminProductsPage() {
                       {t('admin_products_form_image')}
                     </label>
                     <div className="flex flex-col gap-2">
-                      <label 
+                      <label
                         onDragEnter={handleDragSingle}
                         onDragOver={handleDragSingle}
                         onDragLeave={handleDragSingle}
                         onDrop={handleDropSingle}
-                        className={`border-2 border-dashed rounded-xl cursor-pointer select-none flex flex-col items-center justify-center transition-all w-full p-4 ${
-                          dragActiveSingle 
-                            ? 'border-amber-600 bg-amber-100/40 text-amber-955 scale-[1.01] ring-4 ring-amber-500/10' 
-                            : 'border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs'
-                        }`}
+                        className={`border-2 border-dashed rounded-xl cursor-pointer select-none flex flex-col items-center justify-center transition-all w-full p-4 ${dragActiveSingle
+                          ? 'border-amber-600 bg-amber-100/40 text-amber-955 scale-[1.01] ring-4 ring-amber-500/10'
+                          : 'border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs'
+                          }`}
                       >
                         {uploadingSingle ? (
                           <div className="w-5 h-5 border-2 border-amber-900/30 border-t-amber-900 rounded-full animate-spin mb-1" />
                         ) : (
                           <ImageIcon size={20} className="mb-2 text-amber-500 opacity-60 animate-bounce" />
                         )}
-                        {dragActiveSingle 
+                        {dragActiveSingle
                           ? (language === 'te' ? 'చిత్రాలను ఇక్కడ వదిలివేయండి' : 'Drop images here')
                           : (language === 'te' ? 'చిత్రాలను ఎంచుకోండి లేదా ఇక్కడ లాగండి' : 'Select Images or Drag & Drop')}
                         <input
@@ -1050,16 +1045,16 @@ export default function AdminProductsPage() {
                           }}
                         />
                       </label>
-                      
+
                       {singleForm.imageUrls && singleForm.imageUrls.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-1">
                           {singleForm.imageUrls.map((url, idx) => (
                             <div key={idx} className="relative w-14 h-14 rounded-xl border border-amber-100 overflow-hidden shadow-sm group">
-                              <Image 
-                                src={url || '/images/logo-512.png'} 
-                                alt="" 
-                                fill 
-                                className="object-contain p-1 bg-white" 
+                              <Image
+                                src={url || '/images/logo-512.png'}
+                                alt=""
+                                fill
+                                className="object-contain p-1 bg-white"
                                 onError={(e) => {
                                   (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                                 }}
@@ -1325,23 +1320,22 @@ export default function AdminProductsPage() {
                             {language === 'te' ? 'చిత్రం URL' : 'Images'}
                           </label>
                           <div className="flex flex-col gap-2">
-                            <label 
+                            <label
                               onDragEnter={(e) => handleDragVariant(e, idx)}
                               onDragOver={(e) => handleDragVariant(e, idx)}
                               onDragLeave={(e) => handleDragVariant(e, idx)}
                               onDrop={(e) => handleDropVariant(e, idx)}
-                              className={`border-2 border-dashed rounded-xl cursor-pointer select-none flex flex-col items-center justify-center transition-all w-full p-3 ${
-                                dragActiveVariantIndex === idx 
-                                  ? 'border-amber-600 bg-amber-100/40 scale-[1.01] ring-4 ring-amber-500/10' 
-                                  : 'border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[10px]'
-                              }`}
+                              className={`border-2 border-dashed rounded-xl cursor-pointer select-none flex flex-col items-center justify-center transition-all w-full p-3 ${dragActiveVariantIndex === idx
+                                ? 'border-amber-600 bg-amber-100/40 scale-[1.01] ring-4 ring-amber-500/10'
+                                : 'border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[10px]'
+                                }`}
                             >
                               {uploadingVariantIndex === idx ? (
                                 <div className="w-4 h-4 border-2 border-amber-900/30 border-t-amber-900 rounded-full animate-spin mb-1" />
                               ) : (
                                 <ImageIcon size={16} className="mb-1 text-amber-500 opacity-60" />
                               )}
-                              {dragActiveVariantIndex === idx 
+                              {dragActiveVariantIndex === idx
                                 ? (language === 'te' ? 'ఇక్కడ వదిలివేయండి' : 'Drop here')
                                 : (language === 'te' ? 'చిత్రాలను ఎంచుకోండి లేదా లాగండి' : 'Select or Drag & Drop')}
                               <input
@@ -1354,16 +1348,16 @@ export default function AdminProductsPage() {
                                 }}
                               />
                             </label>
-                            
+
                             {v.imageUrls && v.imageUrls.length > 0 && (
                               <div className="flex flex-wrap gap-2 mt-1">
                                 {v.imageUrls.map((url, iUrl) => (
                                   <div key={iUrl} className="relative w-12 h-12 rounded-xl border border-amber-100 overflow-hidden shadow-sm group">
-                                    <Image 
-                                      src={url || '/images/logo-512.png'} 
-                                      alt="" 
-                                      fill 
-                                      className="object-contain p-1 bg-white" 
+                                    <Image
+                                      src={url || '/images/logo-512.png'}
+                                      alt=""
+                                      fill
+                                      className="object-contain p-1 bg-white"
                                       onError={(e) => {
                                         (e.currentTarget as HTMLImageElement).srcset = '/images/logo-512.png';
                                       }}
@@ -1477,10 +1471,10 @@ export default function AdminProductsPage() {
                   {saving
                     ? (language === 'te' ? 'సేవ్ అవుతోంది...' : 'Saving...')
                     : editingProduct
-                    ? (language === 'te' ? 'ఉత్పత్తి అప్‌డేట్ చేయి' : 'Update Product')
-                    : modalMode === 'multi'
-                    ? (language === 'te' ? 'అన్ని పరిమాణాలు సేవ్ చేయి' : `Save ${variants.length} Variants`)
-                    : (language === 'te' ? 'ఉత్పత్తి సేవ్ చేయి' : 'Save Product')}
+                      ? (language === 'te' ? 'ఉత్పత్తి అప్‌డేట్ చేయి' : 'Update Product')
+                      : modalMode === 'multi'
+                        ? (language === 'te' ? 'అన్ని పరిమాణాలు సేవ్ చేయి' : `Save ${variants.length} Variants`)
+                        : (language === 'te' ? 'ఉత్పత్తి సేవ్ చేయి' : 'Save Product')}
                 </button>
                 <button
                   type="button"
@@ -1495,6 +1489,6 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-          </>
+    </>
   );
 }

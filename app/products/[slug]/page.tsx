@@ -59,12 +59,40 @@ const getProductData = async (slug: string) => {
     }
 
     // Pick the representative (lowest price / smallest variant) from each unique group
-    const relatedRaw = Object.values(relatedGroups)
+    let relatedRaw = Object.values(relatedGroups)
       .map((variants) => {
         const sorted = [...variants].sort((a, b) => a.weight - b.weight);
         return sorted[0];
       })
       .slice(0, 4);
+
+    // Fallback: If category has fewer than 4 related products, fetch from other categories
+    if (relatedRaw.length < 4) {
+      const existingIds = [product.id, ...allInCategory.map((p) => p.id)];
+      const fallbackProducts = await prisma.product.findMany({
+        where: {
+          id: { notIn: existingIds },
+          isActive: true,
+        },
+        include: { category: true },
+        take: 20,
+      });
+
+      const fallbackGroups: { [key: string]: any[] } = {};
+      for (const p of fallbackProducts) {
+        const pBaseName = extractBaseName(p.name);
+        if (!fallbackGroups[pBaseName]) {
+          fallbackGroups[pBaseName] = [];
+        }
+        fallbackGroups[pBaseName].push(p);
+      }
+
+      for (const variants of Object.values(fallbackGroups)) {
+        if (relatedRaw.length >= 4) break;
+        const sorted = [...variants].sort((a, b) => a.weight - b.weight);
+        relatedRaw.push(sorted[0]);
+      }
+    }
 
     const relatedProducts = relatedRaw.map((p) => ({
       ...p,
