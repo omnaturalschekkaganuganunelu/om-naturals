@@ -7,7 +7,7 @@ import ProductDetailClient from './ProductDetailClient';
 import { extractBaseName } from '@/hooks/useGroupedProducts';
 import { parseJSONArray } from '@/lib/json';
 
-export const revalidate = 86400; // 24 hours - relies on on-demand admin revalidatePath for updates
+export const revalidate = 0; // Fresh live data on every request
 
 const getProductData = async (slug: string) => {
   try {
