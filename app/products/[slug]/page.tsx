@@ -7,7 +7,7 @@ import ProductDetailClient from './ProductDetailClient';
 import { extractBaseName } from '@/hooks/useGroupedProducts';
 import { parseJSONArray } from '@/lib/json';
 
-export const revalidate = 0; // Fresh live data on every request
+export const revalidate = 3600; // 1 hour ISR cache - on-demand invalidated when admin edits products
 
 const getProductData = async (slug: string) => {
   try {
